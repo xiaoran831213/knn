@@ -37,3 +37,6 @@ rsconnect/
 
 # temporary simulation scripts
 sim.sh
+
+# emacs's back
+*~
