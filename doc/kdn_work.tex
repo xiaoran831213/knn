@@ -1,0 +1,281 @@
+\documentclass[11pt]{article}
+\usepackage{textcomp,bbding,subfig}
+\usepackage{float,amssymb,amsmath,amsfonts,bm}
+\usepackage{graphicx,cite}
+\usepackage[]{natbib}
+\def\style{apa}
+\usepackage[usenames,pdftex,dvips]{color,xcolor}
+\usepackage{multirow,tabulary,colortbl,array}
+\usepackage[normalem]{ulem}
+\usepackage[colorlinks,bookmarksopen,bookmarksnumbered,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{moreverb,setspace}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+%
+% enable numbered boxes, with caption and label.
+\makeatletter
+\newcommand\fs@boxedtop
+{
+  \fs@boxed
+  \def\@fs@mid{\vspace\abovecaptionskip\relax}
+  \let\@fs@iftopcapt\iftrue
+}
+\makeatother
+\floatstyle{boxedtop}
+\floatname{framedbox}{Box}
+\newfloat{framedbox}{tbp}{lob}
+%
+% Text layout
+\topmargin -1.5cm
+\oddsidemargin 0.0cm
+\evensidemargin 0.0cm
+\textwidth 16.5cm
+\textheight 23.5cm
+\setlength{\parindent}{0cm}
+
+% Remove brackets from numbering in List of References
+% \makeatletter \renewcommand\@biblabel[1]{} \makeatother
+\makeatletter
+\renewcommand{\@biblabel}[1]{\quad#1.}
+\makeatother
+% 
+\allowdisplaybreaks[2]          % to accomodate long proofs spanning over pages
+% 
+% aliasis
+\newcommand{\bs}{\boldsymbol}
+\newcommand{\mean}[2]{\left\langle{#1}\right\rangle_{#2}}
+\newcommand{\trb}[1]{\textrm{Tr}\left({#1}\right)}
+\newcommand{\trs}[1]{\textrm{Tr}\left[{#1}\right]}
+\newcommand{\invb}[1]{{\left({#1}\right)^-}}
+\newcommand{\invs}[1]{{\left[{#1}\right]^-}}
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+\renewcommand{\eqref}[1]{Eq.\,\ref{#1}}
+%
+% vectors and matrices
+\newcommand{\va}{\boldsymbol{a}}
+\newcommand{\vb}{\boldsymbol{b}}
+\newcommand{\vc}{\boldsymbol{c}}
+\newcommand{\vf}{\boldsymbol{f}}
+\newcommand{\vh}{\boldsymbol{h}}
+\newcommand{\vv}{\boldsymbol{v}}
+\newcommand{\vx}{\boldsymbol{x}}
+\newcommand{\vu}{\boldsymbol{u}}
+\newcommand{\vy}{\boldsymbol{y}}
+\newcommand{\vw}{\boldsymbol{w}}
+\newcommand{\vs}{\boldsymbol{s}}
+% 
+\newcommand{\xv}{\boldsymbol{V}}
+\newcommand{\xh}{\boldsymbol{H}}
+\newcommand{\xk}{\boldsymbol{K}}
+\newcommand{\xw}{\boldsymbol{W}}
+\newcommand{\xx}{\boldsymbol{X}}
+%
+% random variable
+\newcommand{\xu}{\boldsymbol{U}}
+\newcommand{\xy}{\boldsymbol{Y}}
+\newcommand{\xa}{\boldsymbol{A}}
+\newcommand{\xd}{\boldsymbol{D}}
+% 
+% with hats or tildes
+\newcommand{\vbt}{\tilde{\vb}}
+\newcommand{\vct}{\tilde{\vc}}
+\newcommand{\vht}{\tilde{\vh}}
+\newcommand{\vvt}{\tilde{\vv}}
+\newcommand{\vvp}{\vv^{\prime}}
+\newcommand{\mwt}{\tilde{\mw}}
+\newcommand{\vxt}{\tilde{\vx}}
+\newcommand{\vhh}{\hat{\vh}}
+\newcommand{\vvh}{\hat{\vv}}
+\newcommand{\vyh}{\hat{\vy}}
+\newcommand{\xyh}{\hat{\xy}}
+% 
+% xiaoran's edit
+\newcommand{\xadd}[1]{\textcolor{blue}{#1}}
+\newcommand{\xdel}[1]{\textcolor{red}{\sout{#1}}}
+\newcommand{\xrpl}[2]{\xdel{#1}\xadd{#2}}
+\newcommand{\xacc}[1]{\textcolor{ForestGreen}{#1}}
+%
+% distribute as
+\newcommand{\distas}[1]{\mathbin{\overset{#1}{\sim}}}
+% encoders
+% vector or matrix
+\newcommand{\vecEC}[1]{\boldsymbol{#1}}
+% 
+% decoders
+\newcommand{\vecDC}[1]{\boldsymbol{\tilde{#1}}} 
+% 
+\newcommand{\xVO}{\boldsymbol{x}}         % the x vector, original
+\newcommand{\xVR}{\boldsymbol{\tilde{x}}} % the x vector, recovered
+\newcommand{\xSO}{x}                      % the x scaler, original
+\newcommand{\xSR}{\tilde{x}}              % the x scaler, recovered
+% 
+% the vector of ones
+\newcommand{\one}{\boldsymbol{1}}
+% the diagnal matrix
+\newcommand{\id}{\textrm{\textbf{I}}}
+% 
+% parameters in the neural network
+\newcommand{\Par}{\boldsymbol{\Theta}}
+\newcommand{\pEC}{\boldsymbol{\theta}}
+\newcommand{\pDC}{\boldsymbol{\tilde{\theta}}}
+% 
+% Loss function in Cross Entropy form
+\newcommand{\LCE}[2]{#1\log{#2} + (1-#1)\log{(1-#2)}}
+% 
+% derivative
+\newcommand{\DRV}[2]{\frac{d #1}{d #2}}
+\newcommand{\DRC}[3]{\DRV{#1}{#2}\DRV{#2}{#3}}
+\newcommand{\PDV}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\PDC}[3]{\PDV{#1}{#2}\PDV{#2}{#3}}
+% 
+% invers logit, aka. sigmoid function
+\newcommand{\SGM}[1]{\frac{1}{1+e^{-#1}}}
+% 
+% assign to diagnoral
+\newcommand{\diag}[1]{\text{diag} (#1)}
+% identity matrix
+\newcommand{\im}{\textrm{\textbf{I}}}
+% 
+% declarations
+% argument of the minimum / maximum
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+% \pagestyle{headings}
+
+% \author{Xiaoran Tong, Qin Lu} 
+\doublespacing
+\begin{document}
+\title{A Kernel Deep Network}
+\maketitle
+\begin{flushleft}
+  Xiaoran Tong\textsuperscript{1},
+  Qin Lu\textsuperscript{1*},
+  \\
+  \bigskip
+  \textbf{1} Department of Epidemiology and Biostatistics, Michigan State University, East Lansing, USA
+
+  \vskip 50ex
+  Correspondence: Qing Lu\\
+  Department of Epidemiology and Biostatistics\\
+  College of Human Medicine\\
+  Michigan State University\\
+  909 Fee Road\\
+  East Lansing, MI 48824-1030\\
+  qlu@msu.edu\\
+\end{flushleft}
+
+\clearpage
+\begin{abstract}
+  This research note covers the computational optimization over Kernel Deep Network.
+\end{abstract}
+\clearpage
+
+\section{Kernel Deep Network}
+As a analogy of traditional feed forward deep network, a Kernel Deep Network (KDN) assumes a feed forward, hierachical data structure that can be though as two or more layers of Gaussian Kernel Perceptron (GKP) stacking on top of one another.
+
+A P-M-Q Gaussian Kernel Perceptron (GKP) takes P-dimensional input from the lower GKP or a raw data source, to first realize a serie of $L$ kernel functions with optional white noise from which Q Gaussian Process (GP) are built by letting their covariance functions be the mixure of the kernels, which in turn spawn Q noisy multivariate normal (MVN) output on top of the GKP. In addition, the Q-NVN can go through an entry-wise non-linear squash function (i.e., sigmoid or probit) to gain some other desirable properties. From outside, the behavior of a P-L-Q GKP mimics that of a deterministic P-Q perceptron that transforms an N-P input to an N-Q output; inside, the weighted mixing of kernels and white noises minic the linear weights and biases of the deterministic perceptron. The $i$ th. GKP in a Kernel Deep Network takes the form of
+\begin{align}\label{gkp}
+  \xx_i \sim \prod_{j=1}^J \mathcal{N}(\bs{0}, \xv_{i,j}); \quad \xv_{i,q} = \sum_{l=1}^{L_i} \sigma_{i,l,j}^2 K_{i,l}(\xx_{i-1}).
+\end{align}
+From right to left, the input $\xx_{i-1}$ come as output of the lower layer, and is plugged in each of $L$ kernels of the current layer, then through $L_i \times Q_i$ weights $\Sigma_i=\{\sigma_{i,1,1}, \dots \sigma_{i,J,L} \}$ to merge into $Q_i$ covariances that generate output $\xx_i$ of $Q_i$ features.
+
+To construct a KDN of depth $M$, stack $M$ GKPs one upon another, and each layer takes the output from below as its the input, such that
+\begin{equation} \label{eq:kdn}
+  \begin{small} 
+    \begin{array}{rclrcl}
+      \xyh = 
+      \xx_{M  } & \sim   & \prod_{j=1}^{J_{M  }} \mathcal{N}(\bs{0}, \, \xv_{M,j}) \quad & \xv_{M, j} & =      & \sum_{l=1}^{L_{M  }} \sigma_{M, j, l}^2 K_{M,l}(\xx_{M-1}) \\
+                & \vdots &                                                         \quad &            & \vdots & \\
+      \xx_{i  } & \sim   & \prod_{j=1}^{J_{i  }} \mathcal{N}(\bs{0}, \, \xv_{i,j}) \quad & \xv_{i, j} & =      & \sum_{l=1}^{L_{i  }} \sigma_{i, j, l}^2 K_{i,l}(\xx_{i-1}) \\
+                & \vdots &                                                         \quad &            & \vdots & \\
+      \xx_{2  } & \sim   & \prod_{j=1}^{J_{2  }} \mathcal{N}(\bs{0}, \, \xv_{2,j}) \quad & \xv_{2, j} & =      & \sum_{l=1}^{L_{2  }} \sigma_{2, j, l}^2 K_{2,l}(\xx_{1  }) \\
+      \xx_{1  } & \sim   & \prod_{j=1}^{J_{1  }} \mathcal{N}(\bs{0}, \, \xv_{1,j}) \quad & \xv_{1, j} & =      & \sum_{l=1}^{L_{1  }} \sigma_{1, j, l}^2 K_{1,l}(\xx_{0  }),
+    \end{array}
+  \end{small}
+\end{equation}
+where $\xx=\xx_0$ at the very bottom is the raw input, and $\hat{\xy} = \xx_M$ on top is the final output; $J_{m \dots M}$ are the number of features in layer outputs, particularly, $Q = J_M$ and $P = J_0$ are the features count for final output $\xy$ and raw input $\xx$, respectively. Collaborators interested in conceiving the raw data can supply the lowest kernels $K_{1, 1 \dots L_1}(\xx)$ instead of the protected data $\xx$ itself.
+
+\section{Trainer}
+The trainer will tune the KDN paramters $\bs{\Theta} = \{\Sigma_1, \dots, \Sigma_M \}$ such that the inferred outcome $\xyh$ is close to the objective outcome $\xy$. We now resort to minimize the negative likelihood of seeing $\xy$ on top of the network. The desity of the output given by the network is shown in (\ref{eq:kdn}), the likelihood of presenting the observed outcome $\xy$ on its top is
+\begin{equation}\label{eq:lky}
+  \begin{split}
+    L(\xy) = -\log\Pr(\xy) &= \sum_{q=1}^Q \frac{1}{2} \vy_q^T \xv_q \vy_q^T + \frac{1}{2}\log\left|\xv_q\right| + \frac{N}{2}\log(2\pi) \\
+    \xv_q &= \sum_{l=1}^L \sigma^2_{q,l}K_{q,l}(\xu)
+  \end{split}
+\end{equation}
+For notation simplicity we let $\xv_q = \xv_{M,q}\mid\xu$, for the same reason, we use $\xu = \xx_{M-1}$ to denote the output right below the top. The gradient of negative log likelihood $L$ wrt. the top layer paramters are
+\begin{equation}
+  \begin{split}
+    \PDV{L(\xy)}{\sigma^2_q} & = -\frac{1}{2} \vy_q^T\xv_q^- \PDV{\xv_q}{\sigma^2_q} \xv_q^-\vy_q + \trb{\xv_q^-\PDV{\xv_q}{\sigma^2_q}},
+  \end{split}
+\end{equation}
+which is fairly easy. The more troublesome task is to pass the gradient down to lower level paramters $\sigma^2_-$. Think of the traditional deterministic feedforward network, the gradient is passed down via the use of chain rule
+\begin{equation}
+\begin{split}
+  \PDV{L(\xy)}{\bs{\theta}} = \PDV{L}{\xu} \PDV{\xu}{\bs{\theta}},
+\end{split}
+\end{equation}
+where $\PDV{L(\xy)}{\xu}$ says which direction $\xu$ should back from in order to reduce $L$, while $\PDV{\xu}{\bs{\theta}}$ tells how $\xu$ will move if an infinitely small increment is given to $\bs{\theta}$. The KDN however, is a generative network, which is imposible to utilize the chain rule directly because $\xu$ is not a function of $\bs{\theta}$, even though $\xu$ was indeed generated from lower networks parameterized by $\bs{\theta}$.
+
+Another approach to mimic the passing of gradient information down to lower levels is to first optimized $L$ wrt. $\xu$ (i.e., by performing SGD upon $\PDV{L}{\xu}$), that is, to find the most desirable input for the top level, $\xu*$, then treat $\xu*$ as an observed outcome that lower levels should strive to generate by tuning their parameters
+\begin{equation}
+\begin{split}
+  \xu^*    &= \argmin_{\xu} L(\xy \mid \xu; \theta_{\xy}) \\
+  \bs{\theta}^*_- &= \argmin_{\bs{\theta_-}} L(\xu^*; \bs{\theta}^-),
+\end{split}
+\end{equation}
+which is an approach frequently visited by sparse encoders [?]. For our purpose however, getting $\xu^*$ is rather difficult because $\PDV{L}{\xu}$ is complex due to the involvement of kernels, and the matrix manipulation they imply.
+
+Since the GKP layers are generative, an immediate thought is to draw the best $\xu^*$ ``desired'' by the likelihood of $\xy$ (or ``rejected'' by the negative log likelihood of $\xy$), from the prosterior distribution
+\begin{equation}
+  \Pr(\xu \mid \xy) \propto \Pr(\xy \mid \xu)\Pr(\xu),
+\end{equation}
+yet again due to the involvment of kernels and matrices between $\xu$ and $\xy$, the density $\Pr(\xu \mid \xy)$ is rather difficult to evaluate and sample from.
+
+Instead of demanding the improvement of $\xu$ or its density $\Pr(\xu)$, the better, if not the best of $\xu$ or $\Pr(\xu)$, can be promoted via a proposal and ratting procedure. Adding an extra term to mimic the gradient of $\Pr(\xy)$ wrt. the lower level parameters $\bs{\sigma^2_-}$
+\begin{equation}\label{eq:dv2}
+  \PDV{L(\xy)}{\bs{\sigma}^2_-} \propto -\PDV{L(\xu)}{\bs{\sigma}^2_-} \log{\Pr(\xy \mid \xu)},
+\end{equation}
+where $\log\Pr(\xy \mid \xu)$ rates the goodness of proposed $\xu$ by how likely the observed $\xy$ can be generated given the proposed $\xu$; the gradient
+\begin{equation*}
+  -\PDV{L(\xu)}{\bs{\sigma^2}_-} = \PDV{\log\Pr(\xu)}{\bs{\sigma^2_-}}
+\end{equation*}
+tells how likely $\xu$ will be proposed wrt. the lower level parameters. All together, (Eq. \ref{eq:dv2}) rate the loss (or negative gain) attributed to the goodness of $\xu$, achieved by a infinitely small increment along the direction of $\bs{\sigma^2_-}$. To propose a instance of $\xu$, simplly follow through the feed forward generation of $\xyh$ (Eq. \ref{eq:kdn}), where $\xu$ is generated right before $\xyh$ dose. The gradient of modified loss wrt. to any network paramter is
+\begin{equation} \label{eq:ls2}
+  \begin{split}
+    \PDV{L'}{\sigma^2} =
+    &-\frac{1}{2} \sum_{q=1}^Q \invb{\xv_q\mid\xu} \PDV{\xv_q}{\sigma^2} \invb{\xv_q\mid\xu} \vy_q + \trb{\invb{\xv_q\mid\xu}\PDV{\xv_q}{\sigma^2}} \\
+    &-\log \Pr(\xy \mid \xu) \PDV{\log \Pr(\xu)}{\sigma^2},
+  \end{split}
+\end{equation}
+Another perspective to see the proposal-ratting approach is to consider the final loss as the mean conditional negative log likelihood over the distribution of $\xu$, that is
+\begin{equation}\label{eq:ls3}
+  \begin{split}
+    L'(\xy)
+    &= -\mean{\log\Pr(\xy\mid\xu)}{\xu} \\
+    &= \int_{\xu} -\log\Pr(\xy\mid\xu) \Pr(\xu)\textrm{d}\xu \\
+    &= \int_{\xu} L(\xy\mid\xu) \Pr(\xu) \textrm{d}\xu
+  \end{split}
+\end{equation}
+\begin{equation}\label{eq:dv3}
+  \begin{split}
+    \PDV{L'}{\theta}
+    &= \mean{\PDV{L(\xy\mid\xu)}{\theta}}{\xu} + \int_{\xu} L(\xy\mid\xu) e^{\log\Pr(\xu)}\PDV{\log\Pr(\xu)}{\theta}\textrm{d}\xu \\
+    &= \mean{\PDV{L(\xy\mid\xu)}{\theta}}{\xu} - \mean{\log\Pr(\xy\mid\xu)\PDV{\log\Pr(\xu)}{\theta}}{\xu}
+  \end{split}
+\end{equation}
+If only one sample is drawn from $\Pr(\xu)$ to evaluate the mean, the gradient become
+\begin{equation*}
+    \PDV{L'}{\theta} = \PDV{L(\xy\mid\xu)}{\theta} - \log\Pr(\xy\mid\xu)\PDV{\log\Pr(\xu)}{\theta}
+\end{equation*}
+\singlespacing 
+\bibliographystyle{\style}
+\bibliography{ref}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
