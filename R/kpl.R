@@ -1,18 +1,13 @@
 ## main function
 
+#' kernel executor
+#'
+#' @param x N-P matrix or N-1 vector, the data on which to apply the
+#' kernel functions
+#' @param k a kernel function or list of kernel functions
+#' @param ... additional named parameters for the kernel function(s)
+#' @return a list of N-N kernel matrices
 krn <- function(x, k=c(idn, ply), ...) lapply(k, do.call, list(x))
-
-.std <- function(k)
-{
-    if(!is.list(k))
-        k <- lapply(k, as.list)
-
-    if(any(sapply(k, is.list)))         # saw some description in list
-        k <- lapply(k, as.list)
-    else                                # a single description in list
-        k <- list(k)
-    k
-}
 
 knl2str <- function(k)
 {
@@ -36,11 +31,27 @@ knl2str <- function(k)
     k
 }
 
+#' identity kernel function in matrix form
+#'
+#' @param x N-P matrix or N-1 vector of data
+#' @param y not used
+#' @param ... not used
+#' 
+#' @return an N-N identity matrix
 idn <- function(x, y=NULL, ...)
 {
     diag(NROW(x))
 }
     
+#' gaussian kernel function in matrix form
+#'
+#' @param x N-P matrix or N-1 vector of data
+#' @param y not used
+#' @param sigma variation length scale
+#' @param gamma scaling factor
+#' @param ... not used
+#' 
+#' @return an N-N identity matrix
 gau <- function(x, y=NULL, sigma=.1, gamma=1/NCOL(x), ...)
 {
     exp(-as.matrix(dist(x, 'euc') * gamma) / (2 * sigma^2))
@@ -94,14 +105,3 @@ ibs <- function(x, level=2, ...)
         x <- x / level
     1 - as.matrix(dist(x, 'man')) / ncol(x)
 }
-
-id <- function(x) diag(1, NROW(x))
-p1 <- function(x) ply(x, degree=1)
-p2 <- function(x) ply(x, degree=2)
-p3 <- function(x) ply(x, degree=3)
-ga <- function(x) gau(x)
-lp <- function(x) lap(x)
-s1 <- function(x) sin(1 * pi * x)
-s2 <- function(x) sin(2 * pi * x)
-sg <- function(x) 1/(1 + exp(-x))
-ex <- exp

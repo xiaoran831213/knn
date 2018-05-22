@@ -55,7 +55,7 @@ up3 <- function(.cx, .dv=2, ...)
     ucl <- lapply(ucv, chol)
     uac <- lapply(ucl, chol2inv)
     
-    if(!exists('U', inherit=FALSE))     # the very first hidden data
+    if(!exists('U', inherits=FALSE))     # the very first hidden data
     {
         U <- vapply(1:M, function(m) mvn(1, ucl[[m]], 1), y)
         U <- rmf.matrix(U)
@@ -161,7 +161,7 @@ up3 <- function(.cx, .dv=2, ...)
 }
 
 ## markder of derivatives
-mdv <- c('!@#$%^&*') %>% strsplit(NULL) %>% unlist
+mdv <- function(x) unlist(strsplit('!@#$%^&*', NULL))
 
 #' @title gradient descent for kernel deep net
 #' @param par vector initial values of parameters;
@@ -288,21 +288,23 @@ pl3 <- function(ctx, out=NULL, xlim=NULL, ylim=NULL, smooth=TRUE, ...)
     for(.n in names(ctx)) assign(.n, ctx[[.n]])
 
     ## reference LMM
-    cyh.lmm <- rpt %>% filter(mtd=='lmm', dat=='dvp', key=='cyh') %>% select(val) %>% unlist
-    mse.lmm <- rpt %>% filter(mtd=='lmm', dat=='dvp', key=='mse') %>% select(val) %>% unlist
-    nlk.lmm <- rpt %>% filter(mtd=='lmm', dat=='dvp', key=='nlk') %>% select(val) %>% unlist
+    cyh.lmm <- unlist(subset(rpt, mtd=='lmm' & dat=='dvp' & key=='cyh', val))
+    mse.lmm <- unlist(subset(rpt, mtd=='lmm' & dat=='dvp' & key=='mse', val))
+    nlk.lmm <- unlist(subset(rpt, mtd=='lmm' & dat=='dvp' & key=='nlk', val))
 
     ## phi
     PHI.sim <- exp(par$sim[1, ])
     PHI.hst <- sapply(hst$par, function(r) exp(r$tuy[1, ]))
-    
+
     ## history relative to LMM
-    rel <- hst$stt %>%
-        mutate(mnl=mnl/nlk.lmm, mse=mse/mse.lmm, cyh=cyh/cyh.lmm,
-               lxy=lxy/nlk.lmm, luy=luy/nlk.lmm, lxu=lxu/nlk.lmm, PHI=PHI.hst/PHI.sim)
+    rel <- mutate(hst$stt,
+                  mnl=mnl/nlk.lmm, mse=mse/mse.lmm, cyh=cyh/cyh.lmm,
+                  lxy=lxy/nlk.lmm, luy=luy/nlk.lmm, lxu=lxu/nlk.lmm,
+                  PHI=PHI.hst/PHI.sim)
     if(smooth)
-        rel <- rel %>% mutate(mnl=lowess(sec, mnl, .1)[[2]],
-                              mse=lowess(sec, mse, .1)[[2]], cyh=lowess(sec, cyh, .1)[[2]])
+        rel <- mutate(rel, mnl=lowess(sec, mnl, .1)[[2]],
+                      mse=lowess(sec, mse, .1)[[2]],
+                      cyh=lowess(sec, cyh, .1)[[2]])
     ## rel <- rel %>% mutate_at(vars(mse:lxu), log)
 
     ## plot relative history

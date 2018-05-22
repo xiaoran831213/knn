@@ -1,8 +1,8 @@
 library(dplyr, warn.conflicts=FALSE)
 library(rstiefel)
 source('R/hlp.R')
-source('R/kpl1.R')
-source('R/kd3.R')
+source('R/kpl.R')
+source('R/kdn.R')
 #' simulation of kernel deep neural network;
 #' @param gno list contains gnomic map, subject id, and genomic matrix
 #' in alternative allele dosage format;
