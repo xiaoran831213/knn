@@ -1,0 +1,511 @@
+\documentclass[11pt]{article}
+\usepackage{textcomp,bbding,subfig}
+\usepackage{float,amssymb,amsmath,amsfonts,bm}
+\usepackage{graphicx,cite}
+\usepackage[]{natbib}
+\def\style{apa}
+\usepackage[usenames,pdftex,dvips]{color,xcolor}
+\usepackage{multirow,tabulary,colortbl,array}
+\usepackage[normalem]{ulem}
+\usepackage[colorlinks,bookmarksopen,bookmarksnumbered,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{moreverb,setspace}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+%
+% enable numbered boxes, with caption and label.
+\makeatletter
+\newcommand\fs@boxedtop
+{
+  \fs@boxed
+  \def\@fs@mid{\vspace\abovecaptionskip\relax}
+  \let\@fs@iftopcapt\iftrue
+}
+\makeatother
+\floatstyle{boxedtop}
+\floatname{framedbox}{Box}
+\newfloat{framedbox}{tbp}{lob}
+%
+% Text layout
+\topmargin -1.5cm
+\oddsidemargin 0.0cm
+\evensidemargin 0.0cm
+\textwidth 16.5cm
+\textheight 23.5cm
+\setlength{\parindent}{0cm}
+
+% Remove brackets from numbering in List of References
+% \makeatletter \renewcommand\@biblabel[1]{} \makeatother
+\makeatletter
+\renewcommand{\@biblabel}[1]{\quad#1.}
+\makeatother
+% 
+\allowdisplaybreaks[2]          % to accomodate long proofs spanning over pages
+% 
+% aliasis
+\newcommand{\bs}{\boldsymbol}
+\newcommand{\mean}[2]{\left\langle{#1}\right\rangle_{#2}}
+\newcommand{\trb}[1]{\textrm{Tr}\left({#1}\right)}
+\newcommand{\trs}[1]{\textrm{Tr}\left[{#1}\right]}
+\newcommand{\invb}[1]{{\left({#1}\right)^-}}
+\newcommand{\invs}[1]{{\left[{#1}\right]^-}}
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+\renewcommand{\eqref}[1]{Eq.\,\ref{#1}}
+%
+% vectors and matrices
+\newcommand{\va}{\boldsymbol{a}}
+\newcommand{\vb}{\boldsymbol{b}}
+\newcommand{\vc}{\boldsymbol{c}}
+\newcommand{\vf}{\boldsymbol{f}}
+\newcommand{\vh}{\boldsymbol{h}}
+\newcommand{\vv}{\boldsymbol{v}}
+\newcommand{\vx}{\boldsymbol{x}}
+\newcommand{\vu}{\boldsymbol{u}}
+\newcommand{\vy}{\boldsymbol{y}}
+\newcommand{\vw}{\boldsymbol{w}}
+\newcommand{\vs}{\boldsymbol{s}}
+% 
+\newcommand{\xv}{\boldsymbol{V}}
+\newcommand{\xh}{\boldsymbol{H}}
+\newcommand{\xk}{\boldsymbol{K}}
+\newcommand{\xw}{\boldsymbol{W}}
+\newcommand{\xx}{\boldsymbol{X}}
+%
+% random variable
+\newcommand{\xu}{\boldsymbol{U}}
+\newcommand{\xy}{\boldsymbol{Y}}
+\newcommand{\xa}{\boldsymbol{A}}
+\newcommand{\xd}{\boldsymbol{D}}
+% 
+% with hats or tildes
+\newcommand{\vbt}{\tilde{\vb}}
+\newcommand{\vct}{\tilde{\vc}}
+\newcommand{\vht}{\tilde{\vh}}
+\newcommand{\vvt}{\tilde{\vv}}
+\newcommand{\vvp}{\vv^{\prime}}
+\newcommand{\mwt}{\tilde{\mw}}
+\newcommand{\vxt}{\tilde{\vx}}
+\newcommand{\vhh}{\hat{\vh}}
+\newcommand{\vvh}{\hat{\vv}}
+\newcommand{\vyh}{\hat{\vy}}
+% 
+% xiaoran's edit
+\newcommand{\xadd}[1]{\textcolor{blue}{#1}}
+\newcommand{\xdel}[1]{\textcolor{red}{\sout{#1}}}
+\newcommand{\xrpl}[2]{\xdel{#1}\xadd{#2}}
+\newcommand{\xacc}[1]{\textcolor{ForestGreen}{#1}}
+%
+% distribute as
+\newcommand{\distas}[1]{\mathbin{\overset{#1}{\sim}}}
+% encoders
+% vector or matrix
+\newcommand{\vecEC}[1]{\boldsymbol{#1}}
+% 
+% decoders
+\newcommand{\vecDC}[1]{\boldsymbol{\tilde{#1}}} 
+% 
+\newcommand{\xVO}{\boldsymbol{x}}         % the x vector, original
+\newcommand{\xVR}{\boldsymbol{\tilde{x}}} % the x vector, recovered
+\newcommand{\xSO}{x}                      % the x scaler, original
+\newcommand{\xSR}{\tilde{x}}              % the x scaler, recovered
+% 
+% the vector of ones
+\newcommand{\one}{\boldsymbol{1}}
+% the diagnal matrix
+\newcommand{\id}{\textrm{\textbf{I}}}
+% 
+% parameters in the neural network
+\newcommand{\Par}{\boldsymbol{\Theta}}
+\newcommand{\pEC}{\boldsymbol{\theta}}
+\newcommand{\pDC}{\boldsymbol{\tilde{\theta}}}
+% 
+% Loss function in Cross Entropy form
+\newcommand{\LCE}[2]{#1\log{#2} + (1-#1)\log{(1-#2)}}
+% 
+% derivative
+\newcommand{\DRV}[2]{\frac{d #1}{d #2}}
+\newcommand{\DRC}[3]{\DRV{#1}{#2}\DRV{#2}{#3}}
+\newcommand{\PDV}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\PDC}[3]{\PDV{#1}{#2}\PDV{#2}{#3}}
+% 
+% invers logit, aka. sigmoid function
+\newcommand{\SGM}[1]{\frac{1}{1+e^{-#1}}}
+% 
+% assign to diagnoral
+\newcommand{\diag}[1]{\text{diag} (#1)}
+% identity matrix
+\newcommand{\im}{\textrm{\textbf{I}}}
+% 
+% declarations
+% argument of the minimum / maximum
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+% \pagestyle{headings}
+
+% \author{Xiaoran Tong, Qin Lu} 
+\doublespacing
+\begin{document}
+\title{A note on the computation issues of Kernel Deep Network}
+\maketitle
+\begin{flushleft}
+  Xiaoran Tong\textsuperscript{1},
+  Qin Lu\textsuperscript{1*},
+  \\
+  \bigskip
+  \textbf{1} Department of Epidemiology and Biostatistics, Michigan State University, East Lansing, USA
+
+  \vskip 50ex
+  Correspondence: Qing Lu\\
+  Department of Epidemiology and Biostatistics\\
+  College of Human Medicine\\
+  Michigan State University\\
+  909 Fee Road\\
+  East Lansing, MI 48824-1030\\
+  qlu@msu.edu\\
+\end{flushleft}
+
+\clearpage
+\begin{abstract}
+  This research note covers the computational optimization over Kernel Deep Network.
+\end{abstract}
+\clearpage
+
+\section{Kernel Deep Network}
+As a analogy of traditional feed forward deep network, a Kernel Deep Network (KDN) assumes a feed forward, hierachical data structure that can be though as two or more layers of Gaussian Kernel Perceptron (GKP) stacking on top of one another.
+
+A P-M-Q Gaussian Kernel Perceptron (GKP) takes P-dimensional input either from the lower GKP or a raw data source, to first realize a serie of $L$ pre-selected kernel functions with one optional white noise function from which Q Gaussian Process (GP) are built by letting the covariance functions be the mixure of the aforementioned kernel functions and some additional white noises $\mathcal{N}(\bs{0}, \textrm{\textbf{I}})$, which in turn present Q noisy multivariate normal (MVN) output on top of the GKP. In addition, the Q-NVN can go through an entry-wise non-linear squash function (i.e., sigmoid or probit) to gain some desired properties. From outside, the behavior of a P-L-Q GKP mimics that of a deterministic P-Q perceptron that transforms an N-P input into N-Q output; inside, the weighted mixing of kernel functions and white noises minic the linear transformation weights and biases of the deterministic perceptron.
+
+For now we only deal with KDN consists of two layers of GKP and a single dimensional output on top, without any non-linear squashing, thus the (only) latent output $\xu$ and final output $\xy$ are all Gaussian, whre the distribution of final output $\xy$ is determined by the latent data $\xu$, with additional white noise:
+\begin{equation}\label{eq:y_dst}
+  \vy \sim \mathcal{N}(\bs{0}, \xv_y|\xu), \qquad \xv_y|\xu = \sum_{j=1}^J \tau_j \xk_j(\xu) + \phi\id,
+\end{equation}
+and the latent data $\xu$ is generated from $L$ fixed input kernels throught a noise-free process:
+\begin{equation}\label{eq:u_dst}
+  \xu = [\vu_1, \dots, \vu_M] \sim \prod_{m=1}^M \mathcal{N}(\bs{0}, \xv_m), \qquad \xv_m = \sum_{l=1}^{L}\tau_{l,m}\xk_l(\xx).
+\end{equation}
+where $\bs{\tau}_{L \times M}$ is a matrix of weights that combines $L$ kernels in the lower GKP layer into $M$ covariance functions that generate $M$ latent features $\xu=[\vu_1, \dots \vu_M]$; $\bs{\tau}_{J}$ is a vector of mixing weights that combines $J$ kernels in the upper GKP layer into a single covariance that supposedly generate the observed outcome $\vy$; $\phi$ is the additional white noise that affects the generated outcome. 
+
+We plan to use the noise free portion of the covariance of $\vy$, i.e., the part contributed by the input $K_1(\xx), \dots, K_L(\xx)$, to infer the relationship between $\xx$ and $\vy$ by looking at the weights $\{\bs{\tau_J}, \bs{\tau_{L \times M}}\}$. Let $\vf$ be the noise free portion of $\vy$, such that
+\begin{align*}
+  \vf|\xu & \sim \mathcal{N}(\bs{0}, \xv_a|\xu), \qquad \xv_a|\xu = \sum_{j=1}^J \tau_j \xk_j(\xu) = \xv_y|\xu - \phi\id,
+\end{align*}
+thus, given some version of latent data $\xu$, the joint distribution of the noisy outcome and its noise free part is assumed to be
+\begin{equation*}
+  \left[
+    \begin{array}{c}
+      \vy \\
+      \vf|\xu
+    \end{array}
+  \right] \sim
+  \mathcal{N}\left( 
+    \left[
+      \begin{array}{c}
+        0 \\
+        0
+      \end{array}
+    \right],
+    \left[
+      \begin{array}{cc}
+        \xv_y|\xu & \xv_a|\xu \\
+        \xv_a|\xu & \xv_a|\xu
+      \end{array}
+    \right]
+  \right),
+\end{equation*}
+and the conditional distribution of noise free part $\vf|\xu$ given the observed outcome $\vy$ is
+\begin{equation*}
+  \vf|\xu \sim \mathcal{N} \left[(\xv_a|\xu)(\xv_y|\xu)^- \vy, (\xv_a|\xu) - (\xv_a|\xu)(\xv_y|\xu)^-(\xv_a|\xu) \right]
+\end{equation*}
+The inferred outcome $\vyh$ is now set to be the expected value of the mean of noise free part, over the distribution of latent data $\xu$, that is,
+\begin{align}\label{eq:yht}
+  \vyh       &= \mean{(\xv_a|\xu) (\xv_y^{-1}|\xu)\vy}{\xu},
+\end{align}
+and the distribution of each one of $M$ features in $\xu$ is $\mathcal{N}(\bs{0}, \xv_m)$ that
+\begin{align}\label{eq:uds}
+  \log{\Pr(\vu_m)} = -\frac{N}{2}\log{(2\pi)} -\frac{1}{2}\log{|\xv_m|} -\frac{1}{2}\vu_m^T \xv_m^- \vu_m, \quad m=1, \dots, M
+\end{align}
+
+\section{Trainer}
+The task is to tune the KDN paramters $\bs{\Theta} = \{\bs{\tau}_J, \bs{\tau}_{L \times M}, \phi\}$ such that the inferred outcome $\vyh$ is as clost as allowed by the network, to the observed outcome $\vy$. Currently we resort to stochastic gradient descent (SGD) to minimizes the least squre error (LSE) between inferred outcome and the truth, wrt. network paramters $\bs{\Theta}$, shown below
+\begin{equation}
+  \begin{split}
+    R(\vy, \vyh ; \bs{\tau}_J, \bs{\tau}_{L \times M}, \phi) &= (\vy - \vyh)^T(\vy - \vyh) \\
+    &= \vy^T \mean{\phi (\xv_y|\xu)^-}{\xu} \vy
+  \end{split}
+\end{equation}
+Let $\xa = \mean{\phi (\xv_y|\xu)^-}{\xu}$ so the LSE loss $R = \vy^T \xa \vy$, (continue the copy from Xiaoxi's research paper) by the chain rule, the gradient of the LSE wrt. KDN parameter $\theta \in \bs{\Theta}$ is
+\begin{align*}
+  \PDV{R}{\theta} & = \xy^T \left( \PDV{\xa}{\theta}\xa + \xa\PDV{\xa}{\theta} \right) \xy,
+\end{align*}
+taking advantage of the symmetry of both $\xa$ and $\PDV{\xa}{\theta}$, the gradient can be simplified to
+\begin{align*}
+  \PDV{R}{\theta} & = 2 (\xy^T \xa) (\PDV{\xa}{\theta} \xy) = 2 (\xy^T \PDV{\xa}{\theta}) (\xa \xy).
+\end{align*}
+Before writing down the the subsequent gradient of $\xa$ wrt. $\theta$, some re-parameterization is done:
+\begin{align*}
+  e^{\lambda_*} &= \tilde{\tau}_* = \tau_* / \phi \\
+  e^{\varphi} &= \phi,
+\end{align*}
+and the set of paramters become $\tilde{\bs{\Theta}} = \{\bs{\lambda}_J, \bs{\lambda}_{L \times M}, \varphi \}$, which ensures the weights combining the kernels are non-negative and the covariance they combined into is also non-negative. \\
+To continue with the gradients, it would be helpful to write $\xa$ in its intergral form, also applies the re-parameterization,
+\begin{align*}
+  \xa &= \mean{\phi (\xv_y\mid\xu)^-}{\xu} \\
+      &= \int_{\xu} \phi \left[ \sum_{j=1}^J{\tau_j K_j(\xu)} + \phi\id \right]^- \Pr(\xu) \textrm{d}\xu \\
+      &= \int_{\xu} \left[ \sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id \right]^- \Pr(\xu) \textrm{d}\xu
+\end{align*}
+The gradient of $\xa$ wrt. the upper weight which is straight forward:
+\begin{equation}\label{eq:upr_dvt}
+  \begin{split}
+    \PDV{\xa}{\lambda_j}
+    &= -e^{\lambda_j}
+    \mean{
+      \invs{ \sum_{\tilde{j}=1}^J e^{\lambda_{\tilde{j}}}K_{\tilde{j}}(\xu) + \id }
+      K_j(\xu)
+      \invs{ \sum_{\tilde{j}=1}^J e^{\lambda_{\tilde{j}}}K_{\tilde{j}}(\xu) + \id }
+    }{\xu} \\
+    &= -\phi\tau_j\mean{ (\xv_y\mid\xu)^- K_j(\xu) (\xv_y\mid\xu)^- }{\xu}
+  \end{split}
+\end{equation}
+For lower weights, the gradient is passed down via distribution term $\Pr(\xu)$. Using the fact
+$$ \PDV{f}{\theta}=\PDV{e^{\log{f}}}{\theta} = \PDV{\log{f}}{\theta} f, $$
+we have
+\begin{align*}
+  \PDV{\xa}{\lambda_{l,m}}
+  &= \int_{\xu} \left[ \sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id \right]^- \PDV{\Pr(\xu)}{\lambda_{l,m}} \textrm{d}\xu \\
+  &= \int_{\xu} \left[ \sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id \right]^- \PDV{\log\Pr(\xu)}{\lambda_{l,m}} \Pr(\xu) \textrm{d}\xu;
+\end{align*}
+based on (\ref{eq:uds}), we have
+\begin{align*}
+  \PDV{\log\Pr(\xu)}{\lambda_{l,m}}
+  = \PDV{\log\Pr(\vu_m)}{\lambda_{l,m}} 
+  = -\frac{1}{2}\trb{\xv_m^- \PDV{\xv_m}{\lambda_{l,m}}} + \frac{1}{2}\vu_m^T\xv_m^- \PDV{\xv_m}{\lambda_{l,m}} \xv_m^-\vu_m;
+\end{align*}
+based on the construct of $\xv_m = \sum_{l=1}^L \tau_{l,m}K_l$ and the re-parameterized $\tau_{l,m} = \phi e^{\lambda_{l,m}}$, we have $\PDV{\xv_m}{\lambda_{l,m}} = \phi e^{\lambda_{l,m}} K_l$, and the gradient of density $\Pr(\xu)$ wrt. lower weight $\lambda_{l,m}$ is
+\begin{equation*}\label{eq:uds_dvt}
+  \begin{split}
+    \PDV{\Pr(\vu_m)}{\lambda_{l,m}} 
+    &= -\frac{1}{2}
+    \trs
+    {
+      \invb{\sum_{\tilde{l}=1}^L e^{\varphi}e^{\lambda_{\tilde{l},m}} K_{\tilde{l}}}
+      e^{\varphi} e^{\lambda_{l,m}} K_l
+    } \\
+    &+ \frac{1}{2} \vu_m^T 
+    \invb{ \sum_{\tilde{l}=1}^L e^{\varphi}e^{\lambda_{\tilde{l},m}} K_{\tilde{l}}} 
+    e^{\varphi} e^{\lambda_{l,m}} K_l
+    \invb{ \sum_{\tilde{l}=1}^L e^{\varphi}e^{\lambda_{\tilde{l},m}} K_{\tilde{l}}}
+    \vu_m \\
+    %
+    &= -\frac{e^{\lambda_{l,m}}}{2} 
+    \trs{ \left(\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l},m}} K_{\tilde{l}}\right)^- K_l }
+    + \frac{e^{\lambda_{l,m}}}{2 e^{\varphi}}
+    \vu_m^T
+    \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l},m}} K_{\tilde{l}}}
+    K_l
+    \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l},m}} K_{\tilde{l}}}
+    \vu_m .
+  \end{split}
+\end{equation*}
+Putting everything together, the gradient of $\xa$ wrt. lower weight $\lambda_{l,m}$ is
+\begin{equation} \label{eq:lwr_dvt}
+  \begin{split}
+    \PDV{\xa}{\lambda_{l,m}}
+    &= -\frac{e^{\lambda_{l,m}}}{2} \mean{
+      \left[ \sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id \right]^-
+      \textrm{Tr}\left[ \left(\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l},m}} K_{\tilde{l}}\right)^- K_l \right]
+    }{\xu} \\
+    &+ \frac{e^{\lambda_{l,m}}}{2 e^{\varphi}} \mean{
+      \invs{\sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id}
+      \vu_m^T \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l},m}} K_{\tilde{l}}}
+      K_l
+      \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l},m}} K_{\tilde{l}}} \vu_m
+    }{\xu} \\
+    &= -\frac{\phi\tau_{l,m}}{2} \mean{(\xv_y|\xu)^- \trb{\xv_m^- K_l}}{\xu}
+    +\frac{\phi\tau_{l,m}}{2} \mean{(\xv_y|\xu)^- \vu_m^T (\xv_m)^- K_l (\xv_m)^- \vu_m}{\xu} \\
+    &= \frac{\phi\tau_{l,m}}{2} \mean{(\xv_y|\xu)^- \left[-\trb{\xv_m^- K_l} + \vu_m^T \xv_m^- K_l \xv_m^- \vu_m \right] }{\xu}.
+  \end{split}
+\end{equation}
+It may seem odd, but due to the re-parameterization, the gradient of $\xa$ wrt. noise $\phi=e^{\varphi}$ also come from the density of $\xu$, not the upper layer of KDN, such that
+\begin{align*}
+  \PDV{\xa}{\varphi} &= \int_{\xu} \left[ \sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id \right]^- \PDV{\Pr(\xu)}{\varphi} \textrm{d}\xu \\
+                     &= \int_{\xu} \left[ \sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id \right]^- \PDV{\log\Pr(\xu)}{\varphi} \Pr(\xu)\textrm{d}\xu;
+\end{align*}
+again based on (\ref{eq:uds})
+\begin{align*}
+  \PDV{\log\Pr(\xu)}{\varphi} &= -\frac{1}{2}\trb{\xv_m^-\PDV{\xv_m}{\varphi}} + \frac{1}{2}\vu_m^T\xv_m^-\PDV{\xv_m}{\varphi}\xv_m^-\vu_m, \\
+  \textrm{and }
+  \PDV{\xv_m}{\varphi} &= \PDV{\sum_{l=1}^L e^{\varphi}e^{\lambda_{l,m}}K_l}{\varphi} = e^{\varphi}\sum_{l=1}^L e^{\lambda_{l,m}}K_l,
+\end{align*}
+thus,
+\begin{align*}
+  \PDV{\Pr{\xu}}{\varphi} &= -\frac{1}{2}\trb{
+                            \invb{\sum_{\tilde{l}=1}^L e^{\varphi} e^{\lambda_{\tilde{l},m}}K_{\tilde{l}}} 
+                            e^{\varphi}\sum_{l=1}^L e^{\lambda_{l,m}}K_l
+                            } \\
+                          &+ \frac{1}{2}
+                            \vu_m^T
+                            \invb{\sum_{\tilde{l}=1}^L e^{\varphi} e^{\lambda_{\tilde{l},m}}K_{\tilde{l}}}
+                            e^{\varphi}\sum_{l=1}^L e^{\lambda_{l,m}}K_l
+                            \invb{\sum_{\tilde{l}=1}^L e^{\varphi} e^{\lambda_{\tilde{l},m}}K_{\tilde{l}}}
+                            \vu_m \\
+                          &= -\frac{N}{2} + \frac{1}{2 e^{\varphi}}
+                            \vu_m^T
+                            \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l},m}}K_{\tilde{l}}}
+                            \vu_m,
+\end{align*}
+and we have
+\begin{equation}\label{eq:phi_dvt}
+  \begin{split}
+    \PDV{\xa}{\varphi}
+    &= \mean{ 
+      \invs{\sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id}
+      \left[
+        -\frac{N}{2} + \frac{1}{2 e^{\varphi}}
+        \vu_m^T
+        \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l},m}}K_{\tilde{l}}}
+        \vu_m
+      \right]
+    }{\xu} \\
+    &= \frac{\phi}{2}\mean{
+      (\xv_y \mid \xu)^-
+      \left[
+        -N + \vu_m^T \xv_m^- \vu_m
+      \right]
+    }{\xu}
+  \end{split}
+\end{equation}
+We also wrote equation (\ref{eq:upr_dvt}) (\ref{eq:lwr_dvt}) and (\ref{eq:phi_dvt}) in the original parameters which is more convenient for program implementation.
+
+\section{Implementation}
+Here is the list of coding variables corresponding to the components in the formula:
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\begin{itemize}
+\item \texttt{YCV}, $\xv_y \mid \xu$, output \red{$\xy$}'s \red{c}o\red{v}ariance, given latent data $\xu$;
+\item \texttt{YAC}, $(\xv_y \mid \xu)^-$, output \red{$\xy$}'s \red{ac}curacy (inverted covariance), given the latent data $\xu$;
+\item \texttt{UCV[, , m]}, $\xv_m$, the \red{$m$} th. latent feature \red{$\xu_m$}'s \red{c}o\red{v}ariance;
+\item \texttt{UAC[, , m]}, $(\xv_m)^-$, the \red{$m$} th. latent feature \red{$\xu_m$}'s \red{ac}curacy (inverted covariance);
+\item \texttt{BKN[, , l]}, $K_l(\xx)\quad (l = 1 \dots L)$, the base kernels;
+\item \texttt{IKN[, , j]}, $K_j(\xu)\quad (j = 1 \dots J)$, the inner kernels;
+\item \texttt{TXU[l, m]}, $\red{\tau}_{l,m}$, the base mixing weight that links the \red{$l$} th input kernel $K_l(\red{\xx})$ to the \red{$m$} th latent feature $\red{\xu_m}$'s covariance $\xv_m$;
+\item \texttt{TUY[j]}, $\red{\tau}_j$, the inner mixing weight that links the \red{$j$} th latent kernel $K_j(\red{\xu})$ to the output $\red{\xy}$'s covariance $\xv_{\red{y}}$;
+\end{itemize}
+With chain rule, the gradient of LSE wrt. network parameters are
+\begin{align*}
+  \PDV{R}{\tau_j}   & = 2 (\xy^T\xa) (\PDV{\xa}{\theta} \xy) \\
+                    & = 2 \xy^T \xa [-\phi\mean{(\xv_y|\xu)^- \xk_j(\xu) (\xv_y|\xu)^-}{\xu} \xy] \\
+                    & = 2 \xy^T \xa [-\phi\mean{(\xv_y|\xu)^- \xk_j(\xu) (\xv_y|\xu)^- \xy}{\xu}]
+\end{align*}
+
+\section{Tied Weights}
+Instead of letting each latent feature follow distinct distributions (Eq. \ref{eq:u_dst}), we can drawn them from the same distribution,
+\begin{equation}\label{eq:tie_u_dst}
+  \xu = \left[\vu_1, \dots, \vu_M \right] \overset{iid}{\sim} \mathcal{N}\left(\bs{0}, \xv_u \right); \quad \xv_u = \sum_{l=1}^L \tau_l K_l(\xx)
+\end{equation}
+The original formulation (Eq. \ref{eq:u_dst}) requires $M \times L$ weights to combine $L$ basic kernels into $M$ covariance matrices, but here, only $1 \times L$ weights are required to form a single covariance matrix, since all $M$ latent feature are iid. Another way to see it is that $M \times L$ weights are still required, but amongst $M$ groups their values are tied.
+
+With tied weights, the gradient of $\xa=\mean{\phi\invb{\xv_y\mid\xu}}{\xu}$ wrt. $1 \times L$ lower layer weights $\tau_l = e^{\varphi}e^{\lambda_l}\,\, (l=1, \dots, L)$ is
+\begin{equation*} %\label{eq:tie_lwr_dvt}
+  \begin{split}
+  \PDV{\xa}{\lambda_l}
+  &= \int_{\xu} \invs{\sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id} \PDV{\Pr(\xu)}{\lambda_l} \textrm{d}\xu \\
+  &= \int_{\xu} \invs{\sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id} \PDV{\log\Pr(\xu)}{\lambda_l} \Pr(\xu) \textrm{d}\xu
+  \end{split}  
+\end{equation*}
+According to (Eq. \ref{eq:tie_u_dst}), we have
+\begin{equation*}
+  \begin{split}
+    \PDV{\log\Pr(\xu)}{\lambda_l}
+    &= \sum_{m=1}^M \PDV{\log\Pr(\vu_m)}{\lambda_l} \\
+    &= -\frac{M}{2}\trb{\xv_u^-\PDV{\xv_u}{\lambda_l}} + \sum_{m=1}^M \frac{1}{2}\vu_m^T \xv_u^- \PDV{\xv_u}{\lambda_l} \xv_u^- \vu_m \\
+    &= -\frac{M}{2}\trs{ \invb{\sum_{\tilde{l}=1}^L e^{\varphi}e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)} e^{\varphi}e^{\lambda_l}K_l(\xx)} \\
+    &  +\frac{1}{2}\sum_{m=1}^M
+    \vu_m^T
+    \invb{\sum_{\tilde{l}=1}^L e^{\varphi}e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)}
+    e^{\varphi}e^{\lambda_l}K_l(\xx)
+    \invb{\sum_{\tilde{l}=1}^L e^{\varphi}e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)}
+    \vu_m \\
+    &= -\frac{Me^{\lambda_l}}{2}\trs{ \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)} K_l(\xx)} \\
+    &  +\frac{e^{\lambda_l}}{2 e^{\varphi}}\sum_{m=1}^M
+    \vu_m^T
+    \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)}
+    K_l(\xx)
+    \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)}
+    \vu_m
+  \end{split}
+\end{equation*}
+putting everything together we have
+\begin{equation}\label{eq:tie_lwr_dvt}
+  \begin{split}
+    \PDV{\xa}{\lambda_l}
+    &= -\frac{Me^{\lambda_l}}{2}
+    \mean{
+      \invs{\sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id}
+      \trs{ \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)} K_l(\xx)}
+    }{\xu} \\
+    & \quad +\frac{e^{\lambda_l}}{2e^{\varphi}}
+    \mean{
+      \invs{\sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id}
+      \vu_m^T
+      \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)}
+      K_l(\xx)
+      \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)}
+      \vu_m
+    }{\xu} \\
+    &= \frac{\phi\tau_l}{2}\mean{
+      \invb{\xv_y\mid\xu} \left[-M\trb{\xv_u^-K_l} + \sum_{m=1}^M \vu_m^T \xv_u^- K_l \xv_u^- \vu_m \right]
+    }{\xu}
+  \end{split}
+\end{equation}
+
+The gradient of $\xa$ wrt. noise parameter $\phi=e^\varphi$ is
+\begin{align*}
+  \PDV{\xa}{\varphi} &= \int_{\xu} \left[ \sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id \right]^- \PDV{\Pr(\xu)}{\varphi} \textrm{d}\xu \\
+                     &= \int_{\xu} \left[ \sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id \right]^- \PDV{\log\Pr(\xu)}{\varphi} \Pr(\xu)\textrm{d}\xu,
+\end{align*}
+and because $\vu_1, \dots, \vu_M \overset{iid}{\sim} \mathcal{N}\left(\bs{0}, \xv_u \right)$, we have
+\begin{equation*}
+  \begin{split}
+    \PDV{\log\Pr(\xu)}{\varphi}
+    &= \sum_{m=1}^M \PDV{\log\Pr(\vu_m)}{\varphi} \\
+    &= -\frac{M}{2}\trb{\xv_u^-\PDV{\xv_u}{\varphi}} + \frac{1}{2}\sum_{m=1}^M \vu_m^T \xv_u^- \PDV{\xv_u}{\varphi} \xv_u^- \vu_m \\
+    &= -\frac{M}{2}\trs{
+      \invb{\sum_{\tilde{l}=1}^L e^{\varphi}e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)}
+      e^{\varphi}
+      \left(\sum_{\tilde{l}=1}^L e^{\varphi}e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)\right)} \\
+    &\quad  +\frac{1}{2}\sum_{m=1}^M
+    \vu_m^T
+    \invb{\sum_{\tilde{l}=1}^L e^{\varphi}e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)}
+    e^{\varphi}
+    \left(\sum_{\tilde{l}=1}^L e^{\varphi}e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)\right)
+    \invb{\sum_{\tilde{l}=1}^L e^{\varphi}e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)}
+    \vu_m \\
+    &= -\frac{MNe^\varphi}{2} + \frac{1}{2}\sum_{m=1}^M \vu_m^T \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)} \vu_m,
+  \end{split}
+\end{equation*}
+thus
+\begin{equation} \label{eq:tie_phi_dvt}
+  \begin{split}
+    \PDV{\xa}{\varphi}
+    &= \frac{1}{2}\mean{
+      \invs{\sum_{j=1}^J{e^{\lambda_j} K_j(\xu)} + \id}
+      \left[
+        -MNe^\varphi + \sum_{m=1}^M \vu_m^T \invb{\sum_{\tilde{l}=1}^L e^{\lambda_{\tilde{l}}}K_{\tilde{l}}(\xx)} \vu_m
+      \right]
+    }{\xu} \\
+    &= \frac{\phi^2}{2}\mean{
+      \invb{\xv_y\mid\xu}
+      \left[
+        -MN + \sum_{m=1}^M \vu_m^T \xv_u \vu_m
+      \right]    }{\xu}
+  \end{split}
+\end{equation}
+\singlespacing 
+\bibliographystyle{\style}
+\bibliography{ref}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
