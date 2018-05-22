@@ -1,0 +1,11 @@
+Package: knn
+Title: Kernel Neural Network
+Version: 0.0.0.9000
+Authors@R: person("Stat", "Gen", email = "xiaoran.tong.cn@gmail.com", role = c("aut", "cre"))
+Description: Kernel Neural Network for muti-cohort meta-analysis.
+Depends: R (>= 3.4.3)
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
+Imports: magrittr

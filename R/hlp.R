@@ -1,3 +1,4 @@
+#' concatenate a list
 cl <- function(ret=NULL, ...)
 {
     dots <- list(...)
@@ -8,7 +9,8 @@ cl <- function(ret=NULL, ...)
     }
     ret
 }
-df <- data.frame
+
+#' short hand for data.fram
 DF <- data.frame
 
 `%||%` <- function(x, y) if(is.null(x)) y else x
@@ -22,6 +24,7 @@ DF <- data.frame
 #' Inverse Symmetric Matrix.
 .inv <- function(x, ...) chol2inv(chol(x))
 
+#' format print to STDOUT
 PF <- function(...) cat(sprintf(...))
 
 str.cfg <- function(cfg)

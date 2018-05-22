@@ -1,5 +1,6 @@
-## get a consecutive section from the genomic matrix
-## for training and testing dataset.
+#' get a consecutive section from the genomic matrix
+#' for training and testing dataset.
+#' 
 #' @param the basic gnomic matrix
 #' @param N the size of development data
 #' @param H the size of evaluation data
