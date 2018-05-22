@@ -12,3 +12,7 @@
 
 #' @importFrom magrittr %>%
 `%>%` <- magrittr::`%>%`
+
+#' @useDynLib knn
+#' @importFrom Rcpp sourceCpp
+NULL

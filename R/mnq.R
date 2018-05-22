@@ -66,3 +66,10 @@ evalR <- function(A, nu, Psi, V, t, p, eps)
   returnList <- list(r_norm = r_norm, r_dual = r_dual, r_primal = r_primal, invA = invA);
   return(returnList)
 }
+
+test <- function()
+{
+    y <- matrix(rnorm(12), 4, 3)
+    x <- rnorm(4)
+    k <- list(e=diag(nrow(y)), p=tcrossprod(x))
+}
