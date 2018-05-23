@@ -82,7 +82,7 @@ nul <- function(y)
     ## loo <- mean((y - h)^2)
 
     ## report
-    df(key=c('mse', 'nlk'), val=c(mse, nlk))
+    DF(key=c('mse', 'nlk'), val=c(mse, nlk))
 }
 
 
