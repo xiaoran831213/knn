@@ -4,88 +4,67 @@
 using namespace Rcpp;
 using namespace arma;
 
-// Cpp implementation of kernel MINQUE (kmq)
-// only explicit kernels, no fixed effect, no implicit product kernels
-// from random effect either.
-RcppExport SEXP mnq(SEXP _K, SEXP _C)
+//' Kernel MINQUE
+//'
+//' Only explicit kernels, no fixed effect, no implicit product kernels
+//' from random effect either.
+//' Multiply a number by two
+//' 
+//' @param v r-list, of the kernels
+//' @param P matrix, of each column is a contrast of VCs
+//' @export
+// [[Rcpp::export]]
+List mnq(List v, arma::dmat p)
 {
-    List K=as<List>(_K);	// kernels / MCVs (matrics of covariance)
-    dmat C=as<dmat>(_C);	// contrast matrix for variance components
+    int k = v.length();		   // number of kernels
+    int N = as<dmat>(v[0]).n_rows; // sample size
+    dmat V = as<dmat>(v[0]);
 
-    dmat V = as<dmat>(K[0]);	// sum of kernels
-    const int L = K.length();	// number of kernels
-    for(int i=1; i<L; i++)
+    // V: sum of kernels (Rao. 1971)
+    for(int i = 1; i < k; i++)
+	V += as<dmat>(v[i]);
+
+    /* R = V^{-1} (I - P_v), (Rao. 1971)*/
+    /* in case of no fixed effect X, project P_v = 0, R = V^{-1} */
+    dmat R = inv_sympd(V);
+
+    /* W_i = R v_i R, (Rao. 1971) */
+    List W(k);
+    for(int i = 0; i < k; i++)
+    	W[i] = R * as<dmat>(v[i]) * R;
+
+    printf("done with W=R v_i R\n");
+    /* The k-k matrix S, S_ij = Tr(W_i v_j) */
+    dmat S(k, k);
+    for(int i = 0; i < k; i++)
     {
-	V += as<dmat>(K[i]);
-    }
-
-    int  N = V.n_rows;		// sample size
-    dmat I(N, N, fill::eye);	// identity kernel (matrix of white noise)
-
-    printf("N=%d, L=%d\n", N, L);
-
-    /* Inverse of V -- the sum of kernels:*/
-    dmat W = inv_sympd(V);
-
-    /* Cache the result: B_i = inv(V) K_i inv(V) for i = 1 .. L */
-    List B(L);
-    printf("B.length()=%d\n", B.length());
-    for(int i = 0; i < L; i++)
-    {
-    	B[i] = W * as<dmat>(K[i]) * W;
-    }
-    printf("Done with B\n");
-
-    /* The L-L matrix S */
-    dmat S(L, L);
-    for(int i = 0; i < L; i++)
-    {
-	for(int j=i + 1; j < L; j++)
+	for(int j = i + 1; j < k; j++)
 	{
-	    S(i, j) = accu(as<dmat>(B[i]) % as<dmat>(K[j]));
+	    S(i, j) = accu(as<dmat>(W[i]) % as<dmat>(v[j]));
 	    S(j, i) = S(i, j);
 	}
-	S(i, i) = accu(as<dmat>(B[i]) % as<dmat>(K[i]));
+	S(i, i) = accu(as<dmat>(W[i]) % as<dmat>(v[i]));
     }
-    dmat T = pinv(S);		// Moore-Penrose pseudo-inverse of S
-    dmat R = T * C;		// lambdas
+    /* Lambda_i = p_i' S^{-1} (Rao. 1917), i = 1 .. nrow(P). */
+    dmat L = p * pinv(S);
 
-    List A(R.n_cols);
-    for(int j = 0; j < R.n_cols; j++)
-    {
-	dmat x(N, N, fill::zeros);
-	for(int i = 0; i < R.n_rows; i++) // assertion: R.n_rows==L
-	    x += as<dmat>(B[i]); // * R(i, j);
-	A[j] = x;
-    }
+    // List lsA(lmx.n_cols);
+    // for(int j = 0; j < lmx.n_cols; j++)
+    // {
+    // 	dmat x(N, N, fill::zeros);
+    // 	for(int i = 0; i < lmx.n_rows; i++) // assert: lmx.n_rows==k
+    // 	    x += as<dmat>(W[i]) * lmx(i, j);
+    // 	lsA[j] = x;
+    // }
     
     List ret;
-    ret["B"] = B;
-    ret["K"] = K;
-    ret["N"] = N;
-    ret["L"] = L;
-    ret["C"] = C;
-    ret["V"] = V;
+    ret["dim"] = ivec{k, N};
+    ret["v"] = v;
+    ret["p"] = p;
+    ret["V"] = V;		// sum of v_i, i = 1 .. k
+    ret["R"] = R;		// V^{-1} (I - P_v)
     ret["W"] = W;
-    ret["S"] = S;
-    ret["T"] = T;
-    ret["R"] = R;
-    ret["A"] = A;
-
-    return(wrap(ret));
+    ret["S"] = S;		// S_ij = Tr[W_i V_j]
+    ret["L"] = L;		// lambda for each contrast
+    return(ret);
 }
-
-// mnq
-// SEXP mnq(List K, NumericVector x, NumericVector p);
-// RcppExport SEXP _knn_mnq(SEXP KSEXP, SEXP xSEXP, SEXP pSEXP) {
-// BEGIN_RCPP
-//     Rcpp::RObject rcpp_result_gen;
-//     Rcpp::RNGScope rcpp_rngScope_gen;
-//     Rcpp::traits::input_parameter< List >::type K(KSEXP);
-//     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-//     Rcpp::traits::input_parameter< NumericVector >::type p(pSEXP);
-//     rcpp_result_gen = Rcpp::wrap(mnq(K, x, p));
-//     return rcpp_result_gen;
-// END_RCPP
-// }
-
