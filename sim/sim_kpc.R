@@ -7,7 +7,8 @@ source('R/gct/grm.R')
 source('R/gct/gct.R')
 source('R/utl.R')
 source('R/lmm.R')
-source("R/mnq/solver.R")
+source("R/mnq.R")
+source("sim/sim_kpl.R")
 
 #' simulation of kernel deep neural network;
 #' @param gno list contains gnomic map, subject id, and genomic matrix

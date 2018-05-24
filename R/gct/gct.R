@@ -65,7 +65,7 @@ gcta.reml <- function(y, K, qcvr=NULL, dcvr=NULL, maxit=NULL)
     mse <- mean(out$blp[, 3]^2)         # estimate residual
     cyh <- cor(y, h)
     nlk <- nlk(y, v)
-    rpt <- df(key=c('mse', 'nlk', 'cyh', 'rtm'), val=c(mse, nlk, cyh, out$rtm))
+    rpt <- DF(key=c('mse', 'nlk', 'cyh', 'rtm'), val=c(mse, nlk, cyh, out$rtm))
 
     ## remove temporary directory
     unlink(tpd, TRUE, TRUE)
