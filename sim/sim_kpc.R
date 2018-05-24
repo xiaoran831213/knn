@@ -92,6 +92,8 @@ main <- function(gno, N, P, H=N, frq=1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id, 
 
     ## use MINQUE
     mnq.dvp <- mnq.lmm(sim$dvp$y, ykn.dvp)
+    another <- knl.mnq(sim$dvp$y, ykn.dvp)
+    print(all.equal(mnq.dvp$rpt[2:4, ], another$rpt[2:4, ]))
     mnq.evl.rpt <- knl.prd(sim$evl$y, ykn.evl, mnq.dvp$par, logged=FALSE)
     rpt <- cl(rpt, DF(mtd='mnq', dat='dvp', mnq.dvp$rpt))
     rpt <- cl(rpt, DF(mtd='mnq', dat='evl', mnq.evl.rpt))
