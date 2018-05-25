@@ -52,20 +52,17 @@ LMM_MINQUE_Solver <- function(ViList, X, p)
     return(returnlist)
 }
 
-knl.mnq <- function(y, K)
+knl.mnq <- function(y, K, p=NULL)
 {
-    L <- length(K)
-
-    ## use MINQUE Solver
-    p <- diag(L)
+    ## number of kernels
+    k <- length(K)
+    ## the contrast matrix to get all variance components
+    if(is.null(p))
+        p <- diag(k)
 
     print('begin MINQUE')
     time0 <- proc.time()
-    W <- sapply(seq(L), function(l)
-    {
-        A <- knl.mnq.A(K, p[, l])$A
-        crossprod(y, A %*% y)
-    })
+    W <- .Call('_knn_knl_mnq_cpp', PACKAGE = 'knn', as.matrix(y), K, p)$f
     time1 <- proc.time()
     print('end MINQUE')
 
@@ -75,14 +72,19 @@ knl.mnq <- function(y, K)
     ## timing
     rtm <- DF(key='rtm', val=(time1 - time0)['elapsed'])
 
-    ret <- list(par=W, rpt=rbind(rtm, prd))
+    ret <- list(par=drop(W), rpt=rbind(rtm, prd))
 }    
 
-knl.mnq.A <- function(v, p)
+knl.mnq.R <- function(y, v, p=NULL)
 {
     k     <- length(v);
+    if(is.null(p))
+        p <- diag(k)
     ## I     <- diag(nrow(X))
-    
+
+    print('begin MINQUE')
+    time0 <- proc.time()
+
     ## sum of V_i, i = 1 .. k    # chapter 7
     V <- Reduce(f = '+', x = v); 
     
@@ -109,14 +111,30 @@ knl.mnq.A <- function(v, p)
         }
         S[i, i] <- sum(B[[i]] * v[[i]])
     }
-    lambda <- MASS::ginv(S) %*% p
+
+    ## lambda(s)
+    L <- p %*% MASS::ginv(S)
     
     ## Calculate A matrix
-    A <- mapply('*', B, lambda, SIMPLIFY = FALSE)
-    A <- Reduce('+', A);
+    A <- list()
+    W <- double(nrow(L))
+    for(i in 1:nrow(L))
+    {
+        A[[i]] <- Reduce('+', mapply('*', B, L[i, ], SIMPLIFY = FALSE))
+        W[i] <- crossprod(y, A[[i]] %*% y)
+    }
 
-    ## return
-    list(A=A, S=S, lambda=lambda)
+    time1 <- proc.time()
+    print('end MINQUE')
+
+    ## make predictions
+    prd <- knl.prd(y, v, W, logged=FALSE)
+
+    ## timing
+    rtm <- DF(key='rtm', val=(time1 - time0)['elapsed'])
+
+    ret <- list(par=drop(W), rpt=rbind(rtm, prd))
+    ret
 }
 
 ## A Helper Function to evaluate r(A,nu) in Infeasible_MINQUE_Newton
@@ -131,12 +149,4 @@ evalR <- function(A, nu, Psi, V, t, p, eps)
     
     returnList <- list(r_norm = r_norm, r_dual = r_dual, r_primal = r_primal, invA = invA);
     return(returnList)
-}
-
-test <- function()
-{
-    X <- matrix(rnorm(32), 4, 8)
-    K <- list(e=diag(nrow(X)), p=tcrossprod(X))
-    P <- rbind(diag(length(K)), rep(1, length(K)))
-    .Call('_knn_mnq', K, P)
 }

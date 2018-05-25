@@ -3,14 +3,13 @@
 
 #' Kernel MINQUE
 #'
-#' Only explicit kernels, no fixed effect, no implicit product kernels
+#' Only explicit kernels without fixed effect, no implicit product kernels
 #' from random effect either.
-#' Multiply a number by two
 #' 
-#' @param v r-list, of the kernels
-#' @param P matrix, of each column is a contrast of VCs
+#' @param V a list of k kernel matrices matched to k variance components.
+#' @param P a m-k matrix, each row is a contrast of k variance components.
 #' @export
-mnq <- function(v, p) {
-    .Call('_knn_mnq', PACKAGE = 'knn', v, p)
+knl_mnq_cpp <- function(y, V, P) {
+    .Call('_knn_knl_mnq_cpp', PACKAGE = 'knn', y, V, P)
 }
 

@@ -6,65 +6,66 @@ using namespace arma;
 
 //' Kernel MINQUE
 //'
-//' Only explicit kernels, no fixed effect, no implicit product kernels
+//' Only explicit kernels without fixed effect, no implicit product kernels
 //' from random effect either.
-//' Multiply a number by two
 //' 
-//' @param v r-list, of the kernels
-//' @param P matrix, of each column is a contrast of VCs
+//' @param V a list of k kernel matrices matched to k variance components.
+//' @param P a m-k matrix, each row is a contrast of k variance components.
 //' @export
 // [[Rcpp::export]]
-List mnq(List v, arma::dmat p)
+List knl_mnq_cpp(arma::dmat y, List V, arma::dmat P)
 {
-    int k = v.length();		   // number of kernels
-    int N = as<dmat>(v[0]).n_rows; // sample size
-    dmat V = as<dmat>(v[0]);
+    int k = V.length();		   // number of kernels
+    int N = as<dmat>(V[0]).n_rows; // sample size
 
-    // V: sum of kernels (Rao. 1971)
+    // Z: sum of kernels (Rao. 1971)
+    dmat Z = as<dmat>(V[0]);
     for(int i = 1; i < k; i++)
-	V += as<dmat>(v[i]);
+	Z += as<dmat>(V[i]);
 
-    /* R = V^{-1} (I - P_v), (Rao. 1971)*/
-    /* in case of no fixed effect X, project P_v = 0, R = V^{-1} */
-    dmat R = inv_sympd(V);
+    /* R = Z^{-1} (I - P_v), (Rao. 1971) */
+    /* in case of no fixed effect X, project P_v = 0, R = Z^{-1} */
+    dmat R = inv_sympd(Z);
 
-    /* W_i = R v_i R, (Rao. 1971) */
-    List W(k);
+    /* W_i = R V_i R, (Rao. 1971) */
+    std::vector<dmat> B(k);
     for(int i = 0; i < k; i++)
-    	W[i] = R * as<dmat>(v[i]) * R;
+    	B[i] = R * as<dmat>(V[i]) * R;
 
-    printf("done with W=R v_i R\n");
-    /* The k-k matrix S, S_ij = Tr(W_i v_j) */
+    /* The k-k matrix S, S_ij = Tr(B_i V_j) */
     dmat S(k, k);
     for(int i = 0; i < k; i++)
     {
 	for(int j = i + 1; j < k; j++)
 	{
-	    S(i, j) = accu(as<dmat>(W[i]) % as<dmat>(v[j]));
+	    S(i, j) = accu(B[i] % as<dmat>(V[j]));
 	    S(j, i) = S(i, j);
 	}
-	S(i, i) = accu(as<dmat>(W[i]) % as<dmat>(v[i]));
+	S(i, i) = accu(B[i] % as<dmat>(V[i]));
     }
-    /* Lambda_i = p_i' S^{-1} (Rao. 1917), i = 1 .. nrow(P). */
-    dmat L = p * pinv(S);
 
-    // List lsA(lmx.n_cols);
-    // for(int j = 0; j < lmx.n_cols; j++)
-    // {
-    // 	dmat x(N, N, fill::zeros);
-    // 	for(int i = 0; i < lmx.n_rows; i++) // assert: lmx.n_rows==k
-    // 	    x += as<dmat>(W[i]) * lmx(i, j);
-    // 	lsA[j] = x;
-    // }
-    
+    /* Lambda_i = P_i' S^{-1} (Rao. 1917), i = 1 .. nrow(P). */
+    dmat L = P * pinv(S);
+
+    List A(L.n_rows);		      // k A-matrices
+    dvec f(L.n_rows);		      // k linear function outcome
+    // dmat y1(y);
+    for(int i = 0; i < L.n_rows; i++) // L.n_rows == P.n_rows
+    {
+	// A = sum_{i=1}^k lamda[i, ] (R V[i, ] R)
+    	dmat a(N, N, fill::zeros);
+    	for(int j = 0; j < L.n_cols; j++) // L.n_cols == k
+    	    a += B[j] * L(i, j);
+	A[i] = a;
+
+	// estimate linear function of variance components
+	f[i] = as_scalar(y.t() * a * y);
+    }
+
     List ret;
-    ret["dim"] = ivec{k, N};
-    ret["v"] = v;
-    ret["p"] = p;
-    ret["V"] = V;		// sum of v_i, i = 1 .. k
-    ret["R"] = R;		// V^{-1} (I - P_v)
-    ret["W"] = W;
-    ret["S"] = S;		// S_ij = Tr[W_i V_j]
+    ret["S"] = S;		// S_ij = Tr[B_i V_j]
     ret["L"] = L;		// lambda for each contrast
+    ret["A"] = A;		// A matrices
+    ret["f"] = f;
     return(ret);
 }
