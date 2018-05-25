@@ -75,46 +75,46 @@ knl.mnq <- function(y, K, p=NULL)
     ret <- list(par=drop(W), rpt=rbind(rtm, prd))
 }    
 
-knl.mnq.R <- function(y, v, p=NULL)
+knl.mnq.R <- function(y, V, P=NULL)
 {
-    k     <- length(v);
-    if(is.null(p))
-        p <- diag(k)
+    k     <- length(V);
+    if(is.null(P))
+        P <- diag(k)
     ## I     <- diag(nrow(X))
 
     print('begin MINQUE')
     time0 <- proc.time()
 
     ## sum of V_i, i = 1 .. k    # chapter 7
-    V <- Reduce(f = '+', x = v); 
+    sumV <- Reduce(f = '+', x = V); 
     
     ## b) Calculate P matrix and Q matrix
-    ## Pv = X \(X' \V X) X' \V   # projection defined by eq 1.2
+    ## Pv = X \(X' \sumV X) X' \sumV   # projection defined by eq 1.2
     ## Qv = I - Pv              # eq 7.1, or lemma 3.4
-    ## R = \V Qv                 # eq 7.1, for the best choice of A*
+    ## R = \V Qv                # eq 7.1, for the best choice of A*
     ## R is simplified since X=0 (i.e., not mixed, only kernels)
-    R <- chol2inv(chol(V));
+    R <- chol2inv(chol(sumV));
     
     ## Caculate S matrix, S_ij = Tr(W_i V_j)
     ## B_i = R V_i R
     B <- list()
     for(i in 1:k)
-        B[[i]] <- R %*% v[[i]] %*% R
-    
+        B[[i]] <- R %*% V[[i]] %*% R
+
     S <- matrix(.0, k, k)
     for(i in 1:k)
     {
         for(j in 2:k)
         {
-            S[i, j] <- sum(B[[i]] * v[[j]])
+            S[i, j] <- sum(B[[i]] * V[[j]])
             S[j, i] <- S[i, j]
         }
-        S[i, i] <- sum(B[[i]] * v[[i]])
+        S[i, i] <- sum(B[[i]] * V[[i]])
     }
 
     ## lambda(s)
-    L <- p %*% MASS::ginv(S)
-    
+    L <- P %*% MASS::ginv(S)
+
     ## Calculate A matrix
     A <- list()
     W <- double(nrow(L))
@@ -128,7 +128,7 @@ knl.mnq.R <- function(y, v, p=NULL)
     print('end MINQUE')
 
     ## make predictions
-    prd <- knl.prd(y, v, W, logged=FALSE)
+    prd <- knl.prd(y, V, W, logged=FALSE)
 
     ## timing
     rtm <- DF(key='rtm', val=(time1 - time0)['elapsed'])
@@ -137,16 +137,41 @@ knl.mnq.R <- function(y, v, p=NULL)
     ret
 }
 
-## A Helper Function to evaluate r(A,nu) in Infeasible_MINQUE_Newton
-evalR <- function(A, nu, Psi, V, t, p, eps)
+pkn.mnq.R <- function(y, V, P, const = 1, order = 2)
 {
-    I        <- diag(rep(1,nrow(A)));
-    invA     <- solve(A+eps*I);
-    r_dual   <- 2*t*c(V %*% A %*% V) - c(invA) + Psi %*% nu;
-    r_primal <- crossprod(Psi, c(A)) - p;
-    r        <- c(r_dual, r_primal)
-    r_norm   <- sqrt(crossprod(r))
+    L <- length(V);                     # number of kernels
+    N <- NROW(y)
+    IdMat <- diag(N);                   # identity kernel
+    X <- rep(0, N)                      # no fixed effect
+
+    terms <- do.call(expand.grid, replicate(3, 0L:1L, simplify=FALSE))
+    ## powerMat <- perm(order, L+1);
+    ## coef     <- powerMat[,ncol(powerMat)];
+    ## powerMat <- powerMat[,1:(ncol(powerMat)-1)];
+    VList    <- list();
     
-    returnList <- list(r_norm = r_norm, r_dual = r_dual, r_primal = r_primal, invA = invA);
+    newBaseKernelList <- append(V, const, 0);
+    
+    for(k in 1:nrow(powerMat))
+    {
+        tempList   <- mapply(newBaseKernelList, FUN = '^', powerMat[k,], SIMPLIFY = FALSE);
+        VList[[k]] <- Reduce(f = '*', tempList);
+        ## VList      <- mapply(VList, FUN = '*', coef, SIMPLIFY = FALSE);
+    }
+    
+    VList[[k + 1]] <- IdMat;
+    
+    k <- length(VList);
+    minque_est <- rep(0,k);
+    
+    for(i in 1:k)
+    {
+        P <- rep(0,k);
+        P[i] <- 1;
+        minque_mat <- LMM_MINQUE_Solver(ViList = VList, X = X, p = P);
+        minque_est[i] <- t(y) %*% minque_mat %*% y;
+    }
+
+    returnList <- list(minque_est = minque_est, VList = VList)
     return(returnList)
 }
