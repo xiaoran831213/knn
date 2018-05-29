@@ -90,16 +90,18 @@ main <- function(gno, N, P, H=N, frq=1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id, 
     rpt <- cl(rpt, DF(mtd='rop', dat='dvp', rop.dvp$rpt))
     rpt <- cl(rpt, DF(mtd='rop', dat='evl', rop.evl.rpt))
 
-    ## use MINQUE
-    mnq.dvp <- mnq.lmm(sim$dvp$y, ykn.dvp)
-    another <- knl.mnq(sim$dvp$y, ykn.dvp)
-    third <- knl.mnq.R(sim$dvp$y, ykn.dvp)
-    print(all.equal(mnq.dvp$rpt[2:4, ], another$rpt[2:4, ]))
-    print(all.equal(mnq.dvp$rpt[2:4, ], third$rpt[2:4, ]))
-    mnq.evl.rpt <- knl.prd(sim$evl$y, ykn.evl, mnq.dvp$par, logged=FALSE)
-    rpt <- cl(rpt, DF(mtd='mnq', dat='dvp', mnq.dvp$rpt))
-    rpt <- cl(rpt, DF(mtd='mnq', dat='evl', mnq.evl.rpt))
-    
+    ## use polynomial MINQUE, order 1
+    mq1.dvp <- knl.mnq(sim$dvp$y, ykn.dvp[-1], order=1)
+    mq1.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq1.dvp$par, order=1)
+    rpt <- cl(rpt, DF(mtd='mq1', dat='dvp', mq1.dvp$rpt))
+    rpt <- cl(rpt, DF(mtd='mq1', dat='evl', mq1.evl.rpt))
+
+    ## use polynomial MINQUE, order 2
+    mq2.dvp <- knl.mnq(sim$dvp$y, ykn.dvp[-1], order=2)
+    mq2.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq2.dvp$par, order=2)
+    rpt <- cl(rpt, DF(mtd='mq2', dat='dvp', mq2.dvp$rpt))
+    rpt <- cl(rpt, DF(mtd='mq2', dat='evl', mq2.evl.rpt))
+
     ## use GCTA:
     gct.dvp <- gcta.reml(sim$dvp$y, ykn.dvp)
     gct.evl.rpt <- knl.prd(sim$evl$y, ykn.evl, gct.dvp$par, logged=FALSE)

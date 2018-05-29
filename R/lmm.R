@@ -95,7 +95,7 @@ lmm.fsi <- function(W, K, Y, ...)
     dv2
 }
 
-knl.prd <- function(y, K, W, logged=TRUE)
+knl.prd <- function(y, K, W, logged=TRUE, pinv=FALSE)
 {
     ## is W logged
     if(logged)
