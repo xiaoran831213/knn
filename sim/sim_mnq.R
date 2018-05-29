@@ -9,24 +9,25 @@ test <- function(N=100, P=200, r=100)
 {
     X <- matrix(rnorm(N * P), N, P)
 
-    e1 <- diag(N)
-    p1 <- ply(X, coef0=1, degree=1)
-    p2 <- ply(X, coef0=1, degree=2)
-    p3 <- ply(X, coef0=1, degree=3)
-    ga <- gau(X)
+    knl <- list(
+        e=diag(N),
+        l=ply(X, coef0=1, degree=1),
+        q=ply(X, coef0=1, degree=2),
+        c=ply(X, coef0=1, degree=3),
+        g=gau(X))
 
     ## allowed kernels
-    V <- list(e1=e1, p1=p1)
-    k <- length(V)
+    V <- knl[c('l')]
+    k <- length(V) + 1
 
     ## contrast
     P <- rbind(diag(k), rep(1, k))
 
     ## true covariance
-    S <- .1 * e1 + 1 * p1 + 2.0 * p2 + 1.5 * p3
+    S <- with(knl, .1 * e + 1 * l + 2.0 * q + 1.5 * c)
     y <- mvrnorm(1, rep(0, N), S)
 
-    r1 <- pkn.mnq.R(y, V, P, const=1, order=2)
+    r1 <- pkn.mnq.R(y, V, const=1, order=2)
     r1
 }
 

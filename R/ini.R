@@ -13,6 +13,8 @@
 #' @importFrom magrittr %>%
 `%>%` <- magrittr::`%>%`
 
+#' @importFrom gtools combinations
+
 #' @useDynLib knn
 #' @importFrom Rcpp sourceCpp
 NULL

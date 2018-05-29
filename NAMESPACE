@@ -3,4 +3,5 @@
 export(knl_mnq_cpp)
 importFrom(Rcpp,sourceCpp)
 importFrom(magrittr,"%>%")
+importFrom(gtools,combinations)
 useDynLib(knn)

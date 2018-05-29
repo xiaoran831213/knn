@@ -137,41 +137,38 @@ knl.mnq.R <- function(y, V, P=NULL)
     ret
 }
 
-pkn.mnq.R <- function(y, V, P, const = 1, order = 2)
+pkn.mnq.R <- function(y, V, const = 1, order = 2)
 {
-    L <- length(V);                     # number of kernels
-    N <- NROW(y)
-    IdMat <- diag(N);                   # identity kernel
+    N <- NROW(y)                        # sample size
+    vnm <- names(V)                     # kernel names
+    if(is.null(vnm))
+    {
+        vnm <- sprint('v%02d', seq.int(L))
+        names(V) <- vnm
+    }
+
+    V <- c(list(one=1), V)              # prepend an one
     X <- rep(0, N)                      # no fixed effect
+    L <- length(V);                     # number of kernels
+    vnm <- names(V)                     # updated names
 
-    terms <- do.call(expand.grid, replicate(3, 0L:1L, simplify=FALSE))
-    ## powerMat <- perm(order, L+1);
-    ## coef     <- powerMat[,ncol(powerMat)];
-    ## powerMat <- powerMat[,1:(ncol(powerMat)-1)];
-    VList    <- list();
-    
-    newBaseKernelList <- append(V, const, 0);
-    
-    for(k in 1:nrow(powerMat))
+    ## polynomial kernel expansion
+    pke <- gtools::combinations(L, order, repeats.allowed=TRUE)
+    K <- list()
+    nm <- character(nrow(pke))
+    for(k in seq.int(nrow(pke)))
     {
-        tempList   <- mapply(newBaseKernelList, FUN = '^', powerMat[k,], SIMPLIFY = FALSE);
-        VList[[k]] <- Reduce(f = '*', tempList);
-        ## VList      <- mapply(VList, FUN = '*', coef, SIMPLIFY = FALSE);
+        idx <- pke[k, ]
+        K[[k]] <- Reduce(`*`, V[idx])
+        nm[k] <- paste(vnm[idx], collapse='.')
     }
-    
-    VList[[k + 1]] <- IdMat;
-    
-    k <- length(VList);
-    minque_est <- rep(0,k);
-    
-    for(i in 1:k)
-    {
-        P <- rep(0,k);
-        P[i] <- 1;
-        minque_mat <- LMM_MINQUE_Solver(ViList = VList, X = X, p = P);
-        minque_est[i] <- t(y) %*% minque_mat %*% y;
-    }
+    K[[1]] <- diag(N)
+    nm[1] <- 'e'
+    names(K) <- nm
+    k <- length(K);
 
-    returnList <- list(minque_est = minque_est, VList = VList)
-    return(returnList)
+    ## contrast matrix
+    P <- diag(k)
+
+    list(V=V, K=K, y=y, P=P, pke=pke) 
 }
