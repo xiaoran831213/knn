@@ -102,6 +102,12 @@ main <- function(gno, N, P, H=N, frq=1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id, 
     rpt <- cl(rpt, DF(mtd='mq2', dat='dvp', mq2.dvp$rpt))
     rpt <- cl(rpt, DF(mtd='mq2', dat='evl', mq2.evl.rpt))
 
+    ## use polynomial MINQUE, order 2, R
+    mq2r.dvp <- knl.mnq(sim$dvp$y, ykn.dvp[-1], order=2, cpp=FALSE)
+    mq2r.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq2r.dvp$par, order=2)
+    rpt <- cl(rpt, DF(mtd='mq2r', dat='dvp', mq2r.dvp$rpt))
+    rpt <- cl(rpt, DF(mtd='mq2r', dat='evl', mq2r.evl.rpt))
+
     ## use GCTA:
     gct.dvp <- gcta.reml(sim$dvp$y, ykn.dvp)
     gct.evl.rpt <- knl.prd(sim$evl$y, ykn.evl, gct.dvp$par, logged=FALSE)

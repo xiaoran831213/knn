@@ -6,22 +6,23 @@
 
 using namespace Rcpp;
 
-// knl_mnq_cpp
-List knl_mnq_cpp(arma::dmat y, List V, arma::dmat P);
-RcppExport SEXP _knn_knl_mnq_cpp(SEXP ySEXP, SEXP VSEXP, SEXP PSEXP) {
+// knl_mnq
+List knl_mnq(arma::dmat y, List V, arma::dmat P, arma::dvec psd);
+RcppExport SEXP _knn_knl_mnq(SEXP ySEXP, SEXP VSEXP, SEXP PSEXP, SEXP psdSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::dmat >::type y(ySEXP);
     Rcpp::traits::input_parameter< List >::type V(VSEXP);
     Rcpp::traits::input_parameter< arma::dmat >::type P(PSEXP);
-    rcpp_result_gen = Rcpp::wrap(knl_mnq_cpp(y, V, P));
+    Rcpp::traits::input_parameter< arma::dvec >::type psd(psdSEXP);
+    rcpp_result_gen = Rcpp::wrap(knl_mnq(y, V, P, psd));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_knn_knl_mnq_cpp", (DL_FUNC) &_knn_knl_mnq_cpp, 3},
+    {"_knn_knl_mnq", (DL_FUNC) &_knn_knl_mnq, 4},
     {NULL, NULL, 0}
 };
 

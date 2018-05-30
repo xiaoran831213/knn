@@ -9,7 +9,7 @@
 #' @param V a list of k kernel matrices matched to k variance components.
 #' @param P a m-k matrix, each row is a contrast of k variance components.
 #' @export
-knl_mnq_cpp <- function(y, V, P) {
-    .Call('_knn_knl_mnq_cpp', PACKAGE = 'knn', y, V, P)
+knl_mnq <- function(y, V, P, psd) {
+    .Call('_knn_knl_mnq', PACKAGE = 'knn', y, V, P, psd)
 }
 

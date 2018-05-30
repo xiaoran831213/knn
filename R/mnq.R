@@ -52,7 +52,13 @@ LMM_MINQUE_Solver <- function(ViList, X, p)
     return(returnlist)
 }
 
-knl.mnq.R <- function(y, V, P=NULL)
+knl.psd <- function(A)
+{
+    X <- (A + t(A)) / 2
+    with(eigen(X), list(v=vectors, d=pmax(values, 0)))
+}
+
+knl.mnq.R <- function(y, V, P=NULL, psd=TRUE)
 {
     k     <- length(V);
     if(is.null(P))
@@ -92,14 +98,18 @@ knl.mnq.R <- function(y, V, P=NULL)
     ## Calculate A matrix and contrasts
     A <- list()
     W <- double(nrow(L))
+    U <- double(nrow(L))
     for(i in 1:nrow(L))
     {
         A[[i]] <- Reduce('+', mapply('*', B, L[i, ], SIMPLIFY = FALSE))
-        W[i] <- crossprod(y, A[[i]] %*% y)
+        if(psd)
+            W[i] <- with(knl.psd(A[[i]]), sum(d * crossprod(v, y)^2))
+        else
+            W[i] <- crossprod(y, A[[i]] %*% y)
     }
 
     ## pack up
-    list(f=drop(W), A=A)
+    list(f=drop(W), A=A, S=S, s=MASS::ginv(S), L=L)
 }
 
 #' Kernel Polynomial Expansion
@@ -163,26 +173,27 @@ knl.ply <- function(V, order=1)
 #'   - mean square error between y and y.hat;
 #'   - negative log likelihood assuming y ~ N(0, sum_i(V_i * par_i))
 #'   - cor(y, y.hat)
-knl.mnq <- function(y, V, order=1, cpp=TRUE)
+knl.mnq <- function(y, V, order=1, cpp=TRUE, psd=TRUE)
 {
     N <- NROW(y)                        # sample size
+
+    print('begin MINQUE')
     K <- knl.ply(V, order)
     k <- length(K)                      # kernel count
     
     ## call the kernel MINQUE core function
     ## fixed contrast matrix
     P <- diag(k)                        # now k == K.count
-    print('begin MINQUE')
     time0 <- proc.time()
     if(cpp)
-        W <- .Call('_knn_knl_mnq_cpp', PACKAGE = 'knn', as.matrix(y), K, P)$f
+        W <- .Call('_knn_knl_mnq', PACKAGE = 'knn', as.matrix(y), K, P, psd)$f
     else
-        W <- knl.mnq.R(y, K, P)$f
+        W <- knl.mnq.R(y, K, P, psd)$f
     time1 <- proc.time()
     print('end MINQUE')
 
     ## make predictions
-    prd <- knl.prd(y, K, W, logged=FALSE, pinv=TRUE)
+    prd <- knl.prd(y, K, W, logged=FALSE)
 
     ## timing
     rtm <- DF(key='rtm', val=(time1 - time0)['elapsed'])

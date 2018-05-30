@@ -13,7 +13,7 @@ using namespace arma;
 //' @param P a m-k matrix, each row is a contrast of k variance components.
 //' @export
 // [[Rcpp::export]]
-List knl_mnq_cpp(arma::dmat y, List V, arma::dmat P)
+List knl_mnq(arma::dmat y, List V, arma::dmat P, arma::dvec psd)
 {
     int k = V.length();		   // number of kernels
     int N = as<dmat>(V[0]).n_rows; // sample size
@@ -45,7 +45,8 @@ List knl_mnq_cpp(arma::dmat y, List V, arma::dmat P)
     }
 
     /* Lambda_i = P_i' S^{-1} (Rao. 1917), i = 1 .. nrow(P). */
-    dmat L = P * pinv(S);
+    dmat s = pinv(S);
+    dmat L = P * s;
 
     List A(L.n_rows);		      // k A-matrices
     dvec f(L.n_rows);		      // k linear function outcome
@@ -59,11 +60,27 @@ List knl_mnq_cpp(arma::dmat y, List V, arma::dmat P)
 	A[i] = a;
 
 	// estimate linear function of variance components
-	f[i] = as_scalar(y.t() * a * y);
+	if(as_scalar(psd) != 0)		// PSD MINQUE (modifiec MINQUE)
+	{
+	    printf("PSD\n");
+	    dvec d;
+	    dmat v;
+	    eig_sym(d, v, (a + a.t())/2);
+	    d = d % (d > 0);
+	    // sum(d * crossprod(v, y)^2)
+	    // f[i] = as_scalar(y.t() * v *  diagmat(d) * v.t() * y);
+	    f[i] = as_scalar(square(y.t() * v) * d);
+	}
+	else			// RAW MINQUE
+	{
+	    printf("RAW\n");
+	    f[i] = as_scalar(y.t() * a * y);
+	}
     }
 
     List ret;
     ret["S"] = S;		// S_ij = Tr[B_i V_j]
+    ret["s"] = s;
     ret["L"] = L;		// lambda for each contrast
     ret["A"] = A;		// A matrices
     ret["f"] = f;
