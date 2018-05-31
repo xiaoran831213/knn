@@ -1,8 +1,9 @@
 // #include <Rcpp.h>
-#include <RcppArmadillo.h>
+#include "RcppArmadillo.h"
 #include <vector>
 using namespace Rcpp;
 using namespace arma;
+// [[Rcpp::depends(RcppArmadillo)]]
 
 //' Kernel MINQUE
 //'

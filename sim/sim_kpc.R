@@ -9,6 +9,8 @@ source('R/utl.R')
 source('R/lmm.R')
 source("R/mnq.R")
 source("sim/sim_kpl.R")
+library(devtools)
+devtools::load_all()
 
 #' simulation of kernel deep neural network;
 #' @param gno list contains gnomic map, subject id, and genomic matrix
