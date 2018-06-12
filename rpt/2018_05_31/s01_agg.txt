@@ -1,0 +1,11 @@
+N	P	frq	lnk	eps	oks	yks	mtd	dat	val
+1250	4000	0.1	I	0.2	c(id, ga)	c(id, p1)	gct	dvp	0.98926996174319
+1250	4000	0.1	I	0.2	c(id, ga)	c(id, p1)	gct	evl	3.67516259999572
+1250	4000	0.1	I	0.2	c(id, ga)	c(id, p1)	mq1	dvp	0.859474565742926
+1250	4000	0.1	I	0.2	c(id, ga)	c(id, p1)	mq1	evl	0.863194536359415
+1250	4000	0.1	I	0.2	c(id, ga)	c(id, p1)	mq2	dvp	0.673602792481369
+1250	4000	0.1	I	0.2	c(id, ga)	c(id, p1)	mq2	evl	0.675839514303264
+1250	4000	0.1	I	0.2	c(id, ga)	c(id, p1)	mq2r	dvp	0.673602792481369
+1250	4000	0.1	I	0.2	c(id, ga)	c(id, p1)	mq2r	evl	0.675839514303264
+1250	4000	0.1	I	0.2	c(id, ga)	c(id, p1)	rop	dvp	0.909669942945262
+1250	4000	0.1	I	0.2	c(id, ga)	c(id, p1)	rop	evl	0.969102453447692

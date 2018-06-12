@@ -86,16 +86,6 @@ lnr <- function(x, y=NULL, gamma=1/NCOL(x), ...)
     tcrossprod(x, y) * gamma
 }
 
-cmb <- function(k, w)
-{
-    if(is.matrix(k))
-        k <- list(k)
-    w <- as.matrix(w)
-    M <- ncol(w)
-    L <- nrow(w)
-    lapply(1:M, function(m) Reduce(`+`, mapply(`*`, k, w[, m], SIMPLIFY=FALSE)))
-}
-
 ## Folllowings are the definition of base kernels
 ibs <- function(x, level=2, ...)
 {
@@ -104,4 +94,14 @@ ibs <- function(x, level=2, ...)
     else
         x <- x / level
     1 - as.matrix(dist(x, 'man')) / ncol(x)
+}
+
+cmb <- function(k, w)
+{
+    if(is.matrix(k))
+        k <- list(k)
+    w <- as.matrix(w)
+    M <- ncol(w)
+    L <- nrow(w)
+    lapply(1:M, function(m) Reduce(`+`, mapply(`*`, k, w[, m], SIMPLIFY=FALSE)))
 }

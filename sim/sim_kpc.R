@@ -8,7 +8,11 @@ source('R/gct/gct.R')
 source('R/utl.R')
 source('R/lmm.R')
 source("R/mnq.R")
+source("R/kpc.mnq.R")
 source("sim/sim_kpl.R")
+
+library(devtools)
+devtools::load_all()
 
 #' simulation of kernel deep neural network;
 #' @param gno list contains gnomic map, subject id, and genomic matrix
@@ -90,12 +94,32 @@ main <- function(gno, N, P, H=N, frq=1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id, 
     rpt <- cl(rpt, DF(mtd='rop', dat='dvp', rop.dvp$rpt))
     rpt <- cl(rpt, DF(mtd='rop', dat='evl', rop.evl.rpt))
 
-    ## use MINQUE
-    mnq.dvp <- mnq.lmm(sim$dvp$y, ykn.dvp)
-    mnq.evl.rpt <- knl.prd(sim$evl$y, ykn.evl, mnq.dvp$par, logged=FALSE)
-    rpt <- cl(rpt, DF(mtd='mnq', dat='dvp', mnq.dvp$rpt))
-    rpt <- cl(rpt, DF(mtd='mnq', dat='evl', mnq.evl.rpt))
-    
+    ## use polynomial MINQUE, order 1
+    mq1.dvp <- knl.mnq(sim$dvp$y, ykn.dvp[-1], order=1)
+    mq1.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq1.dvp$par, order=1)
+    rpt <- cl(rpt, DF(mtd='mq1', dat='dvp', mq1.dvp$rpt))
+    rpt <- cl(rpt, DF(mtd='mq1', dat='evl', mq1.evl.rpt))
+
+    ## use polynomial MINQUE, order 1, batched
+    wtm <- mq1.dvp$rpt[1, 2]
+    mq2.dvp <- kpc.mnq(sim$dvp$y, ykn.dvp[-1], sim$evl$y, ykn.evl[-1], order=1, wtm=wtm, ...)
+    mq2.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq2.dvp$par, order=1)
+    rpt <- cl(rpt, DF(mtd='mq2', dat='dvp', mq2.dvp$rpt))
+    rpt <- cl(rpt, DF(mtd='mq2', dat='evl', mq2.evl.rpt))
+
+    ## use polynomial MINQUE, order 2
+    mq3.dvp <- knl.mnq(sim$dvp$y, ykn.dvp[-1], order=2)
+    mq3.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq3.dvp$par, order=2)
+    rpt <- cl(rpt, DF(mtd='mq3', dat='dvp', mq3.dvp$rpt))
+    rpt <- cl(rpt, DF(mtd='mq3', dat='evl', mq3.evl.rpt))
+
+    ## use polynomial MINQUE, order 2, batched
+    wtm <- mq3.dvp$rpt[1, 2]
+    mq4.dvp <- kpc.mnq(sim$dvp$y, ykn.dvp[-1], sim$evl$y, ykn.evl[-1], order=2, wtm=wtm, ...)
+    mq4.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq4.dvp$par, order=2)
+    rpt <- cl(rpt, DF(mtd='mq4', dat='dvp', mq4.dvp$rpt))
+    rpt <- cl(rpt, DF(mtd='mq4', dat='evl', mq4.evl.rpt))
+
     ## use GCTA:
     gct.dvp <- gcta.reml(sim$dvp$y, ykn.dvp)
     gct.evl.rpt <- knl.prd(sim$evl$y, ykn.evl, gct.dvp$par, logged=FALSE)
@@ -112,8 +136,7 @@ main <- function(gno, N, P, H=N, frq=1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id, 
 
     ## report and return
     rpt <- Reduce(function(a, b) merge(a, b, all=TRUE), rpt)
-    rpt <- within(rpt, val <- round(val, 3L))
-    ## ret <- list(arg=arg, rpt=rpt, sim=sim)
+    rpt <- within(rpt, val <- round(val, 4L))
     ret <- cbind(arg, rpt)
 
     invisible(ret)

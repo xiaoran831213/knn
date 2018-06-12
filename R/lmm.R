@@ -95,7 +95,7 @@ lmm.fsi <- function(W, K, Y, ...)
     dv2
 }
 
-knl.prd <- function(y, K, W, logged=TRUE)
+knl.prd <- function(y, K, W, logged=TRUE, ...)
 {
     ## is W logged
     if(logged)
@@ -173,4 +173,26 @@ mnq.lmm <- function(y, K)
     rtm <- DF(key='rtm', val=(time1 - time0)['elapsed'])
 
     ret <- list(par=W, rpt=rbind(rtm, prd))
+}
+
+lmm <- function(y, v, e)
+{
+    N <- nrow(v)
+    f <- v - diag(e, N)
+    u <- chol(v)
+    a <- chol2inv(u)
+
+    ## prediction 1: conditional Gaussian
+    h <- f %*% (a %*% y)
+    mse <- mean((y - h)^2)
+    cyh <- cor(y, h)
+
+    ## prediction 2: leave one out CV
+    ## h <- y - a %*% y / diag(a)
+    ## loo <- mean((y - h)^2)
+
+    ## negative log likelihood
+    nlk <- nlk(y, v, u, a)
+
+    DF(key=c('mse', 'nlk', 'cyh'), val=c(mse, nlk, cyh))
 }

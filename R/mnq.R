@@ -1,14 +1,14 @@
 ## Modified MINQUE
 Modified_MINQUE_Solver <- function(ViList, X, p)
 {
-  A        <- LMM_MINQUE_Solver(ViList = ViList, X = X, p = p)$A;
-  A        <- (A + t(A)) / 2;
-  eigA     <- eigen(A);
-  eigA_val <- pmax(eigA$values,0);
-  eigA_vec <- eigA$vectors;
-  Anew     <- eigA_vec %*% diag(eigA_val) %*% t(eigA_vec);
-  
-  return(Anew)
+    A        <- LMM_MINQUE_Solver(ViList = ViList, X = X, p = p)$A;
+    A        <- (A + t(A)) / 2;
+    eigA     <- eigen(A);
+    eigA_val <- pmax(eigA$values,0);
+    eigA_vec <- eigA$vectors;
+    Anew     <- eigA_vec %*% diag(eigA_val) %*% t(eigA_vec);
+    
+    return(Anew)
 }
 
 
@@ -52,17 +52,166 @@ LMM_MINQUE_Solver <- function(ViList, X, p)
     return(returnlist)
 }
 
-
-## A Helper Function to evaluate r(A,nu) in Infeasible_MINQUE_Newton
-evalR <- function(A, nu, Psi, V, t, p, eps)
+knl.psd <- function(A)
 {
-  I        <- diag(rep(1,nrow(A)));
-  invA     <- solve(A+eps*I);
-  r_dual   <- 2*t*c(V %*% A %*% V) - c(invA) + Psi %*% nu;
-  r_primal <- crossprod(Psi, c(A)) - p;
-  r        <- c(r_dual, r_primal)
-  r_norm   <- sqrt(crossprod(r))
-  
-  returnList <- list(r_norm = r_norm, r_dual = r_dual, r_primal = r_primal, invA = invA);
-  return(returnList)
+    X <- (A + t(A)) / 2
+    with(eigen(X), list(v=vectors, d=pmax(values, 0)))
+}
+
+knl.mnq.R <- function(y, V, X=NULL, P=NULL, psd=TRUE)
+{
+    k     <- length(V)
+    if(is.null(P))
+        P <- diag(k)
+
+    ## sum of V_i, i = 1 .. k    # chapter 7
+    sumV <- Reduce(f = '+', x = V)
+    invV <- chol2inv(chol(sumV))
+    
+    ## b) Calculate P matrix and Q matrix
+    ## Pv = X \(X' \sumV X) X' \sumV   # projection defined by eq 1.2
+    ## Qv = I - Pv              # eq 7.1, or lemma 3.4
+    ## R = \V Qv                # eq 7.1, for the best choice of A*
+    ## R is simplified since X=0 (i.e., not mixed, only kernels)
+    if(!is.null(X))
+    {
+        I <- diag(nrow(X))
+        . <- crossprod(X, invV)
+        R <- invV %*% (I - X %*% MASS::ginv(. %*% X) %*% .)
+    }
+    else
+        R <- invV
+    
+    ## Caculate S matrix, S_ij = Tr(W_i V_j)
+    ## B_i = R V_i R
+    B <- list()
+    for(i in 1:k)
+        B[[i]] <- R %*% V[[i]] %*% R
+
+    S <- matrix(.0, k, k)
+    for(i in 1:k)
+    {
+        for(j in 2:k)
+        {
+            S[i, j] <- sum(B[[i]] * V[[j]])
+            S[j, i] <- S[i, j]
+        }
+        S[i, i] <- sum(B[[i]] * V[[i]])
+    }
+
+    ## lambda(s)
+    L <- P %*% MASS::ginv(S)
+
+    ## Calculate A matrix and contrasts
+    A <- list()
+    W <- double(nrow(L))
+    U <- double(nrow(L))
+    for(i in 1:nrow(L))
+    {
+        A[[i]] <- Reduce('+', mapply('*', B, L[i, ], SIMPLIFY = FALSE))
+        if(psd)
+        {
+            W[i] <- with(knl.psd(A[[i]]), sum(d * crossprod(v, y)^2))
+        }
+        else
+            W[i] <- crossprod(y, A[[i]] %*% y)
+    }
+
+    ## pack up
+    list(f=drop(W), A=A, S=S, s=MASS::ginv(S), L=L)
+}
+
+#' Kernel Polynomial Expansion
+#'
+#' @param V list of kernels (matrices of covariance)
+#' @param order r the order of polynomial
+#' @param v index of the basic kernels
+#'
+#' @return the polynomial terms formed by Schur products of the basic kernels,
+#' up to the specified order, including a zero order identidy kernel for noise.
+knl.ply <- function(V, order=1)
+{
+    L <- length(V)                      # kernel count
+    N <- names(V)                       # kernel names
+    if(is.null(N))
+        N <- letters[seq.int(L)]
+
+    V <- c(list(I=1), V)                # prepend "1"
+    N <- c('.', N)                      # updated names
+    L <- length(V)                      # updated count
+
+    .kp <- function(n, r, v = 1:n)      # see gtools::combinations
+    {
+        v0 <- vector(mode(v), 0)
+        if (r == 0) 
+            v0
+        else if (r == 1) 
+            matrix(v, n, 1)
+        else if (n == 1) 
+            matrix(v, 1, r)
+        else
+            rbind(cbind(v[1], Recall(n, r - 1, v)), Recall(n - 1, r, v[-1]))
+    }
+
+    P <- .kp(L, order)                  # polynomial indicies
+    K <- list()                         # expended kernels
+    M <- character(nrow(P))             # expanded kernel names
+    for(k in 1:nrow(P))
+    {
+        K[[k]] <- Reduce(`*`, V[P[k, ]])
+        M[k] <- paste(N[P[k, ]], collapse='')
+    }
+
+    K[[1]] <- diag(NROW(K[[2]]))       # replace "1" with identity kernel
+    names(K) <- M                      # assign names
+    K
+}
+
+#' Kernel MINQUE
+#'
+#' @param y a vector of dependent variable
+#' @param V a list of kernels (matrices of covariance), with no identity
+#' kernel (the noise term).
+#' @param order an interger controls the kernel polynomial expansion
+#' @param cpp use compiled Cpp code instead of R routine.
+#' @return a list of statistics:
+#' 
+#' * par: a vector variance component esimates
+#' * a table of performance measures
+#'   - running time;
+#'   - mean square error between y and y.hat;
+#'   - negative log likelihood assuming y ~ N(0, sum_i(V_i * par_i))
+#'   - cor(y, y.hat)
+knl.mnq <- function(y, V, order=1, cpp=TRUE, psd=TRUE, ...)
+{
+    N <- NROW(y)                        # sample size
+
+    ## print('begin MINQUE')
+    time0 <- proc.time()
+    K <- knl.ply(V, order)
+    k <- length(K)                      # kernel count
+    
+    ## call the kernel MINQUE core function
+    ## fixed contrast matrix
+    P <- diag(k)                        # now k == K.count
+    if(cpp)
+        W <- .Call('_knn_knl_mnq', PACKAGE = 'knn', as.matrix(y), K, P, psd)$f
+    else
+        W <- knl.mnq.R(y, K, P, psd)$f
+    time1 <- proc.time()
+    ## print('end MINQUE')
+
+    ## make predictions
+    prd <- knl.prd(y, K, W, logged=FALSE)
+
+    ## timing
+    rtm <- DF(key='rtm', val=(time1 - time0)['elapsed'])
+
+    ret <- list(par=drop(W), rpt=rbind(rtm, prd))
+}
+
+knl.mnq.evl <- function(y, V, vcs, order=1, ...)
+{
+    K <- knl.ply(V, order)
+    knl.prd(y, K, vcs, logged=FALSE, ...)
 }

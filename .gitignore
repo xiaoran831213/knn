@@ -40,3 +40,6 @@ sim.sh
 
 # emacs's back
 *~
+
+# R package's manual
+man

@@ -60,7 +60,7 @@ lmm <- function(y, v, e)
     ## negative log likelihood
     nlk <- nlk(y, v, u, a)
 
-    df(key=c('mse', 'nlk', 'cyh'), val=c(mse, nlk, cyh))
+    DF(key=c('mse', 'nlk', 'cyh'), val=c(mse, nlk, cyh))
 }
 
 nul <- function(y)
@@ -82,7 +82,7 @@ nul <- function(y)
     ## loo <- mean((y - h)^2)
 
     ## report
-    df(key=c('mse', 'nlk'), val=c(mse, nlk))
+    DF(key=c('mse', 'nlk'), val=c(mse, nlk))
 }
 
 
