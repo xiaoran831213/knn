@@ -56,32 +56,53 @@ RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
        Lambda = S^{-1} */
     dmat L = pinv(S);
     List A(L.n_rows);		      // k A-matrices
-    dvec f(L.n_rows);		      // k contrasts -> k VC(s)
-    // dmat y1(y);
+    dvec W(L.n_rows);		      // k contrasts -> k VC(s)
     for(int i = 0; i < L.n_rows; i++) // L.n_rows == P.n_rows
     {
-	// A = sum_{i=1}^k lamda[i, ] (R V[i, ] R)
-	dmat a(N, N, fill::zeros);
-	for(int j = 0; j < L.n_cols; j++) // L.n_cols == k
+        // A = sum_{i=1}^k lamda[i, ] (R V[i, ] R)
+	dmat a = B[0] * L(i, 0);
+	for(int j = 1; j < L.n_cols; j++) // L.n_cols == k
 	    a += B[j] * L(i, j);
-	A[i] = a;
 
-	// estimate linear function of variance components
-	// modified MINQUE, project A to PSD space
-	dvec d;
-	dmat v;
-	eig_sym(d, v, (a + a.t())/2);
-	d = d % (d > 0);
-	// A_hat_i = v I(d) v.t()
-	// sum(d * crossprod(v, y)^2) in R
-	// f[i] = as_scalar(y.t() * v *  diagmat(d) * v.t() * y);
-	f[i] = as_scalar(square(y.t() * v) * d);
+	// estimate the i th. variance component
+	double w = as_scalar(y.t() * a * y);
+	if(w < 0) 		// modified MINQUE required
+	{
+	    dvec d;		// project A to PSD space
+	    dmat v;
+	    eig_sym(d, v, (a + a.t())/2);
+	    dmat u(size(v), fill::zeros);
+	    for(int j = v.n_rows - 1; j >=0; j--)
+	    {
+		if(d[j] > 0)
+		    u.col(j) = v.col(j) * d[j];
+		else
+		    break;
+	    }
+	    a = u * v.t();
+	    w = as_scalar(y.t() * a * y);
+	}
+	A[i] = a;
+	W[i] = w;
     }
+
+    /* Standard Error of VC(s), assuming y is normal */
+    dmat C = V[0] * W[0];	// marginal cov of y
+    dvec e(k);
+    for(int i = 1; i < k; i++)
+	C += V[i] * W[i];
+
+    // se(s2_i) = 2Tr(A_i C_y A_i C_y)
+    for(int i = 0; i < k; i++)
+	e[i] = 2.0 * accu(pow(as<dmat>(A[i]) * C, 2));
+    e = sqrt(e);
 
     List ret;
     ret["S"] = S;		// S_ij = Tr[B_i V_j]
     ret["L"] = L;		// lambda for each contrast
     ret["A"] = A;		// A matrices
-    ret["f"] = f;		// contrasts
+    ret["C"] = C;
+    ret["s2"] = W;		// variance components
+    ret["se"] = e;		// standard errors
     return(Rcpp::wrap(ret));
 }

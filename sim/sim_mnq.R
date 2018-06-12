@@ -1,6 +1,6 @@
 ## test kenrl minque
 library(MASS)
-## library(microbenchmark)
+library(microbenchmark)
 library(devtools)
 devtools::load_all()
 source('R/hlp.R')
@@ -8,7 +8,7 @@ source('R/kpl.R')
 source("R/mnq.R")
 
 ## test for cpp minque versus R minque
-ts1 <- function(N=1000, P=2000, r=100)
+ts1 <- function(N=1000, P=2000, r=10)
 {
     X <- matrix(rnorm(N * P), N, P)
     knl <- list(
@@ -26,14 +26,17 @@ ts1 <- function(N=1000, P=2000, r=100)
     y <- mvrnorm(1, rep(0, N), S)
 
     ## minque
-    r1 <- knl.mnq.R(y, V, X=NULL)
-    a1 <- lapply(r1$A, round, 4)
+    mb <- microbenchmark(r1 <- knl.mnq.R(y, V, X=NULL),
+                         r2 <- .Call('knl_mnq', as.matrix(y), V), times=r)
+    print(mb)
 
-    r2 <- .Call('knl_mnq', as.matrix(y), V)
-    a2 <- lapply(r2$A, round, 4)
+    for(i in seq_along(length(V)))
+    {
+        print(all.equal(r1$A[[i]], r2$A[[i]]))
+    }
+    print(all.equal(r1$C, r2$C))
+    print(all.equal(r1$se, drop(r2$se)))
+    print(all.equal(r1$s2, drop(r2$s2)))
 
-    for(i in seq_along(a1))
-        print(all.equal(a1[[i]], a2[[i]]))
-    
     list(r1=r1, r2=r2)
 }

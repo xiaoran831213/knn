@@ -51,28 +51,34 @@ knl.mnq.R <- function(y, V, X=NULL)
 
     ## Calculate A matrix and contrasts
     A <- list()
-    H <- list()
-    w <- double(nrow(L))                # variance component estimate
+    W <- double(nrow(L))                # variance component estimate
     for(i in 1:nrow(L))
     {
-        A[[i]] <- Reduce('+', mapply('*', B, L[i, ], SIMPLIFY = FALSE))
-        ## Modified y'A y
-        . <- eigen((A[[i]] + t(A[[i]])) / 2)
-        d <- pmax(.$values, 0)
-        v <- .$vectors
-        H[[i]] <- v %*% (d * t(v))      # A_hat_i: modified A matrix
-        w[i] <- sum(y * H[[i]] %*% y)
+        a <- Reduce('+', mapply('*', B, L[i, ], SIMPLIFY = FALSE))
+        w <- sum(y * a %*% y)          # attempt to estimate s^2
+        if(w < 0)                      # make A matrix PSD if s^2 < 0.
+        {
+            ## Modified y'A y
+            a <- eigen((a + t(a)) / 2)
+            d <- pmax(a$values, 0)
+            v <- a$vectors
+            a <- v %*% (d * t(v))       # A_hat_i: modified A matrix
+            w <- sum(y * a %*% y)
+        }
+        A[[i]] <- a
+        W[i] <- w
     }
 
     ## estimate standard error of variance components estimate
-    C <- cmb(V, w)[[1]]                 # marginal covariance of y
+    C <- cmb(V, W)[[1]]                 # marginal covariance of y
     e <- double(nrow(L))
     ## var(vc_i) = var(Y' \hat{A}_i y) = 2Tr(\hat{A}_i C \hat{A}_i C)
     for(i in 1:nrow(L))                 # 
-        e[i] <- 2 * sum((H[[i]] %*% C)^2)
+        e[i] <- 2 * sum((A[[i]] %*% C)^2)
+    e <- sqrt(e)
 
     ## pack up
-    list(s2=w, se=e, A=A, H=H, C=C, S=S, L=L)
+    list(s2=W, se=e, A=A, C=C, S=S, L=L)
 }
 
 #' Kernel Polynomial Expansion
@@ -136,32 +142,30 @@ knl.ply <- function(V, order=1)
 #'   - mean square error between y and y.hat;
 #'   - negative log likelihood assuming y ~ N(0, sum_i(V_i * par_i))
 #'   - cor(y, y.hat)
-knl.mnq <- function(y, V, order=1, cpp=TRUE, psd=TRUE, ...)
+knl.mnq <- function(y, V, order=1, cpp=TRUE, ...)
 {
     N <- NROW(y)                        # sample size
 
     ## print('begin MINQUE')
-    time0 <- proc.time()
+    t0 <- Sys.time()
     K <- knl.ply(V, order)
     k <- length(K)                      # kernel count
     
     ## call the kernel MINQUE core function
     ## fixed contrast matrix
-    P <- diag(k)                        # now k == K.count
     if(cpp)
-        W <- .Call('_knn_knl_mnq', PACKAGE = 'knn', as.matrix(y), K, P, psd)$f
+        r <- .Call('knl_mnq', PACKAGE = 'knn', as.matrix(y), K)
     else
-        W <- knl.mnq.R(y, K, P, psd)$f
-    time1 <- proc.time()
+        r <- knl.mnq.R(y, K)
+    td <- Sys.time() - t0; units(td) <- 'secs'; td <- as.numeric(td)
     ## print('end MINQUE')
 
     ## make predictions
-    prd <- knl.prd(y, K, W, logged=FALSE)
+    prd <- knl.prd(y, K, r$s2, logged=FALSE)
 
     ## timing
-    rtm <- DF(key='rtm', val=(time1 - time0)['elapsed'])
-
-    ret <- list(par=drop(W), rpt=rbind(rtm, prd))
+    rtm <- DF(key='rtm', val=td)
+    ret <- list(par=drop(r$s2), se=drop(r$se), rpt=rbind(rtm, prd))
 }
 
 knl.mnq.evl <- function(y, V, vcs, order=1, ...)

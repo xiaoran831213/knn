@@ -12,18 +12,18 @@
 #' also collect training and evaluation statistics such as L1 and L2 error.
 kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl, knl.evl, bsz=N, ...)
 {
-    ## sample size
-    N <- NROW(knl.dvp[[1]])
+    N <- NROW(knl.dvp[[1]])             # sample size
+    nbt <- N / bsz                      # number of batches
     
     ## list of history
     hst <- list()
 
     ## dots
     dot <- list(...)
-    wtm <- dot$wtm %||% 5e-2
-    tol <- dot$tol %||% 1e-6
-    nbt <- N / bsz                      # number of batches
+    wtm <- dot$wtm %||% 36              # wall time  (def=36 sec)
+    wep <- dot$wep %||% ceiling(nbt)    # wall epoch (def=nbt)
     max.itr <- dot$max.itr %||% 1000
+    tol <- dot$tol %||% 1e-6
 
     ## header of tracks
     hdr <- c(
@@ -41,17 +41,19 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl, knl.evl, bsz=N, ...)
     sq <- seq.int(N)
     hst.mse <- list()
     hst.par <- list()
+    hst.se <- list()
     hst.num <- list()
     rtm <- 0
     while(TRUE)
     {
         ## create batches
+        t0 <- Sys.time()
         if(nbt > 1)
         {
-            ep <- as.integer((i * bsz) / N) # epoch count
-            bt <- (i * bsz) %% N / bsz      # batch count
-            if(bt == nbt)                   # 1st batch of an epoch?
-                sq <- sample.int(N)         # permutation
+            ep <- as.integer((i * bsz) / N) + 1 # epoch count
+            bt <- (i * bsz) %% N / bsz          # batch count
+            if(bt == 0)                         # 1st batch?
+                sq <- sample.int(N)             # permutation
 
             ix <- sq[seq.int(bt * bsz, l=bsz) %% N]
             knl.bat <- lapply(knl.dvp, `[`, ix, ix)
@@ -64,13 +66,14 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl, knl.evl, bsz=N, ...)
             knl.bat <- knl.dvp
             rsp.bat <- rsp.dvp
         }
+        t1 <- Sys.time()
+        td <- t1 - t0; units(td) <- 'secs'; td <- as.numeric(td)
         
         ## MINQUE on each batch
-        ## tm0 <- Sys.time()
         bat.ret <- knl.mnq(rsp.bat, knl.bat, ...)
-        rtm <- rtm + bat.ret$rpt[1, 2]
-        ## sec <- (Sys.time() - tm0) %>% {units(.) <- 'secs';.} %>% as.numeric
+        rtm <- rtm + bat.ret$rpt[1, 2] # + td
         par <- bat.ret$par
+        se <- bat.ret$se
         phi <- par[1]
         bat.rpt <- bat.ret$rpt[-1, ]    # keep errors only
         dvp.rpt <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)
@@ -80,6 +83,7 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl, knl.evl, bsz=N, ...)
         ## record each iteration
         hst.num[[i+1]] <- list(i=i, ep=ep, bt=bt, rtm=rtm)
         hst.par[[i+1]] <- par
+        hst.se[[i+1]] <- se
         hst.mse[[i+1]] <- mse
 
         ## update learning rate
@@ -102,6 +106,11 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl, knl.evl, bsz=N, ...)
             cat('BMQ: reaching max iter:', max.itr, '\n')
             break
         }
+        if(ep > wep)
+        {
+            cat('BMQ: reaching max iter:', wep, '\n')
+            break
+        }
         if(rtm > wtm)
         {
             cat('BMQ: reaching walltime:', wtm, 'hour(s)\n')
@@ -114,21 +123,16 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl, knl.evl, bsz=N, ...)
     hst.num <- do.call(rbind, lapply(hst.num, unlist))
     hst.mse <- do.call(rbind, lapply(hst.mse, unlist))
     hst.par <- do.call(rbind, lapply(hst.par, unlist))
+    hst.se  <- do.call(rbind, lapply(hst.se , unlist))
     hst <- DF(hst.num, mse=hst.mse, phi=hst.par[, 1])
-
+    
     ## mean parameter solution
     par <- apply(hst.par, 2, mean)
-    pse <- apply(hst.par, 2, sd)
+    se  <- apply(hst.se , 2, mean)
     rpt <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)
     rpt <- rbind(DF(key='rtm', val=tail(hst$rtm, 1)), rpt)
 
-    ## r2 of mse.dvp explained by mse.bat
-    rbd <- summary(lm(mse.dvp ~ mse.bat, hst))$r.squared
-    rbe <- summary(lm(mse.evl ~ mse.bat, hst))$r.squared
-    rde <- summary(lm(mse.evl ~ mse.dvp, hst))$r.squared
-    rpt <- rbind(DF(key=c('rbd', 'rbe', 'rde'), val=c(rbd, rbe, rde)), rpt)
-
     ## return the history and new parameters
-    ret <- list(rpt=rpt, par=par, pse=pse, hst=hst)
+    ret <- list(rpt=rpt, par=par, se=se, hst=hst)
     ret
 }

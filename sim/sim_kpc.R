@@ -99,10 +99,10 @@ main <- function(gno, N, P, H=N, frq=1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id, 
     mq1.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq1.dvp$par, order=1)
     rpt <- cl(rpt, DF(mtd='mq1', dat='dvp', mq1.dvp$rpt))
     rpt <- cl(rpt, DF(mtd='mq1', dat='evl', mq1.evl.rpt))
-
+    
     ## use polynomial MINQUE, order 1, batched
     wtm <- mq1.dvp$rpt[1, 2]
-    mq2.dvp <- kpc.mnq(sim$dvp$y, ykn.dvp[-1], sim$evl$y, ykn.evl[-1], order=1, wtm=wtm, ...)
+    mq2.dvp <- kpc.mnq(sim$dvp$y, ykn.dvp[-1], sim$evl$y, ykn.evl[-1], order=1, ...)
     mq2.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq2.dvp$par, order=1)
     rpt <- cl(rpt, DF(mtd='mq2', dat='dvp', mq2.dvp$rpt))
     rpt <- cl(rpt, DF(mtd='mq2', dat='evl', mq2.evl.rpt))
@@ -115,7 +115,7 @@ main <- function(gno, N, P, H=N, frq=1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id, 
 
     ## use polynomial MINQUE, order 2, batched
     wtm <- mq3.dvp$rpt[1, 2]
-    mq4.dvp <- kpc.mnq(sim$dvp$y, ykn.dvp[-1], sim$evl$y, ykn.evl[-1], order=2, wtm=wtm, ...)
+    mq4.dvp <- kpc.mnq(sim$dvp$y, ykn.dvp[-1], sim$evl$y, ykn.evl[-1], order=2, ...)
     mq4.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq4.dvp$par, order=2)
     rpt <- cl(rpt, DF(mtd='mq4', dat='dvp', mq4.dvp$rpt))
     rpt <- cl(rpt, DF(mtd='mq4', dat='evl', mq4.evl.rpt))

@@ -106,10 +106,14 @@ knl.prd <- function(y, K, W, logged=TRUE, ...)
     f <- v - diag(W[1], length(y))      # W[1] is PHI
 
     ## prediction 1: conditional Gaussian
-    h <- f %*% (solve(v) %*% y)
-    
+    y <- unname(drop(as.vector(y)))
+    h <- unname(drop(f %*% (solve(v) %*% y)))
+
     mse <- mean((y - h)^2)
-    cyh <- cor(y, h)
+    if(isTRUE(all.equal(y, h, check.attributes = FALSE)))
+        cyh <- 1
+    else
+        cyh <- cor(y, h)
     nlk <- nlk(y, v)
     rpt <- DF(key=c('mse', 'nlk', 'cyh'), val=c(mse, nlk, cyh))
 
