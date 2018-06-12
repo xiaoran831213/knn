@@ -50,7 +50,7 @@ List knl_mnq(arma::dmat y, List V, arma::dmat P, arma::dvec psd)
     dmat L = P * s;
 
     List A(L.n_rows);		      // k A-matrices
-    dvec f(L.n_rows);		      // k linear function outcome
+    dvec f(L.n_rows);		      // k linear contrast outcome
     // dmat y1(y);
     for(int i = 0; i < L.n_rows; i++) // L.n_rows == P.n_rows
     {
@@ -63,7 +63,7 @@ List knl_mnq(arma::dmat y, List V, arma::dmat P, arma::dvec psd)
 	// estimate linear function of variance components
 	if(as_scalar(psd) != 0)		// PSD MINQUE (modifiec MINQUE)
 	{
-	    printf("PSD\n");
+	    // printf("PSD\n");
 	    dvec d;
 	    dmat v;
 	    eig_sym(d, v, (a + a.t())/2);
@@ -74,7 +74,7 @@ List knl_mnq(arma::dmat y, List V, arma::dmat P, arma::dvec psd)
 	}
 	else			// RAW MINQUE
 	{
-	    printf("RAW\n");
+	    // printf("RAW\n");
 	    f[i] = as_scalar(y.t() * a * y);
 	}
     }
@@ -82,8 +82,8 @@ List knl_mnq(arma::dmat y, List V, arma::dmat P, arma::dvec psd)
     List ret;
     ret["S"] = S;		// S_ij = Tr[B_i V_j]
     ret["s"] = s;
-    ret["L"] = L;		// lambda for each contrast
-    ret["A"] = A;		// A matrices
-    ret["f"] = f;
+    // ret["L"] = L;		// lambda for each contrast
+    // ret["A"] = A;		// A matrices
+    ret["f"] = f;		// contrasts
     return(ret);
 }

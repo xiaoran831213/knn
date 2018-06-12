@@ -8,7 +8,9 @@ source('R/gct/gct.R')
 source('R/utl.R')
 source('R/lmm.R')
 source("R/mnq.R")
+source("R/kpc.mnq.R")
 source("sim/sim_kpl.R")
+
 library(devtools)
 devtools::load_all()
 
@@ -98,17 +100,25 @@ main <- function(gno, N, P, H=N, frq=1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id, 
     rpt <- cl(rpt, DF(mtd='mq1', dat='dvp', mq1.dvp$rpt))
     rpt <- cl(rpt, DF(mtd='mq1', dat='evl', mq1.evl.rpt))
 
-    ## use polynomial MINQUE, order 2
-    mq2.dvp <- knl.mnq(sim$dvp$y, ykn.dvp[-1], order=2)
-    mq2.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq2.dvp$par, order=2)
+    ## use polynomial MINQUE, order 1, batched
+    wtm <- mq1.dvp$rpt[1, 2]
+    mq2.dvp <- kpc.mnq(sim$dvp$y, ykn.dvp[-1], sim$evl$y, ykn.evl[-1], order=1, wtm=wtm, ...)
+    mq2.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq2.dvp$par, order=1)
     rpt <- cl(rpt, DF(mtd='mq2', dat='dvp', mq2.dvp$rpt))
     rpt <- cl(rpt, DF(mtd='mq2', dat='evl', mq2.evl.rpt))
 
-    ## use polynomial MINQUE, order 2, R
-    mq2r.dvp <- knl.mnq(sim$dvp$y, ykn.dvp[-1], order=2, cpp=FALSE)
-    mq2r.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq2r.dvp$par, order=2)
-    rpt <- cl(rpt, DF(mtd='mq2r', dat='dvp', mq2r.dvp$rpt))
-    rpt <- cl(rpt, DF(mtd='mq2r', dat='evl', mq2r.evl.rpt))
+    ## use polynomial MINQUE, order 2
+    mq3.dvp <- knl.mnq(sim$dvp$y, ykn.dvp[-1], order=2)
+    mq3.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq3.dvp$par, order=2)
+    rpt <- cl(rpt, DF(mtd='mq3', dat='dvp', mq3.dvp$rpt))
+    rpt <- cl(rpt, DF(mtd='mq3', dat='evl', mq3.evl.rpt))
+
+    ## use polynomial MINQUE, order 2, batched
+    wtm <- mq3.dvp$rpt[1, 2]
+    mq4.dvp <- kpc.mnq(sim$dvp$y, ykn.dvp[-1], sim$evl$y, ykn.evl[-1], order=2, wtm=wtm, ...)
+    mq4.evl.rpt <- knl.mnq.evl(sim$evl$y, ykn.evl[-1], mq4.dvp$par, order=2)
+    rpt <- cl(rpt, DF(mtd='mq4', dat='dvp', mq4.dvp$rpt))
+    rpt <- cl(rpt, DF(mtd='mq4', dat='evl', mq4.evl.rpt))
 
     ## use GCTA:
     gct.dvp <- gcta.reml(sim$dvp$y, ykn.dvp)
@@ -126,8 +136,7 @@ main <- function(gno, N, P, H=N, frq=1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id, 
 
     ## report and return
     rpt <- Reduce(function(a, b) merge(a, b, all=TRUE), rpt)
-    rpt <- within(rpt, val <- round(val, 3L))
-    ## ret <- list(arg=arg, rpt=rpt, sim=sim)
+    rpt <- within(rpt, val <- round(val, 4L))
     ret <- cbind(arg, rpt)
 
     invisible(ret)

@@ -58,22 +58,29 @@ knl.psd <- function(A)
     with(eigen(X), list(v=vectors, d=pmax(values, 0)))
 }
 
-knl.mnq.R <- function(y, V, P=NULL, psd=TRUE)
+knl.mnq.R <- function(y, V, X=NULL, P=NULL, psd=TRUE)
 {
-    k     <- length(V);
+    k     <- length(V)
     if(is.null(P))
         P <- diag(k)
-    ## I     <- diag(nrow(X))
 
     ## sum of V_i, i = 1 .. k    # chapter 7
-    sumV <- Reduce(f = '+', x = V); 
+    sumV <- Reduce(f = '+', x = V)
+    invV <- chol2inv(chol(sumV))
     
     ## b) Calculate P matrix and Q matrix
     ## Pv = X \(X' \sumV X) X' \sumV   # projection defined by eq 1.2
     ## Qv = I - Pv              # eq 7.1, or lemma 3.4
     ## R = \V Qv                # eq 7.1, for the best choice of A*
     ## R is simplified since X=0 (i.e., not mixed, only kernels)
-    R <- chol2inv(chol(sumV));
+    if(!is.null(X))
+    {
+        I <- diag(nrow(X))
+        . <- crossprod(X, invV)
+        R <- invV %*% (I - X %*% MASS::ginv(. %*% X) %*% .)
+    }
+    else
+        R <- invV
     
     ## Caculate S matrix, S_ij = Tr(W_i V_j)
     ## B_i = R V_i R
@@ -103,7 +110,9 @@ knl.mnq.R <- function(y, V, P=NULL, psd=TRUE)
     {
         A[[i]] <- Reduce('+', mapply('*', B, L[i, ], SIMPLIFY = FALSE))
         if(psd)
+        {
             W[i] <- with(knl.psd(A[[i]]), sum(d * crossprod(v, y)^2))
+        }
         else
             W[i] <- crossprod(y, A[[i]] %*% y)
     }
@@ -173,24 +182,24 @@ knl.ply <- function(V, order=1)
 #'   - mean square error between y and y.hat;
 #'   - negative log likelihood assuming y ~ N(0, sum_i(V_i * par_i))
 #'   - cor(y, y.hat)
-knl.mnq <- function(y, V, order=1, cpp=TRUE, psd=TRUE)
+knl.mnq <- function(y, V, order=1, cpp=TRUE, psd=TRUE, ...)
 {
     N <- NROW(y)                        # sample size
 
-    print('begin MINQUE')
+    ## print('begin MINQUE')
+    time0 <- proc.time()
     K <- knl.ply(V, order)
     k <- length(K)                      # kernel count
     
     ## call the kernel MINQUE core function
     ## fixed contrast matrix
     P <- diag(k)                        # now k == K.count
-    time0 <- proc.time()
     if(cpp)
         W <- .Call('_knn_knl_mnq', PACKAGE = 'knn', as.matrix(y), K, P, psd)$f
     else
         W <- knl.mnq.R(y, K, P, psd)$f
     time1 <- proc.time()
-    print('end MINQUE')
+    ## print('end MINQUE')
 
     ## make predictions
     prd <- knl.prd(y, K, W, logged=FALSE)
