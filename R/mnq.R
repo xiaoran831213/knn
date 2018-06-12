@@ -1,56 +1,4 @@
 ## Modified MINQUE
-Modified_MINQUE_Solver <- function(ViList, X, p)
-{
-    A        <- LMM_MINQUE_Solver(ViList = ViList, X = X, p = p)$A;
-    A        <- (A + t(A)) / 2;
-    eigA     <- eigen(A);
-    eigA_val <- pmax(eigA$values,0);
-    eigA_vec <- eigA$vectors;
-    Anew     <- eigA_vec %*% diag(eigA_val) %*% t(eigA_vec);
-    
-    return(Anew)
-}
-
-
-## MINQUE for LMM
-LMM_MINQUE_Solver <- function(ViList, X, p)
-{
-    n     <- dim(X)[1];
-    k     <- length(ViList);
-    I     <- diag(rep(1,n));
-    S     <- matrix(0, nrow = k, ncol = k);
-    AList <- list();
-    
-    ## Calculate V matrix and its inverse
-    V    <- Reduce(f = '+', x = ViList); 
-    invV <- chol2inv(chol(V));
-    
-    ## Calculate P matrix and Q matrix
-    Pv   <- X %*% ginv(t(X) %*% invV %*% X) %*% t(X) %*% invV;
-    Qv   <- I - Pv;
-    
-    ## Caculate S matrix to solve for lambda
-    for(i in 1:k)
-    {
-        AList[[i]] <- t(Qv) %*% invV %*% ViList[[i]] %*% invV %*% Qv
-    }
-    
-    for(i in 1:k)
-    {
-        for(j in 1:k)
-        {
-            S[i,j] <- sum(AList[[i]] * ViList[[j]]);
-        }
-    }
-    lambda <- ginv(S) %*% p;
-    
-    ## Calculate A matrix
-    A <- mapply(AList, lambda, FUN = '*', SIMPLIFY = FALSE);
-    A <- Reduce(f = '+', A);
-    
-    returnlist <- list(A = A, S = S);
-    return(returnlist)
-}
 
 knl.psd <- function(A)
 {
@@ -58,11 +6,9 @@ knl.psd <- function(A)
     with(eigen(X), list(v=vectors, d=pmax(values, 0)))
 }
 
-knl.mnq.R <- function(y, V, X=NULL, P=NULL, psd=TRUE)
+knl.mnq.R <- function(y, V, X=NULL)
 {
     k     <- length(V)
-    if(is.null(P))
-        P <- diag(k)
 
     ## sum of V_i, i = 1 .. k    # chapter 7
     sumV <- Reduce(f = '+', x = V)
@@ -99,26 +45,34 @@ knl.mnq.R <- function(y, V, X=NULL, P=NULL, psd=TRUE)
         S[i, i] <- sum(B[[i]] * V[[i]])
     }
 
-    ## lambda(s)
-    L <- P %*% MASS::ginv(S)
+    ## lambda_i = P_i * S^{-1}, to solve for each variance compoent, 
+    ## the contract matrix P must be I(k), thus Lambda == S^{-1}.
+    L <- MASS::ginv(S)
 
     ## Calculate A matrix and contrasts
     A <- list()
-    W <- double(nrow(L))
-    U <- double(nrow(L))
+    H <- list()
+    w <- double(nrow(L))                # variance component estimate
     for(i in 1:nrow(L))
     {
         A[[i]] <- Reduce('+', mapply('*', B, L[i, ], SIMPLIFY = FALSE))
-        if(psd)
-        {
-            W[i] <- with(knl.psd(A[[i]]), sum(d * crossprod(v, y)^2))
-        }
-        else
-            W[i] <- crossprod(y, A[[i]] %*% y)
+        ## Modified y'A y
+        . <- eigen((A[[i]] + t(A[[i]])) / 2)
+        d <- pmax(.$values, 0)
+        v <- .$vectors
+        H[[i]] <- v %*% (d * t(v))      # A_hat_i: modified A matrix
+        w[i] <- sum(y * H[[i]] %*% y)
     }
 
+    ## estimate standard error of variance components estimate
+    C <- cmb(V, w)[[1]]                 # marginal covariance of y
+    e <- double(nrow(L))
+    ## var(vc_i) = var(Y' \hat{A}_i y) = 2Tr(\hat{A}_i C \hat{A}_i C)
+    for(i in 1:nrow(L))                 # 
+        e[i] <- 2 * sum((H[[i]] %*% C)^2)
+
     ## pack up
-    list(f=drop(W), A=A, S=S, s=MASS::ginv(S), L=L)
+    list(s2=w, se=e, A=A, H=H, C=C, S=S, L=L)
 }
 
 #' Kernel Polynomial Expansion
