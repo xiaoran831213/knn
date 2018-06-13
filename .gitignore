@@ -43,3 +43,6 @@ sim.sh
 
 # R package's manual
 man
+
+# GCTA's test data
+data/gct
