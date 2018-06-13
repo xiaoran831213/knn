@@ -35,8 +35,8 @@ ts1 <- function(N=1000, P=2000, r=10)
         print(all.equal(r1$A[[i]], r2$A[[i]]))
     }
     print(all.equal(r1$C, r2$C))
-    print(all.equal(r1$se, drop(r2$se)))
-    print(all.equal(r1$s2, drop(r2$s2)))
+    print(all.equal(r1$se2, drop(r2$se2)))
+    print(all.equal(r1$vcs, drop(r2$vcs)))
 
     list(r1=r1, r2=r2)
 }
