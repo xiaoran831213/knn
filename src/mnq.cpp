@@ -57,7 +57,10 @@ RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
     dmat L = pinv(S);
     List A(L.n_rows);		      // k A-matrices
     dvec W(L.n_rows);		      // k contrasts -> k VC(s)
-    for(int i = 0; i < L.n_rows; i++) // L.n_rows == P.n_rows
+    dvec d(N);			      // eigen values of A
+    dmat v(N, N);		      // eigen vectors of A
+    dmat u(N, N);		      // eigen vectors of A
+    for(int i = 0; i < k; i++)
     {
         // A = sum_{i=1}^k lamda[i, ] (R V[i, ] R)
 	dmat a = B[0] * L(i, 0);
@@ -68,16 +71,14 @@ RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
 	double w = as_scalar(y.t() * a * y);
 	if(w < 0) 		// modified MINQUE required
 	{
-	    dvec d;		// project A to PSD space
-	    dmat v;
+	    // project A to its nearest in the PSD space
 	    eig_sym(d, v, (a + a.t())/2);
-	    dmat u(size(v), fill::zeros);
 	    for(int j = v.n_rows - 1; j >=0; j--)
 	    {
 		if(d[j] > 0)
 		    u.col(j) = v.col(j) * d[j];
 		else
-		    break;
+		    u.col(j).zeros();
 	    }
 	    a = u * v.t();
 	    w = as_scalar(y.t() * a * y);
@@ -95,14 +96,13 @@ RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
     // se(s2_i) = 2Tr(A_i C_y A_i C_y)
     for(int i = 0; i < k; i++)
 	e[i] = 2.0 * accu(pow(as<dmat>(A[i]) * C, 2));
-    e = sqrt(e);
 
     List ret;
     ret["S"] = S;		// S_ij = Tr[B_i V_j]
     ret["L"] = L;		// lambda for each contrast
     ret["A"] = A;		// A matrices
     ret["C"] = C;
-    ret["s2"] = W;		// variance components
-    ret["se"] = e;		// standard errors
+    ret["vcs"] = W;		// variance components
+    ret["se2"] = e;		// standard errors
     return(Rcpp::wrap(ret));
 }

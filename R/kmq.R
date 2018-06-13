@@ -1,4 +1,4 @@
-## Kernel Perceptron (KPC)
+## Kernel MINQUE (KMQ)
 
 #' @title gradient descent for kernel deep net
 #' @param par vector initial values of parameters;
@@ -10,7 +10,7 @@
 #' @param wtm numeric (in ...) walltime in hours
 #' @param esz integer (in ...) number of samples to draw in for error estimation;
 #' also collect training and evaluation statistics such as L1 and L2 error.
-kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl, knl.evl, bsz=N, ...)
+kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
 {
     N <- NROW(knl.dvp[[1]])             # sample size
     nbt <- N / bsz                      # number of batches
@@ -23,7 +23,6 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl, knl.evl, bsz=N, ...)
     wtm <- dot$wtm %||% 36              # wall time  (def=36 sec)
     wep <- dot$wep %||% ceiling(nbt)    # wall epoch (def=nbt)
     max.itr <- dot$max.itr %||% 1000
-    tol <- dot$tol %||% 1e-6
 
     ## header of tracks
     hdr <- c(
@@ -31,7 +30,7 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl, knl.evl, bsz=N, ...)
         bat=sprintf("%4s", 'bat'),         # batch
         mse.bat=sprintf("%7s", 'mse.bat'), # mse.bat
         mse.dvp=sprintf("%7s", 'mse.dvp'), # mse.dvp
-        mse.evl=sprintf("%7s", 'mse.evl'), # mse.dvp
+        mse.evl=sprintf("%7s", 'mse.evl'), # mse.evl
         phi=sprintf('%7s', 'phi'),         # phi
         rtm=sprintf('%4s', 'rtm'))         # seconds used
     hdr <- paste(hdr, collapse=' ')
@@ -41,7 +40,7 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl, knl.evl, bsz=N, ...)
     sq <- seq.int(N)
     hst.mse <- list()
     hst.par <- list()
-    hst.se <- list()
+    hst.se2 <- list()
     hst.num <- list()
     rtm <- 0
     while(TRUE)
@@ -70,20 +69,20 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl, knl.evl, bsz=N, ...)
         td <- t1 - t0; units(td) <- 'secs'; td <- as.numeric(td)
         
         ## MINQUE on each batch
-        bat.ret <- knl.mnq(rsp.bat, knl.bat, ...)
+        bat.ret <- knl.mnq(rsp.bat, knl.bat, cpp=TRUE, ...)
         rtm <- rtm + bat.ret$rpt[1, 2] # + td
         par <- bat.ret$par
-        se <- bat.ret$se
+        se2 <- bat.ret$se2
         phi <- par[1]
         bat.rpt <- bat.ret$rpt[-1, ]    # keep errors only
         dvp.rpt <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)
         evl.rpt <- knl.mnq.evl(rsp.evl, knl.evl, par, ...)
         mse <- list(bat=bat.rpt[1, 2], dvp=dvp.rpt[1, 2], evl=evl.rpt[1, 2])
-        
+
         ## record each iteration
         hst.num[[i+1]] <- list(i=i, ep=ep, bt=bt, rtm=rtm)
         hst.par[[i+1]] <- par
-        hst.se[[i+1]] <- se
+        hst.se2[[i+1]] <- se2
         hst.mse[[i+1]] <- mse
 
         ## update learning rate
@@ -123,16 +122,16 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl, knl.evl, bsz=N, ...)
     hst.num <- do.call(rbind, lapply(hst.num, unlist))
     hst.mse <- do.call(rbind, lapply(hst.mse, unlist))
     hst.par <- do.call(rbind, lapply(hst.par, unlist))
-    hst.se  <- do.call(rbind, lapply(hst.se , unlist))
+    hst.se2 <- do.call(rbind, lapply(hst.se2, unlist))
     hst <- DF(hst.num, mse=hst.mse, phi=hst.par[, 1])
     
     ## mean parameter solution
     par <- apply(hst.par, 2, mean)
-    se  <- apply(hst.se , 2, mean)
+    se2 <- apply(hst.se2, 2, mean)
     rpt <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)
     rpt <- rbind(DF(key='rtm', val=tail(hst$rtm, 1)), rpt)
 
     ## return the history and new parameters
-    ret <- list(rpt=rpt, par=par, se=se, hst=hst)
+    ret <- list(rpt=rpt, par=par, se2=se2, hst=hst)
     ret
 }

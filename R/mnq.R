@@ -75,10 +75,9 @@ knl.mnq.R <- function(y, V, X=NULL)
     ## var(vc_i) = var(Y' \hat{A}_i y) = 2Tr(\hat{A}_i C \hat{A}_i C)
     for(i in 1:nrow(L))                 # 
         e[i] <- 2 * sum((A[[i]] %*% C)^2)
-    e <- sqrt(e)
 
     ## pack up
-    list(s2=W, se=e, A=A, C=C, S=S, L=L)
+    list(vcs=W, se2=e, A=A, C=C, S=S, L=L)
 }
 
 #' Kernel Polynomial Expansion
@@ -161,11 +160,11 @@ knl.mnq <- function(y, V, order=1, cpp=TRUE, ...)
     ## print('end MINQUE')
 
     ## make predictions
-    prd <- knl.prd(y, K, r$s2, logged=FALSE)
+    prd <- knl.prd(y, K, r$vcs, logged=FALSE)
 
     ## timing
     rtm <- DF(key='rtm', val=td)
-    ret <- list(par=drop(r$s2), se=drop(r$se), rpt=rbind(rtm, prd))
+    ret <- list(par=drop(r$vcs), se2=drop(r$se2), rpt=rbind(rtm, prd))
 }
 
 knl.mnq.evl <- function(y, V, vcs, order=1, ...)
