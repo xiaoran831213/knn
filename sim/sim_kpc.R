@@ -36,6 +36,7 @@ main <- function(gno, N, P, H=N, frq=1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id, 
     options(stringsAsFactors=FALSE)
     dot <- list(...)
     set.seed(dot$seed)
+    ejt <- dot$ejt %||% .1
     arg <- match.call() %>% tail(-2) %>% as.list # %>% as.data.frame
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
@@ -70,6 +71,7 @@ main <- function(gno, N, P, H=N, frq=1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id, 
             PF("NLK.DVP.GMX = %9.3f\n", nlk(y, ycv.gmx))
         })
 
+        txy <- txy + rnorm(length(txy), 0, ejt)
         evl <- within(list(),
         {
             ycv.fmx <- cmb(krn(fmx.evl, oks), exp(txy))[[1]]
