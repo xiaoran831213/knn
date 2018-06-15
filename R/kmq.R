@@ -1,5 +1,47 @@
 ## Kernel MINQUE (KMQ)
 
+## Training Track
+tt <- function(obj, fmt=NULL, hdr=NULL, ...)
+{
+    if(is.function(obj))
+    {
+        ret <- function() sprintf(fmt, obj(...))
+    }
+    else if(is(obj, 'formula'))
+    {
+        ret <- function() sprintf(fmt, get(all.vars(obj)))
+    }
+    else
+    {
+        ret <- function() sprintf(fmt, obj)
+    }
+
+    if(is.null(fmt))
+        fmt <- "%8s"
+
+    if(is.null(hdr))
+        hdr <- deparse(substitute(obj))
+
+    len <- as.integer(sub("^%[+-]?([0-9]*)[.]?([0-9])?[A-z]$", "\\1", fmt))
+    hdr <- sprintf(paste0("% ", len, "s"), hdr)
+    structure(ret, class=c('tt', 'function'), hdr=hdr)
+}
+
+## is
+is.tt <- function(.) is(., 'tt')
+
+## Header of the tracks
+hd.tt <- function(...)
+{
+    d <- Filter(is.tt, unlist(list(...)))
+    d <- sapply(d, function(.)
+    {
+        h <- attr(., "hdr")
+    })
+    paste(d, collapse=" ")
+}
+        
+
 #' @title gradient descent for kernel deep net
 #' @param par vector initial values of parameters;
 #' @param ctx list context of the training task, such as input features and lables;
@@ -24,17 +66,24 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
     wep <- dot$wep %||% ceiling(nbt)    # wall epoch (def=nbt)
     max.itr <- dot$max.itr %||% 1000
 
+    tks <- list(
+        eph=tt(~ep, "%04d"),
+        bat=tt(~bt, "%04d"),
+        dvp=tt(~mse$dvp, "%7.3f"),
+        evl=tt(~mse$evl, "%7.3f"),
+        phi=tt(~phi, "%7s"),
+        trm=tt(~rtm, "%7s"))
+    
     ## header of tracks
     hdr <- c(
         eph=sprintf("%4s", 'eph'),         # epoch
         bat=sprintf("%4s", 'bat'),         # batch
-        mse.bat=sprintf("%7s", 'mse.bat'), # mse.bat
         mse.dvp=sprintf("%7s", 'mse.dvp'), # mse.dvp
         mse.evl=sprintf("%7s", 'mse.evl'), # mse.evl
         phi=sprintf('%7s', 'phi'),         # phi
         rtm=sprintf('%4s', 'rtm'))         # seconds used
     hdr <- paste(hdr, collapse=' ')
-
+    
     ## initial parameters
     i <- 0
     sq <- seq.int(N)
