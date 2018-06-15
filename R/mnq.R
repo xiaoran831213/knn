@@ -164,7 +164,8 @@ knl.mnq <- function(y, V, order=1, cpp=TRUE, ...)
 
     ## timing
     rtm <- DF(key='rtm', val=td)
-    ret <- list(par=drop(r$vcs), se2=drop(r$se2), rpt=rbind(rtm, prd))
+    s2z <- DF(key='s2z', val=r$se2[2])
+    ret <- list(par=drop(r$vcs), se2=drop(r$se2), rpt=rbind(rtm, s2z, prd))
 }
 
 knl.mnq.evl <- function(y, V, vcs, order=1, ...)

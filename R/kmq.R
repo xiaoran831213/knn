@@ -42,6 +42,8 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
     hst.par <- list()
     hst.se2 <- list()
     hst.num <- list()
+
+    hst.acc <- list()
     rtm <- 0
     while(TRUE)
     {
@@ -52,8 +54,14 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
             ep <- as.integer((i * bsz) / N) + 1 # epoch count
             bt <- (i * bsz) %% N / bsz          # batch count
             if(bt == 0)                         # 1st batch?
+            {
                 sq <- sample.int(N)             # permutation
-
+                acc <- 0
+            }
+            if(bt == nbt - 1)                   # last batch?
+            {
+                hst.acc[[ep]] <- 1 / acc
+            }
             ix <- sq[seq.int(bt * bsz, l=bsz) %% N]
             knl.bat <- lapply(knl.dvp, `[`, ix, ix)
             rsp.bat <- rsp.dvp[ix]
@@ -73,6 +81,7 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
         rtm <- rtm + bat.ret$rpt[1, 2] # + td
         par <- bat.ret$par
         se2 <- bat.ret$se2
+        acc <- acc + 1/se2
         phi <- par[1]
         bat.rpt <- bat.ret$rpt[-1, ]    # keep errors only
         dvp.rpt <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)
@@ -123,14 +132,21 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
     hst.mse <- do.call(rbind, lapply(hst.mse, unlist))
     hst.par <- do.call(rbind, lapply(hst.par, unlist))
     hst.se2 <- do.call(rbind, lapply(hst.se2, unlist))
+    hst.acc <- do.call(rbind, lapply(hst.acc, unlist))
     hst <- DF(hst.num, mse=hst.mse, phi=hst.par[, 1])
     
     ## mean parameter solution
     par <- apply(hst.par, 2, mean)
-    se2 <- apply(hst.se2, 2, mean)
+    s2a <- apply(hst.se2, 2, mean)
+    s2b <- 1/apply(1/hst.se2, 2, sum)
+    s2c <- apply(hst.acc, 2, mean)
+    s2d <- 1/apply(1/hst.acc, 2, sum)
+
     rpt <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)
     rpt <- rbind(DF(key='rtm', val=tail(hst$rtm, 1)), rpt)
-
+    rpt <- rbind(DF(key=c('s2a', 's2b', 's2c', 's2d'),
+                    val=c(s2a[2], s2b[2], s2c[2], s2d[2])), rpt)
+    
     ## return the history and new parameters
     ret <- list(rpt=rpt, par=par, se2=se2, hst=hst)
     ret
