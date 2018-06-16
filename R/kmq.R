@@ -1,19 +1,29 @@
 ## Kernel MINQUE (KMQ)
 
 ## Training Track
-tt <- function(obj, fmt=NULL, hdr=NULL, ...)
+msg <- function(obj, fmt=NULL, hdr=NULL, ...)
 {
     if(is.function(obj))
     {
-        ret <- function() sprintf(fmt, obj(...))
+        ret <- function()
+        {
+            sprintf(fmt, obj(...))
+        }
     }
     else if(is(obj, 'formula'))
     {
-        ret <- function() sprintf(fmt, get(all.vars(obj)))
+        ret <- function()
+        {
+            e <- environment(obj)
+            sprintf(fmt, eval(attr(terms(obj), 'variables'), e)[[1]])
+        }
     }
     else
     {
-        ret <- function() sprintf(fmt, obj)
+        ret <- function()
+        {
+            sprintf(fmt, obj)
+        }
     }
 
     if(is.null(fmt))
@@ -21,25 +31,37 @@ tt <- function(obj, fmt=NULL, hdr=NULL, ...)
 
     if(is.null(hdr))
         hdr <- deparse(substitute(obj))
-
+    hdr <- sub("^~", "", hdr)
+    
     len <- as.integer(sub("^%[+-]?([0-9]*)[.]?([0-9])?[A-z]$", "\\1", fmt))
     hdr <- sprintf(paste0("% ", len, "s"), hdr)
-    structure(ret, class=c('tt', 'function'), hdr=hdr)
+    structure(ret, class=c('msg', 'function'), hdr=hdr)
 }
 
 ## is
-is.tt <- function(.) is(., 'tt')
+is.msg <- function(.) is(., 'msg')
 
 ## Header of the tracks
-hd.tt <- function(...)
+hd.msg <- function(...)
 {
-    d <- Filter(is.tt, unlist(list(...)))
+    d <- Filter(is.msg, unlist(list(...)))
     d <- sapply(d, function(.)
     {
         h <- attr(., "hdr")
     })
     paste(d, collapse=" ")
 }
+
+## A line of the tracks
+ln.msg <- function(...)
+{
+    d <- Filter(is.msg, unlist(list(...)))
+    d <- sapply(d, do.call, list())
+    paste(d, collapse=" ")
+}
+
+## Value of the tracks
+
         
 
 #' @title gradient descent for kernel deep net
@@ -66,32 +88,17 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
     wep <- dot$wep %||% ceiling(nbt)    # wall epoch (def=nbt)
     max.itr <- dot$max.itr %||% 1000
 
-    tks <- list(
-        eph=tt(~ep, "%04d"),
-        bat=tt(~bt, "%04d"),
-        dvp=tt(~mse$dvp, "%7.3f"),
-        evl=tt(~mse$evl, "%7.3f"),
-        phi=tt(~phi, "%7s"),
-        trm=tt(~rtm, "%7s"))
-    
-    ## header of tracks
-    hdr <- c(
-        eph=sprintf("%4s", 'eph'),         # epoch
-        bat=sprintf("%4s", 'bat'),         # batch
-        mse.dvp=sprintf("%7s", 'mse.dvp'), # mse.dvp
-        mse.evl=sprintf("%7s", 'mse.evl'), # mse.evl
-        phi=sprintf('%7s', 'phi'),         # phi
-        rtm=sprintf('%4s', 'rtm'))         # seconds used
-    hdr <- paste(hdr, collapse=' ')
+    ## message tracks
+    tks <- list(msg(~ep, "%04d"), msg(~bt, "%04d"), msg(~mse, "%7.3f"),
+                msg(~phi), msg(~rtm, "%4.1f"))
     
     ## initial parameters
     i <- 0
-    sq <- seq.int(N)
     hst.mse <- list()
-    hst.par <- list()
     hst.se2 <- list()
+    hst.par <- list()
     hst.num <- list()
-
+    hst.err <- list()
     hst.acc <- list()
     rtm <- 0
     while(TRUE)
@@ -132,47 +139,22 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
         se2 <- bat.ret$se2
         acc <- acc + 1/se2
         phi <- par[1]
-        bat.rpt <- bat.ret$rpt[-1, ]    # keep errors only
-        dvp.rpt <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)
-        evl.rpt <- knl.mnq.evl(rsp.evl, knl.evl, par, ...)
-        mse <- list(bat=bat.rpt[1, 2], dvp=dvp.rpt[1, 2], evl=evl.rpt[1, 2])
+        mse <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)[1, 2]
 
         ## record each iteration
-        hst.num[[i+1]] <- list(i=i, ep=ep, bt=bt, rtm=rtm)
+        hst.num[[i+1]] <- c(ep=ep, bt=bt, rtm=rtm)
         hst.par[[i+1]] <- par
         hst.se2[[i+1]] <- se2
         hst.mse[[i+1]] <- mse
 
-        ## update learning rate
-        if(i %% 80 == 0)
-            cat(hdr, '\n', sep='')
-        
         ## message tracks
-        msg <- c(
-            eph=sprintf("%04X", as.integer(ep)),   # epoch
-            bat=sprintf("%04X", as.integer(bt)),   # batch
-            mse.bat=sprintf("%7.3f", mse$bat),     # mse.bat
-            mse.dvp=sprintf("%7.3f", mse$dvp),     # mse.dvp
-            mse.evl=sprintf("%7.3f", mse$evl),     # mse.evl
-            phi=sprintf('%7.3f', phi),             # phi
-            rtm=sprintf('%4.1f', rtm))             # seconds used
-        cat(paste(msg, collapse=' '), '\n', sep='')
-        
-        if(i > max.itr)
-        {
-            cat('BMQ: reaching max iter:', max.itr, '\n')
-            break
-        }
-        if(ep > wep)
-        {
-            cat('BMQ: reaching max iter:', wep, '\n')
-            break
-        }
-        if(rtm > wtm)
-        {
-            cat('BMQ: reaching walltime:', wtm, 'hour(s)\n')
-            break
-        }
+        if(i %% 80 == 0)
+            cat(hd.msg(tks), "\n", sep="")
+        cat(ln.msg(tks), "\n", sep="")
+
+        if(i > max.itr) {cat('BMQ: reaching max iter:', max.itr, '\n'); break}
+        if(ep > wep)    {cat('BMQ: reaching max epoch:', wep, '\n');    break}
+        if(rtm > wtm)   {cat('BMQ: reaching walltime:', wtm, 'h\n');    break}
         i <- i + 1
     }
 
@@ -195,7 +177,7 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
     rpt <- rbind(DF(key='rtm', val=tail(hst$rtm, 1)), rpt)
     rpt <- rbind(DF(key=c('s2a', 's2b', 's2c', 's2d'),
                     val=c(s2a[2], s2b[2], s2c[2], s2d[2])), rpt)
-    
+
     ## return the history and new parameters
     ret <- list(rpt=rpt, par=par, se2=se2, hst=hst)
     ret
