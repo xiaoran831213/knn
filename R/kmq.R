@@ -60,9 +60,6 @@ ln.msg <- function(...)
     paste(d, collapse=" ")
 }
 
-## Value of the tracks
-
-        
 
 #' @title gradient descent for kernel deep net
 #' @param par vector initial values of parameters;
@@ -90,7 +87,7 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
 
     ## message tracks
     tks <- list(msg(~ep, "%04d"), msg(~bt, "%04d"), msg(~mse, "%7.3f"),
-                msg(~phi), msg(~rtm, "%4.1f"))
+                msg(~phi, "%7.3f"), msg(~rtm, "%4.1f"))
     
     ## initial parameters
     i <- 0
@@ -99,7 +96,6 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
     hst.par <- list()
     hst.num <- list()
     hst.err <- list()
-    hst.acc <- list()
     rtm <- 0
     while(TRUE)
     {
@@ -110,14 +106,8 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
             ep <- as.integer((i * bsz) / N) + 1 # epoch count
             bt <- (i * bsz) %% N / bsz          # batch count
             if(bt == 0)                         # 1st batch?
-            {
                 sq <- sample.int(N)             # permutation
-                acc <- 0
-            }
-            if(bt == nbt - 1)                   # last batch?
-            {
-                hst.acc[[ep]] <- 1 / acc
-            }
+
             ix <- sq[seq.int(bt * bsz, l=bsz) %% N]
             knl.bat <- lapply(knl.dvp, `[`, ix, ix)
             rsp.bat <- rsp.dvp[ix]
@@ -129,15 +119,19 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
             knl.bat <- knl.dvp
             rsp.bat <- rsp.dvp
         }
+        if(ep > wep)
+        {
+            cat('BMQ: reaching max epoch:', wep, '\n');
+            break
+        }
         t1 <- Sys.time()
         td <- t1 - t0; units(td) <- 'secs'; td <- as.numeric(td)
         
         ## MINQUE on each batch
         bat.ret <- knl.mnq(rsp.bat, knl.bat, cpp=TRUE, ...)
-        rtm <- rtm + bat.ret$rpt[1, 2] # + td
+        rtm <- rtm + bat.ret$rpt[1, 2] + td
         par <- bat.ret$par
         se2 <- bat.ret$se2
-        acc <- acc + 1/se2
         phi <- par[1]
         mse <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)[1, 2]
 
@@ -153,30 +147,26 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
         cat(ln.msg(tks), "\n", sep="")
 
         if(i > max.itr) {cat('BMQ: reaching max iter:', max.itr, '\n'); break}
-        if(ep > wep)    {cat('BMQ: reaching max epoch:', wep, '\n');    break}
         if(rtm > wtm)   {cat('BMQ: reaching walltime:', wtm, 'h\n');    break}
         i <- i + 1
     }
 
     ## rearrange history
-    hst.num <- do.call(rbind, lapply(hst.num, unlist))
-    hst.mse <- do.call(rbind, lapply(hst.mse, unlist))
-    hst.par <- do.call(rbind, lapply(hst.par, unlist))
-    hst.se2 <- do.call(rbind, lapply(hst.se2, unlist))
-    hst.acc <- do.call(rbind, lapply(hst.acc, unlist))
-    hst <- DF(hst.num, mse=hst.mse, phi=hst.par[, 1])
+    hst.num <- do.call(rbind, hst.num)
+    hst.mse <- do.call(rbind, hst.mse)
+    hst.se2 <- DF(do.call(rbind, hst.se2))
+    hst <- DF(hst.num, mse=hst.mse)
     
     ## mean parameter solution
-    par <- apply(hst.par, 2, mean)
-    s2a <- apply(hst.se2, 2, mean)
-    s2b <- 1/apply(1/hst.se2, 2, sum)
-    s2c <- apply(hst.acc, 2, mean)
-    s2d <- 1/apply(1/hst.acc, 2, sum)
+    par <- Reduce(`+`, hst.par) / length(hst.par)
 
+    ## mean SE
+    hst.se2 <- split(hst.se2, hst.num[, 'ep'])
+    hst.se2 <- sapply(hst.se2, function(.) 1 / colSums(1/.))
+    se2 <- unname(rowMeans(hst.se2))
+    
     rpt <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)
     rpt <- rbind(DF(key='rtm', val=tail(hst$rtm, 1)), rpt)
-    rpt <- rbind(DF(key=c('s2a', 's2b', 's2c', 's2d'),
-                    val=c(s2a[2], s2b[2], s2c[2], s2d[2])), rpt)
 
     ## return the history and new parameters
     ret <- list(rpt=rpt, par=par, se2=se2, hst=hst)

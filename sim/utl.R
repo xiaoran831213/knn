@@ -24,6 +24,26 @@ get.gmx <- function(gmx, N, H=N, P=ncol(gmx) * .5)
     list(dvp=gmx.dvp, evl=gmx.evl)
 }
 
+sample.gmx <- function(gmx, N=1000, P=ncol(gmx) * .5, Q=3)
+{
+    N <- min(N, nrow(gmx))
+    P <- min(P, ncol(gmx))
+    jdx <- seq(sample.int(ncol(gmx) - P, 1), l=P)
+
+    ret <- replicate(Q,
+    {
+        idx <- sample.int(nrow(gmx), N)
+        as.matrix(gmx[idx, jdx])
+    },
+    simplify=FALSE)
+    ret
+}
+
+sample.vcs <- function(e, k, rep=3)
+{
+    replicate(rep, c(e, rchisq(k - 1, 1)), FALSE)
+}
+
 get.sim <- function(gmx, vcs, frq=1, lnk=I, oks=c(id, p1), ejt=.1)
 {
     P <- NCOL(gmx)
