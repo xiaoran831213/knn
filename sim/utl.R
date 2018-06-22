@@ -24,18 +24,19 @@ get.gmx <- function(gmx, N, H=N, P=ncol(gmx) * .5)
     list(dvp=gmx.dvp, evl=gmx.evl)
 }
 
-sample.gmx <- function(gmx, N=1000, P=ncol(gmx) * .5, Q=3)
+sample.gmx <- function(gmx, N=NULL, P=NULL, Q=3)
 {
-    N <- min(N, nrow(gmx))
-    P <- min(P, ncol(gmx))
-    jdx <- seq(sample.int(ncol(gmx) - P, 1), l=P)
+    N <- N %||% as.integer(nrow(gmx) * .2)
+    P <- P %||% as.integer(ncol(gmx) * .5)
 
-    ret <- replicate(Q,
+    ## indices
+    idx <- sample.int(nrow(gmx))[seq.int(N * Q)]
+    jdx <- seq(sample.int(ncol(gmx) - P, 1), l=P)
+    
+    ret <- lapply(1:Q, function(i)
     {
-        idx <- sample.int(nrow(gmx), N)
-        as.matrix(gmx[idx, jdx])
-    },
-    simplify=FALSE)
+        as.matrix(gmx[seq.int(N * i, l=N), jdx])
+    })
     ret
 }
 
@@ -54,7 +55,7 @@ get.sim <- function(gmx, vcs, frq=1, lnk=I, oks=c(id, p1), ejt=.1)
     fmk <- sample(c(rep(1, P * frq), rep(0, P - P * frq)))
 
     ## true variance components linking x to y, in log scale
-    vcs <- exp(log(vcs) + rnorm(k, 0, ejt)) # jitter the true VCs
+    vcs <- exp(log(vcs) + rnorm(k, 0, ejt))
     eps <- vcs[1]
 
     ## generate

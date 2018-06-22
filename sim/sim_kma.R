@@ -15,23 +15,14 @@ library(devtools)
 devtools::load_all()
 
 #' simulation of kernel deep neural network;
-#' @param gno list contains gnomic map, subject id, and genomic matrix
-#' in alternative allele dosage format;
+#' @param gno gnomic map, subject id, and genomic matrix in dosage format;
 #' @param N numeric draw this many samples for model developing;
 #' @param P numeric draw this many features (i.e., SNPs);
 #' @param H numeric draw this many samples for model eveluation;
 #' @param frq numeric percentage of functional features (i.e., casual SNPs);
-#' @param ycv character the covariance structure to generate noise free outcome;
-#' l: linear kernel (cross-product); G: Gaussian; L: Laplacian
 #' @param eps numeric size of white noise adds to the noise free outcome;
-#' @param M numeric the number of latent features;
-#' @param ukn character the basic kernel types, for the kernel network;
-#' l: linear kernel (cross-product)
-#' @param ikn character the inner kernel types, for the kernel network;
-#' features, required to calcuate the loss and gradient;
 #' @param bsz numeric batch size for mini-batch based training, when NULL or
-#' greater than the sample size N, the whole data training is resumed.
-main <- function(gno, N, P, Q=3, frq=.1, lnk=I, eps=.2, oks=c(id, p1), yks=c(id, p1), ...)
+main <- function(gno, N, P, Q=5, frq=.1, lnk=I, eps=.2, oks=c(id, p1), yks=c(id, p1), ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
@@ -51,7 +42,7 @@ main <- function(gno, N, P, Q=3, frq=.1, lnk=I, eps=.2, oks=c(id, p1), yks=c(id,
     gms <- sample.gmx(gno$gmx, N, P, Q)
     vcs <- sample.vcs(eps, nvc, Q)
 
-    sim <- mapply(function(g, v)
+    sim.dvp <- mapply(function(g, v)
     {
         get.sim(g, v, frq, lnk, oks, ejt)
     },

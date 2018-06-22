@@ -1,0 +1,172 @@
+\documentclass[11pt]{article} \usepackage{textcomp,bbding,subfig}
+\usepackage{float,amssymb,amsmath,amsfonts,bm}
+\usepackage{graphicx,cite} \usepackage[]{natbib} \def\style{apa}
+\usepackage[usenames,pdftex,dvips]{color,xcolor}
+\usepackage{multirow,tabulary,colortbl,array}
+\usepackage[normalem]{ulem}
+\usepackage[colorlinks,bookmarksopen,bookmarksnumbered,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{moreverb,setspace} \usepackage{algpseudocode}
+\usepackage{algorithm}
+%
+% enable numbered boxes, with caption and label.
+\makeatletter \newcommand\fs@boxedtop { \fs@boxed
+  \def\@fs@mid{\vspace\abovecaptionskip\relax}
+  \let\@fs@iftopcapt\iftrue } \makeatother \floatstyle{boxedtop}
+\floatname{framedbox}{Box} \newfloat{framedbox}{tbp}{lob}
+%
+% Text layout
+\topmargin -1.5cm \oddsidemargin 0.0cm \evensidemargin 0.0cm
+\textwidth 16.5cm \textheight 23.5cm \setlength{\parindent}{0cm}
+
+% Remove brackets from numbering in List of References \makeatletter
+% \renewcommand\@biblabel[1]{} \makeatother
+\makeatletter \renewcommand{\@biblabel}[1]{\quad#1.}  \makeatother
+
+% xiaoran's definitions
+\input{xtong}
+
+% \author{Xiaoran Tong}
+\doublespacing
+\begin{document}
+\title{Notes on Stochastic Gradient}
+\maketitle
+\begin{flushleft}
+  Xiaoran Tong\textsuperscript{1},
+  \\
+  \bigskip \textbf{1} Department of Epidemiology and Biostatistics,
+  Michigan State University, East Lansing, USA
+
+  \vskip 50ex
+  Correspondence: Qing Lu\\
+  Department of Epidemiology and Biostatistics\\
+  College of Human Medicine\\
+  Michigan State University\\
+  909 Fee Road\\
+  East Lansing, MI 48824-1030\\
+  qlu@msu.edu\\
+\end{flushleft}
+
+\newcommand{\mvni}{\mathcal{N}(\bs{0}, \mathbf{I})}
+\newcommand{\mvnp}[3]{\mathcal{N}(\mathbf{#1}, \mathbf{#2}; #3)}
+\newcommand{\mvns}[2]{\mathcal{N}(\bs{#1}, \mathbf{#2})}
+\newcommand{\funp}{\mean{f(\bs{\xi})}{\mvnp{\mu}{\Sigma}{\theta}}}
+\newcommand{\funs}{\mean{f(\bs{\xi})}{\mvns{\mu}{\Sigma}}}
+\newcommand{\dstp}{\mvnp{\mu}{\Sigma}{\theta}}
+\newcommand{\dsts}{\mvns{\mu}{\Sigma}}
+
+\section{Gradient of Mean}
+
+\subsection{Multivariant Normal, MVN}
+We are interested in calculating the gradient of an expectation form:
+$\mean{f(\bs{\xi})}{\dstp}$ with respect to some paramter $\theta$,
+that is,
+\[ \PDV{\mean{f(\bs{\xi})}{\dstp}}{\theta}, \] where $\bs{\xi}$ is
+drawn from the multivariate normal distribution of mean $\bs{\mu}$ and
+covariance $\bs{\Sigma}$, parameterized by the very $\theta$ of
+interests; $f$ is usually a loss function that we are interested in
+minimizing via tuning $\theta$.
+
+We first write down the gradient of $\funs$ with respect to the mean
+$\bs{\mu}$,
+\begin{align}\label{eq:gm} % gradient wrt. to mean
+  \PDV{\funs}{\mu_i} = \mean{\PDV{f(\bs{\xi})}{\xi_i}}{\dsts},
+\end{align}
+and with respect to the covariance $\bs{\Sigma}$:
+\begin{align}\label{eq:gc} % gradient wrt. to cov
+  \PDV{\funs}{\sigma_{i, j}} =
+  \frac{1}{2}\mean{\PDV{^2f(\bs{\xi})}{\xi_i\xi_j}}{\dsts},
+\end{align}
+\scriptsize Bonnet (1964) ``Transformations des signaux al´eatoires a
+travers les syst`emes non lin´eaires sans m´emoire.'', \\
+Price(1958) ``A useful theorem for nonlinear devices having Gaussian
+inputs''.  \normalsize\\
+These gradients are also of expectation form which requires a smaller
+sample from $\dstp$ to estimate. Since the mean $\bs{\mu}$ and
+covariance $\bs{\Sigma}$ are determined by $\theta$, the complete
+gradient of $\funp$ w.r.t. $\theta$ is derived by applying the chain
+rule to both (\ref{eq:gm}) and (\ref{eq:gc}), followed by additive
+rule,
+\begin{align}\label{eq:gf}
+  \PDV{\mean{f(\bs{\xi})}{\dstp}}{\theta} =
+  \mean{
+  \vg^T \PDV{\bs{\mu}}{\theta} + 
+  \frac{1}{2} \trb{\xh \PDV{\bs{\Sigma}}{\theta}}
+  } {\dstp},
+\end{align}
+Here $\vg$ and $\xh$ are gradient and Hessian of $f(\bs{\xi})$, such
+that the $i$ th entry of $\vg$, and the $(i, j)$ th entry of $\xh$ are
+calculated by (\ref{eq:gm}) and (\ref{eq:gc}), respectively.
+
+The trace term in (\ref{eq:gf}) can be seen as the chain of
+derivatives passing through each each entry of covariance
+$\bs{\Sigma}$, then being summed up since they all lead to the same
+target parameter $\theta$,
+\begin{align*}
+  \sum_{i,j} \PDV{\mean{f(\bs{\xi})}{\dstp}}{\sigma_{i,j}}               \PDV{\sigma_{i,j}}{\theta} 
+  &= \sum_{i,j} \frac{1}{2}\mean{\PDV{^2f(\bs{\xi})}{\xi_i\xi_j}}{\dstp} \PDV{\sigma_{i,j}}{\theta} \qquad (\textrm{use } \ref{eq:gc})\\
+  &= \sum_{i,j} \frac{1}{2}\mean{\PDV{^2f(\bs{\xi})}{\xi_i\xi_j} \PDV{\sigma_{i,j}}{\theta}}{\dstp} \\
+  &= \sum_{i,j} \frac{1}{2}\mean{\left[\xh\right]_{i,j} \left[\PDV{\bs{\Sigma}}{\theta}\right]_{i,j}}{\dstp} \\
+  &= \mean{\frac{1}{2}\trb{\xh \PDV{\bs{\Sigma}}{\theta}}}{\dstp}
+\end{align*}
+
+\subsection{Multivariant Distribution in General (MVG)}
+
+\subsection{Coordinate Transformations}
+The stochastic gradient rules can be derived from transformation of a
+standard distribution. In case of a random variable $\bs{\xi}$ from
+$\mvns{\mu}{\Sigma}$, it can be alternatively generated from
+$\bs{\xi} = \bs{\mu} + \xr\bs{\epsilon}$ where
+$\bs{\epsilon} \sim \mvni$, and $\bs{\Sigma} = \xr\xr^T$, and the
+paramter $\theta$ that determine the shape of $\bs{\Sigma}$ now
+paramterize $\xr$ instead.
+
+Part of the gradient that went throught the entries of covariance
+$\bs{\Sigma}$ can now go through $\xr$ instead, that is,
+\begin{align}\label{eq:gr} % gradient wrt. to decomposed cov
+  \PDV{\funs}{\xr} =
+  \PDV{\mean{f(\bs{\mu} + \xr \bs{\epsilon})}{\mvni}}{\xr} =
+  \mean{\bs{\epsilon}\vg^T}{\mvni},
+\end{align}
+and
+\begin{align*}
+  \sum_{i,j} \PDV{\mean{f(\bs{\xi})}{\dstp}}{\sigma_{i,j}} \PDV{\sigma_{i,j}}{\theta}
+  = & \sum_{i,j}       \PDV{f(\bs{\mu} + \xr\bs{\epsilon})}{r_{i,j}}                \PDV{r_{i,j}}{\theta} \\
+  = & \sum_{i,j} \left[\PDV{f(\bs{\mu} + \xr\bs{\epsilon})}{\xr}\right]_{i,j} \left[\PDV{\xr}{\theta}\right]_{i,j} \\
+  = & \sum_{i,j} \left[\mean{\bs{\epsilon}\vg^T}{\mvni}         \right]_{i,j} \left[\PDV{\xr}{\theta}\right]_{i,j} \\
+  = & \sum_{i,j} \mean{\left[\bs{\epsilon}\vg^T\right]_{i,j} \left[\PDV{\xr}{\theta}\right]_{i,j}}{\mvni} =
+      \mean{\trb{\left[\bs{\epsilon}\vg^T\right]\left[\PDV{\xr}{\theta}\right]}}{\mvni},
+\end{align*}
+where $\vg$ is the gradient of $f(\bs{\xi})$ wrt
+$\bs{\xi} = \bs{\mu} + \xr\bs{\epsilon}$, which gets a new value for
+each sample of $\bs{\epsilon} \sim \mvni$; as an reminder, $vr$
+replaces $\bs{\Sigma}$ and is now paramterized by $\theta$.
+
+The complete gradient rule now become
+\begin{align}
+  \PDV{\mean{f(\bs{\xi})}{\dstp}}{\theta} =
+  \mean{
+  \vg^T \PDV{\bs{\mu}}{\theta} + 
+  \trb{\left[\bs{\epsilon}\vg^T\right]\left[\PDV{\xr}{\theta}\right]}
+  } {\mvni},
+\end{align}
+which is a simplified version of Price's (\ref{eq:gc}).
+% Hessian of $f(\bs{\xi})$ and the
+
+\section{Stochastic Gradient for Deep Network}
+To compute the gradient of some objective function over the network's output,
+with respect to the flexible paramters of that network, all its latent data
+$\bs{\xi}$ has to be integrated out first. Such a task can be both analytically
+and numerically intractable.
+
+Instead we seek to maximum one of the lower bounds of the objective function,
+or equivalently, minimize the upper bound of a loss function.
+
+The generic loss function of a generative deep net over an observed reality $\xv$
+is,
+\begin{align*}
+  \mathcal{L}(\xv) = -\log p(\xv) = -\log \int p(\xv|\bs{\xi}, \theta) p(\bs{\xi}, \theta) d\,\bs{\xi}
+\end{align*}
+
+\singlespacing \bibliographystyle{\style} \bibliography{ref}
+
+\end{document}
