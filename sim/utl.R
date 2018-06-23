@@ -66,9 +66,6 @@ get.sim <- function(gmx, vcs, frq=1, lnk=I, oks=c(id, p1), ejt=.1)
     kcv <- cmb(knl, vcs)[[1]]
     rsp <- mvn(1, fcv) %>% drop %>% lnk
 
-    ## screen report
-    ## PF("eps = %9.3f; NLK.FMX = %9.3f; NLK.GMX = %9.3f\n", eps, NLF, NLG)
-
     ## oracle fit and null fit:
     rpt <- list()
     rpt <- cl(rpt, DF(mtd='fmx', lmm(rsp, fcv, eps)))
@@ -77,5 +74,5 @@ get.sim <- function(gmx, vcs, frq=1, lnk=I, oks=c(id, p1), ejt=.1)
     rpt <- do.call(rbind, rpt)
 
     ## return
-    list(rpt=rpt, rsp=rsp, fcv=fcv, kcv=kcv, vcs=vcs, eps=eps)
+    list(gmx=gmx, rpt=rpt, rsp=rsp, fcv=fcv, kcv=kcv, vcs=vcs, eps=eps)
 }

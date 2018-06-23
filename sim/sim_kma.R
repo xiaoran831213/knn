@@ -32,61 +32,62 @@ main <- function(gno, N, P, Q=5, frq=.1, lnk=I, eps=.2, oks=c(id, p1), yks=c(id,
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
     arg <- do.call(data.frame, arg)
-    
+
     if(is.character(gno)) gno <- readRDS(gno)
     if(is.null(gno)) gno <- readRDS('data/p35_cmn.rds')
 
     ## ------------------------- data genration ------------------------- ##
     ## choose N samples and P features for both development and evaluation
     nvc <- length(oks)
-    gms <- sample.gmx(gno$gmx, N, P, Q)
-    vcs <- sample.vcs(eps, nvc, Q)
-
-    sim.dvp <- mapply(function(g, v)
-    {
-        get.sim(g, v, frq, lnk, oks, ejt)
-    },
-    gms, vcs, SIMPLIFY=FALSE)
-    names(sim) <- sprintf('S%d', seq_along(sim))
+    gms <- sample.gmx(gno$gmx, N, P, Q + 1)
+    vcs <- c(eps, rchisq(nvc - 1, 2))
+    evl <- get.sim(gms[[Q + 1]], vcs, frq, lnk, oks, 0)
+    dvp <- lapply(gms[1:Q], get.sim, vcs, frq, lnk, oks)
     
     ## ----------------------- KDN Model Fitting ----------------------- ##
     rpt <- list()
     
     ## use polynomial MINQUE, order 2, batched, meta-analysis
-    mq1 <- mapply(function(C, K)
+    mq1 <- lapply(1:Q, function(i)
     {
-        kpc.mnq(C$rsp, K[-1], order=2, ...)
-    },
-    sim, lapply(gms, krn, yks, ...), SIMPLIFY=FALSE)
-
+        knl <- krn(gms[[i]], yks)
+        ret <- kpc.mnq(dvp[[i]]$rsp, knl[-1], order=2, ...)
+    })
+    
     ## parameter estimates from meta-analysis
     par <- sapply(mq1, `[[`, 'par')     # par of all cohorts
     ac2 <- 1/sapply(mq1, `[[`, 'se2')   # ac2 of all cohorts
-    mq1.par <- colSums(par*ac2) / colSums(ac2) # by SE2
-    mq2.par <- colMeans(par)                   # by SSZ
+    ssz <- sapply(gms[1:Q], nrow)
 
-    ## complete sample
-    gmx <- do.call(rbind, gms)
+    mq1.par <- rowSums(par*ac2) / rowSums(ac2) # by SE2
+    mq2.par <- rowSums(par*ssz) / sum(ssz)     # by SSZ
+    
+    ## complete training sample
+    gmx <- do.call(rbind, gms[1:Q])
     ykn <- krn(gmx, yks, ...)
-    rsp <- do.call(c, lapply(sim, '[[', 'rsp'))
+    rsp <- do.call(c, lapply(dvp, '[[', 'rsp'))
+    mq3 <- kpc.mnq(rsp, ykn[-1], order=2, ...) # MINQUE
+    gct <- gcta.reml(rsp, ykn[-1])             # GCTA
 
-    ## kernel MINQUE, batched, complete
-    mq1.rpt <- knl.mnq.evl(rsp, ykn[-1], mq1.par, order=2, ...)
-    rpt <- cl(rpt, DF(mtd='mq1', dat='sep', mq1.rpt))
-
-    mq2.rpt <- knl.mnq.evl(rsp, ykn[-1], mq2.par, order=2, ...)
-    rpt <- cl(rpt, DF(mtd='mq2', dat='sep', mq2.rpt))
+    ## ----------------------- Testing Errors ----------------------- ##
+    ykn <- krn(evl$gmx, yks, ...)
+    rsp <- evl$rsp
 
     ## kernel MINQUE, batched, meta-analysis
-    mq3 <- kpc.mnq(rsp, ykn[-1], order=2, ...)
-    rpt <- cl(rpt, DF(mtd='mq3', dat='cmb', mq3$rpt))
-    
-    ## GCTA
-    gct <- gcta.reml(rsp, ykn)
-    rpt <- cl(rpt, DF(mtd='gct', dat='cmb', gct$rpt))
+    mq1.rpt <- knl.mnq.evl(rsp, ykn[-1], mq1.par, order=2, ...)
+    rpt <- cl(rpt, DF(mtd='mq1', dat='evl', mq1.rpt))
+
+    mq2.rpt <- knl.mnq.evl(rsp, ykn[-1], mq2.par, order=2, ...)
+    rpt <- cl(rpt, DF(mtd='mq2', dat='evl', mq2.rpt))
+
+    mq3.rpt <- knl.mnq.evl(rsp, ykn[-1], mq3$par, order=2, ...)
+    rpt <- cl(rpt, DF(mtd='mq3', dat='evl', mq3.rpt))
+
+    gct.rpt <- knl.prd(rsp, ykn, gct$par, logged=FALSE)
+    rpt <- cl(rpt, DF(mtd='gct', dat='evl', gct.rpt))
 
     ## NULL
-    rpt <- cl(rpt, DF(mtd='nul', dat='cmb', nul(rsp)))
+    rpt <- cl(rpt, DF(mtd='nul', dat='evl', nul(rsp)))
 
     ## report and return
     rpt <- Reduce(function(a, b) merge(a, b, all=TRUE), rpt)
