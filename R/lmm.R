@@ -110,10 +110,8 @@ knl.prd <- function(y, K, W, logged=TRUE, ...)
     h <- unname(drop(f %*% (solve(v) %*% y)))
 
     mse <- mean((y - h)^2)
-    if(isTRUE(all.equal(y, h, check.attributes = FALSE)))
-        cyh <- 1
-    else
-        cyh <- cor(y, h)
+    ## gurad against zero-standard deviation
+    cyh <- tryCatch(cor(y, h), warning=function(w) 0, error=function(e) NA)
     nlk <- nlk(y, v)
     rpt <- DF(key=c('mse', 'nlk', 'cyh'), val=c(mse, nlk, cyh))
 
