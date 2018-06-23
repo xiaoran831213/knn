@@ -46,3 +46,6 @@ man
 
 # GCTA's test data
 data/gct
+
+# simulation runs
+sim/run
