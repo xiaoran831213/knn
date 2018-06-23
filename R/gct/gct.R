@@ -13,7 +13,8 @@ gcta.reml <- function(y, K, qcvr=NULL, dcvr=NULL, maxit=NULL)
         stop('failed to create directory', GRM.dir)
 
     ## save GRM
-    GRM <- K[-1]
+    ## GRM <- K[-1]
+    GRM <- K
     if(is.null(names(GRM)))
         names(GRM) <- sprintf('G%02d', seq(length(GRM)))
     
