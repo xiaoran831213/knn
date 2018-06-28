@@ -194,35 +194,19 @@ bt <- function()
 
 sm <- function()
 {
-    dir.create('rpt/2018_06_08')
+    dir.create('rpt/2018_06_14')
+    s0 <- readRpt('sim/s00', ref=1);
     s1 <- readRpt('sim/s01', ref=1);
     s2 <- readRpt('sim/s02', ref=1);
     s3 <- readRpt('sim/s03', ref=1);
 
-    bxpRpt(s1, out='rpt/2018_06_08/s01_mse.png')
-    bxpRpt(s2, out='rpt/2018_06_08/s02_mse.png')
-    bxpRpt(s3, out='rpt/2018_06_08/s03_mse.png')
+    bxpRpt(s0, out='rpt/2018_06_14/s00_mse.png')
+    bxpRpt(s1, out='rpt/2018_06_14/s01_mse.png')
+    bxpRpt(s2, out='rpt/2018_06_14/s02_mse.png')
+    bxpRpt(s3, out='rpt/2018_06_14/s03_mse.png')
 
-    bxpRtm(s1, out='rpt/2018_06_08/s01_rtm.png')
-    bxpRtm(s2, out='rpt/2018_06_08/s02_rtm.png')
-    bxpRtm(s3, out='rpt/2018_06_08/s03_rtm.png')
-}
-
-sm <- function()
-{
-    dir.create('rpt/2018_06_08')
-    p1 <- readRpt('sim/p01', ref=1);
-    p2 <- readRpt('sim/p02', ref=1);
-    p3 <- readRpt('sim/p03', ref=1);
-    p4 <- readRpt('sim/p04', ref=1);
-
-    bxpRpt(p1, out='rpt/2018_06_08/p01_mse.png')
-    bxpRpt(p2, out='rpt/2018_06_08/p02_mse.png')
-    bxpRpt(p3, out='rpt/2018_06_08/p03_mse.png')
-    bxpRpt(p4, out='rpt/2018_06_08/p04_mse.png')
-
-    bxpRtm(p1, out='rpt/2018_06_08/p01_rtm.png')
-    bxpRtm(p2, out='rpt/2018_06_08/p02_rtm.png')
-    bxpRtm(p3, out='rpt/2018_06_08/p03_rtm.png')
-    bxpRtm(p4, out='rpt/2018_06_08/p04_rtm.png')
+    bxpRtm(s0, out='rpt/2018_06_14/s00_rtm.png')
+    bxpRtm(s1, out='rpt/2018_06_14/s01_rtm.png')
+    bxpRtm(s2, out='rpt/2018_06_14/s02_rtm.png')
+    bxpRtm(s3, out='rpt/2018_06_14/s03_rtm.png')
 }

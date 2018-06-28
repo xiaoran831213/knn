@@ -24,20 +24,26 @@ get.gmx <- function(gmx, N, H=N, P=ncol(gmx) * .5)
     list(dvp=gmx.dvp, evl=gmx.evl)
 }
 
-sample.gmx <- function(gmx, N=NULL, P=NULL, Q=3)
+sample.gmx <- function(gmx, N=NULL, P=NULL, Q=4, H=N)
 {
     N <- N %||% as.integer(nrow(gmx) * .2)
-    P <- P %||% as.integer(ncol(gmx) * .5)
-
-    ## indices
-    idx <- sample.int(nrow(gmx))[seq.int(N * Q)]
-    jdx <- seq(sample.int(ncol(gmx) - P, 1), l=P)
+    P <- min(P, ncol(gmx))
     
-    ret <- lapply(1:Q, function(i)
+    ## indices
+    idx <- sample.int(nrow(gmx))[seq.int(N * Q + H)]
+    jdx <- seq(sample.int(ncol(gmx) - P, 1), l=P)
+    gmx <- gmx[idx, jdx]
+    
+    ## divide
+    dvp <- lapply(seq(0, l=Q), function(i)
     {
-        as.matrix(gmx[seq.int(N * i, l=N), jdx])
+        as.matrix(gmx[seq.int(1 + N * i, l=N), ])
     })
-    ret
+    names(dvp) <- sprintf('d%02d', seq_along(dvp))
+
+    evl <- as.matrix(gmx[seq.int(N * Q + 1, l=H), ])
+    
+    c(dvp, list(evl=evl))
 }
 
 sample.vcs <- function(e, k, rep=3)
@@ -45,34 +51,57 @@ sample.vcs <- function(e, k, rep=3)
     replicate(rep, c(e, rchisq(k - 1, 1)), FALSE)
 }
 
-get.sim <- function(gmx, vcs, frq=1, lnk=I, oks=c(id, p1), ejt=.1)
+get.sim <- function(gms, vcs, frq=1, lnk=I, oks=c(id, p1), ejt=.1)
 {
-    P <- NCOL(gmx)
-    N <- NROW(gmx)
+    if(!is.list(gms))
+    {
+        gms <- list(gms)
+    }
+
+    P <- NCOL(gms[[1]])
+    N <- NROW(gms[[1]])
     k <- length(oks)
 
     ## functional SNP mask
     fmk <- sample(c(rep(1, P * frq), rep(0, P - P * frq)))
-
+    
     ## true variance components linking x to y, in log scale
-    vcs <- exp(log(vcs) + rnorm(k, 0, ejt))
+    ## print(vcs)
+    nvc <- length(vcs)
+
+    ## noise
     eps <- vcs[1]
 
-    ## generate
-    fmx <- sweep(gmx, 2L, fmk, `*`)
-    fnl <- krn(fmx, oks)
-    knl <- krn(gmx, oks)
-    fcv <- cmb(fnl, vcs)[[1]]
-    kcv <- cmb(knl, vcs)[[1]]
-    rsp <- mvn(1, fcv) %>% drop %>% lnk
+    ## jittering
+    ejt <- rep(ejt, l=length(gms))
 
-    ## oracle fit and null fit:
-    rpt <- list()
-    rpt <- cl(rpt, DF(mtd='fmx', lmm(rsp, fcv, eps)))
-    rpt <- cl(rpt, DF(mtd='gmx', lmm(rsp, kcv, eps)))
-    rpt <- cl(rpt, DF(mtd='nul', nul(rsp)))
-    rpt <- do.call(rbind, rpt)
+    ret <- mapply(function(gmx, a)
+    {
+        ## jit <- rchisq(nvc - 1, 1)
+        ## vcs[-1] <- vcs[-1] * (1 - a) + jit * a
+        jit <- rchisq(nvc, 1)
+        vcs <- vcs * (1 - a) + jit * a
+    
+        ## generate
+        ## fmx <- sweep(gmx, 2L, fmk, `*`)
+        fmx <- gmx[, as.logical(fmk)]
+        fmx <- sweep(fmx, 2L, rnorm(sum(fmk)), `*`)
+        fnl <- krn(fmx, oks)
+        knl <- krn(gmx, oks)
+        fcv <- cmb(fnl, vcs)[[1]]
+        kcv <- cmb(knl, vcs)[[1]]
+        rsp <- mvn(1, fcv) %>% drop %>% lnk
+        rsp <- rsp - mean(rsp)
 
-    ## return
-    list(gmx=gmx, rpt=rpt, rsp=rsp, fcv=fcv, kcv=kcv, vcs=vcs, eps=eps)
+        ## oracle fit and null fit:
+        rpt <- list()
+        rpt <- cl(rpt, DF(mtd='fmx', lmm(rsp, fcv, eps)))
+        rpt <- cl(rpt, DF(mtd='gmx', lmm(rsp, kcv, eps)))
+        rpt <- cl(rpt, DF(mtd='nul', nul(rsp)))
+        rpt <- do.call(rbind, rpt)
+
+        ## return
+        list(gmx=gmx, rpt=rpt, rsp=rsp, fcv=fcv, kcv=kcv, vcs=vcs, eps=eps)
+    }, gms, ejt, SIMPLIFY=FALSE)
+    ret
 }
