@@ -55,6 +55,7 @@ rpt/*/*.out
 rpt/*/*.pdf
 rpt/*/*.snm
 rpt/*/*.toc
+_region_.tex
 							
 # simulation runs
 sim/run
