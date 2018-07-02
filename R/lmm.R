@@ -123,15 +123,15 @@ rop.lmm <- function(y, K, W=NULL)
     obj <- function(x) nlk(y, cmb(K, exp(x))[[1]])
     grd <- function(x) lmm.dv1(x, K, y)[[1]]
     hsn <- function(x) lmm.dv2(x, K, y)[[1]]
-    fsi <- function(x) lmm.fsi(x, K, y)
+    fsi <- function(x) lmm.fsi(x, K, y)[[1]]
 
     ## using R's optimizer
     library(numDeriv)
-    ## print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
+    print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
     dv1 <- lmm.dv1(W, K, y)[[1]]        # gradient before
     PF("DV1.MAX = %9.3f\n", dv1[which.max(abs(dv1))])
     time0 <- proc.time()
-    opt <- optim(W, obj, grd, method="L-BFGS-B", control=list(trace=1))
+    opt <- optim(W, obj, grd, method="L-BFGS-B", control=list(trace=0))
     time1 <- proc.time()
     W <- opt$par
     print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
@@ -148,25 +148,38 @@ rop.lmm <- function(y, K, W=NULL)
     opt
 }
 
-nwt.lmm <- function(y, K, W=NULL)
+nwt.lmm <- function(y, K, W=NULL, ...)
 {
-    L <- length(K)
+    . <- list(...)
+    wep <- .$wep %||% 100
+    mmt <- .$mmt %||% 1.0
+
+    N <- NROW(y)
+    C <- c(list(eps=diag(N)), cv=K)
+    L <- length(C)
     if(is.null(W))
         W <- matrix(rnorm(L, sd=.5), L, NCOL(y))
 
     PF("NWT.LMM.DV1.BEGIN = \n")
-    print(round(lmm.dv1(W, K, y)[[1]], 4))
+    print(round(lmm.dv1(W, C, y)[[1]], 4))
 
+    num.fsi <- wep
     time0 <- proc.time()
+    h <- 0
     for(i in seq(100))
     {
-        g <- lmm.dv1(W, K, y)[[1]]
+        g <- lmm.dv1(W, C, y)[[1]]
         if(max(abs(g)) < 1e-6)
             break
-        H <- lmm.dv2(W, K, y)[[1]]
+        ## H <- lmm.dv2(W, C, y)[[1]]
+        H <- lmm.fsi(W, C, y)[[1]]
+        print(list(itr=i, hsn=H))
 
         ## update: u = -g H^{-1} => H u = -g
-        u <- solve(H, -g)
+        u <- try(solve(H, -g))
+        ## u <- try(chol2inv(chol(H)) %*% -g)
+        if(inherits(u, 'try-error'))
+            break
         if(max(abs(u)) < 1e-6)
             break
         W <- W + u
@@ -174,40 +187,14 @@ nwt.lmm <- function(y, K, W=NULL)
     time1 <- proc.time()
 
     ## report
+    print(list(dv2=round(H, 3), dv1=round(g, 3), par=W))
     PF("NWT.LMM.DV2.END =\n")
-    print(round(H, 4))
-
-    dv1 <- lmm.dv1(W, K, y)
-    PF("NWT.LMM.DV1.END =\n")
-    print(round(g, 4))
-
+    
     ## make predictions
-    prd <- knl.prd(y, K, W)
+    prd <- knl.prd(y, C, W)
     
     ## timing
     rtm <- DF(key='rtm', val=unname((time1 - time0)['elapsed']))
 
     list(rpt=rbind(rtm, prd), par=W)
-}
-
-lmm <- function(y, v, e)
-{
-    N <- nrow(v)
-    f <- v - diag(e, N)
-    u <- chol(v)
-    a <- chol2inv(u)
-
-    ## prediction 1: conditional Gaussian
-    h <- f %*% (a %*% y)
-    mse <- mean((y - h)^2)
-    cyh <- cor(y, h)
-
-    ## prediction 2: leave one out CV
-    ## h <- y - a %*% y / diag(a)
-    ## loo <- mean((y - h)^2)
-
-    ## negative log likelihood
-    nlk <- nlk(y, v, u, a)
-
-    DF(key=c('mse', 'nlk', 'cyh'), val=c(mse, nlk, cyh))
 }

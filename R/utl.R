@@ -1,3 +1,13 @@
+## fast (squared) Euclidean distance
+euc2 <- function(x, y=NULL)
+{
+    x2 <- rowSums(x^2)
+    y2 <- if(is.null(y)) x2 else rowSums(y^2)
+    xy <- tcrossprod(x, y)
+
+    outer(x2, y2, `+`) - 2 * xy
+}
+
 ## Hutchinson trace for symmetric matrix product
 tr.hut <- function(..., N=100)
 {
@@ -59,3 +69,4 @@ test.solve <- function(N=1000)
 
     sum((r1 - r2)^2)
 }
+

@@ -54,12 +54,12 @@ idn <- function(x, y=NULL, ...)
 #' @return an N-N identity matrix
 gau <- function(x, y=NULL, sigma=.1, gamma=1/NCOL(x), ...)
 {
-    exp(-as.matrix(dist(x, 'euc') * gamma) / (2 * sigma^2))
+    exp(-euc2(x) * (.5 * gamma / sigma^2))
 }
 
 lap <- function(x, y=NULL, sigma=.1, gamma=1/NCOL(x), ...)
 {
-    exp(-as.matrix(dist(x, 'man') * gamma) / (1 * sigma^1))
+    exp(-as.matrix(dist(x, 'man')) * gamma / sigma)
 }
 
 

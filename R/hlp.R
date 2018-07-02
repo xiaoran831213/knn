@@ -41,28 +41,6 @@ nlk <- function(x, v=NULL, u=NULL, a=NULL, ...)
     .5 * sum(crossprod(x, a) * x) + sum(log(diag(u))) + .5 * nrow(v) * log(2*pi)
 }
 
-lmm <- function(y, v, e)
-{
-    N <- nrow(v)
-    f <- v - diag(e, N)
-    u <- chol(v)
-    a <- chol2inv(u)
-
-    ## prediction 1: conditional Gaussian
-    h <- f %*% (a %*% y)
-    mse <- mean((y - h)^2)
-    cyh <- cor(y, h)
-
-    ## prediction 2: leave one out CV
-    ## h <- y - a %*% y / diag(a)
-    ## loo <- mean((y - h)^2)
-
-    ## negative log likelihood
-    nlk <- nlk(y, v, u, a)
-
-    DF(key=c('mse', 'nlk', 'cyh'), val=c(mse, nlk, cyh))
-}
-
 nul <- function(y)
 {
     N <- NROW(y)

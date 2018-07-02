@@ -38,7 +38,7 @@ main <- function(gno, N, P, H=N, frq=.1, lnk=I, eps=.2, oks=c(id, p1), yks=c(id,
     ## ------------------------- data genration ------------------------- ##
     ## choose N samples and P features for both development and evaluation
     nvc <- length(oks)
-    gmx <- sample.gmx(gno$gmx, N, P, Q=2, H=H) 
+    gmx <- sample.gmx(gno$gmx, N, P, Q=1, H=H) 
     vcs <- c(eps, rchisq(nvc - 1, 1))
 
     sim <- get.sim(gmx, vcs, frq, lnk, oks, ejt=0)
@@ -46,20 +46,22 @@ main <- function(gno, N, P, H=N, frq=.1, lnk=I, eps=.2, oks=c(id, p1), yks=c(id,
     {
         knl <- krn(gmx, yks)
         mnq <- kpc.mnq(rsp, knl[-1], ...)
-        rop <- rop.lmm(rsp, knl)
-        nwt <- nwt.lmm(rsp, knl)
+        print(system.time(rop <- rop.lmm(rsp, knl)))
+        print(system.time(nwt <- nwt.lmm(rsp, knl[-1])))
     })
     evl <- within(sim[[2]],
     {
         knl <- krn(gmx, yks)
-        mnq <- DF(mtd='mnq', knl.mnq.evl(rsp, knl[-1], dvp$mnq$par))
-        rop <- DF(mtd='rop', knl.prd(rsp, knl, dvp$rop$par))
         nwt <- DF(mtd='nwt', knl.prd(rsp, knl, dvp$nwt$par))
+        mq1 <- DF(mtd='mq1', knl.mnq.evl(rsp, knl[-1], dvp$mnq$par, ...))
+        mq2 <- DF(mtd='mq2', knl.prd(rsp, knl, dvp$mnq$par, logged=FALSE, ...))
+        rop <- DF(mtd='rop', knl.prd(rsp, knl, dvp$rop$par))
     })
     
     ## ----------------------- KDN Model Fitting ----------------------- ##
     rpt <- list()
-    rpt <- cl(rpt, DF(dat='evl', evl$mnq))
+    rpt <- cl(rpt, DF(dat='evl', evl$mq1))
+    rpt <- cl(rpt, DF(dat='evl', evl$mq2))
     rpt <- cl(rpt, DF(dat='evl', evl$rop))
     rpt <- cl(rpt, DF(dat='evl', evl$rpt))
     rpt <- cl(rpt, DF(dat='evl', evl$nwt))
@@ -74,6 +76,6 @@ main <- function(gno, N, P, H=N, frq=.1, lnk=I, eps=.2, oks=c(id, p1), yks=c(id,
 
 test <- function()
 {
-    r <- main(NULL, N=500, P=3000, H=1500, frq=.1,  eps=.1, oks=c(id, p1), yks=c(id, p1),
+    r <- main(NULL, N=500, P=3000, H=1500, frq=.2,  eps=.02, oks=c(id, p1), yks=c(id, p1),
               ejt=0.0, bsz=100, wep=2)
 }
