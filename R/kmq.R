@@ -10,7 +10,7 @@ msg <- function(obj, fmt=NULL, hdr=NULL, ...)
             sprintf(fmt, obj(...))
         }
     }
-    else if(is(obj, 'formula'))
+    else if(inherits(obj, 'formula'))
     {
         ret <- function()
         {
@@ -39,7 +39,7 @@ msg <- function(obj, fmt=NULL, hdr=NULL, ...)
 }
 
 ## is
-is.msg <- function(.) is(., 'msg')
+is.msg <- function(.) 'msg' %in% class(.)
 
 ## Header of the tracks
 hd.msg <- function(...)

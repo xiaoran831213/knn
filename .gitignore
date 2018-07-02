@@ -56,3 +56,5 @@ rpt/*/*.pdf
 rpt/*/*.snm
 rpt/*/*.toc
 							
+# simulation runs
+sim/run

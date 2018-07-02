@@ -44,7 +44,7 @@ main <- function(gno, N, P, H=N, frq=.1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id,
     arg <- do.call(data.frame, arg)
     
     if(is.character(gno)) gno <- readRDS(gno)
-    if(is.null(gno)) gno <- readRDS('data/p35_cmn.rds')
+    if(is.null(gno)) gno <- readRDS('data/p35_c05.rds')
 
     ## ------------------------- data genration ------------------------- ##
     ## choose N samples and P features for both development and evaluation
@@ -54,15 +54,15 @@ main <- function(gno, N, P, H=N, frq=.1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id,
     ## simulation generated variables
     sim <- within(list(),
     {
-        dvp <- get.sim(gmx$dvp, vcs, frq, lnk, oks, ejt)
-        evl <- get.sim(gmx$evl, vcs, frq, lnk, oks, ejt)
+        dvp <- get.sim(gmx$dvp, vcs, frq, lnk, oks, ejt)[[1]]
+        evl <- get.sim(gmx$evl, vcs, frq, lnk, oks, ejt)[[1]]
     })
 
     ## ----------------------- KDN Model Fitting ----------------------- ##
     rpt <- list()
     ykn.dvp <- krn(gmx$dvp, yks, ...)   # kernel for training
     ykn.evl <- krn(gmx$evl, yks, ...)   # kernel for testing
-    
+
     ## initialize parameters
     ini.txy <- matrix(rnorm(length(yks), sd=.05), length(yks), 1)
 
@@ -73,31 +73,31 @@ main <- function(gno, N, P, H=N, frq=.1, lnk=I, eps=.1, oks=c(id, p1), yks=c(id,
     rpt <- cl(rpt, DF(mtd='rop', dat='evl', rop.evl.rpt))
 
     ## use polynomial MINQUE, order 1
-    mq1.dvp <- knl.mnq(sim$dvp$rsp, ykn.dvp[-1], order=1)
+    mq1.dvp <- knl.mnq(sim$dvp$rsp, ykn.dvp[-1], order=1, ...)
     mq1.evl.rpt <- knl.mnq.evl(sim$evl$rsp, ykn.evl[-1], mq1.dvp$par, order=1)
     rpt <- cl(rpt, DF(mtd='mq1', dat='dvp', mq1.dvp$rpt))
     rpt <- cl(rpt, DF(mtd='mq1', dat='evl', mq1.evl.rpt))
     
     ## use polynomial MINQUE, order 1, batched
-    mq2.dvp <- kpc.mnq(sim$dvp$rsp, ykn.dvp[-1], sim$evl$rsp, ykn.evl[-1], order=1, ...)
+    mq2.dvp <- kpc.mnq(sim$dvp$rsp, ykn.dvp[-1], order=1, ...)
     mq2.evl.rpt <- knl.mnq.evl(sim$evl$rsp, ykn.evl[-1], mq2.dvp$par, order=1)
     rpt <- cl(rpt, DF(mtd='mq2', dat='dvp', mq2.dvp$rpt))
     rpt <- cl(rpt, DF(mtd='mq2', dat='evl', mq2.evl.rpt))
 
     ## use polynomial MINQUE, order 2
-    mq3.dvp <- knl.mnq(sim$dvp$rsp, ykn.dvp[-1], order=2)
-    mq3.evl.rpt <- knl.mnq.evl(sim$evl$rsp, ykn.evl[-1], mq3.dvp$par, order=2)
-    rpt <- cl(rpt, DF(mtd='mq3', dat='dvp', mq3.dvp$rpt))
-    rpt <- cl(rpt, DF(mtd='mq3', dat='evl', mq3.evl.rpt))
+    ## mq3.dvp <- knl.mnq(sim$dvp$rsp, ykn.dvp[-1], order=2)
+    ## mq3.evl.rpt <- knl.mnq.evl(sim$evl$rsp, ykn.evl[-1], mq3.dvp$par, order=2)
+    ## rpt <- cl(rpt, DF(mtd='mq3', dat='dvp', mq3.dvp$rpt))
+    ## rpt <- cl(rpt, DF(mtd='mq3', dat='evl', mq3.evl.rpt))
 
-    ## use polynomial MINQUE, order 2, batched
-    mq4.dvp <- kpc.mnq(sim$dvp$rsp, ykn.dvp[-1], sim$evl$rsp, ykn.evl[-1], order=2, ...)
-    mq4.evl.rpt <- knl.mnq.evl(sim$evl$rsp, ykn.evl[-1], mq4.dvp$par, order=2)
-    rpt <- cl(rpt, DF(mtd='mq4', dat='dvp', mq4.dvp$rpt))
-    rpt <- cl(rpt, DF(mtd='mq4', dat='evl', mq4.evl.rpt))
+    ## ## use polynomial MINQUE, order 2, batched
+    ## mq4.dvp <- kpc.mnq(sim$dvp$rsp, ykn.dvp[-1], sim$evl$rsp, ykn.evl[-1], order=2, ...)
+    ## mq4.evl.rpt <- knl.mnq.evl(sim$evl$rsp, ykn.evl[-1], mq4.dvp$par, order=2)
+    ## rpt <- cl(rpt, DF(mtd='mq4', dat='dvp', mq4.dvp$rpt))
+    ## rpt <- cl(rpt, DF(mtd='mq4', dat='evl', mq4.evl.rpt))
 
     ## use GCTA:
-    gct.dvp <- gcta.reml(sim$dvp$rsp, ykn.dvp)
+    gct.dvp <- gcta.reml(sim$dvp$rsp, ykn.dvp[-1])
     gct.evl.rpt <- knl.prd(sim$evl$rsp, ykn.evl, gct.dvp$par, logged=FALSE)
     rpt <- cl(rpt, DF(mtd='gct', dat='dvp', gct.dvp$rpt))
     rpt <- cl(rpt, DF(mtd='gct', dat='evl', gct.evl.rpt))

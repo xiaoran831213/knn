@@ -122,7 +122,7 @@ rop.lmm <- function(y, K, W=NULL)
 {
     L <- length(K)
     if(is.null(W))
-        W <- matrix(rnorm(L, sd=.05), L, 1L)
+        W <- matrix(rnorm(L, sd=.5), L, NCOL(y))
 
     obj <- function(x) nlk(y, cmb(K, exp(x))[[1]])
     grd <- function(x) lmm.dv1(x, K, y)
