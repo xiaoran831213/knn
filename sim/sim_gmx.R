@@ -27,7 +27,6 @@ main <- function(gno, N, P, H=N, frq=.1, lnk=I, eps=.2, oks=c(id, p1), yks=c(id,
     options(stringsAsFactors=FALSE)
     dot <- list(...)
     set.seed(dot$seed)
-    ejt <- dot$ejt %||% .3
     arg <- match.call() %>% tail(-2) %>% as.list # %>% as.data.frame
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
@@ -39,48 +38,31 @@ main <- function(gno, N, P, H=N, frq=.1, lnk=I, eps=.2, oks=c(id, p1), yks=c(id,
     ## ------------------------- data genration ------------------------- ##
     ## choose N samples and P features for both development and evaluation
     nvc <- length(oks)
-    gmx <- sample.gmx(gno$gmx, N, P, Q=1, H=H) 
+    gmx <- sample.gmx(gno$gmx, N, P, Q=2, H=H) 
     vcs <- c(eps, rchisq(nvc - 1, 1))
 
-    sim <- get.sim(gmx, vcs, frq, lnk, oks, ejt=c(rep(ejt, Q), 0.0))
-    dvp <- sim[[1]]
-    evl <- sim[[2]]
-    gms <- lapply(dvp, `[[`, 'gmx')
+    sim <- get.sim(gmx, vcs, frq, lnk, oks, ejt=0)
+    dvp <- within(sim[[1]],
+    {
+        knl <- krn(gmx, yks)
+        mnq <- kpc.mnq(rsp, knl[-1], ...)
+        rop <- rop.lmm(rsp, knl)
+        nwt <- nwt.lmm(rsp, knl)
+    })
+    evl <- within(sim[[2]],
+    {
+        knl <- krn(gmx, yks)
+        mnq <- DF(mtd='mnq', knl.mnq.evl(rsp, knl[-1], dvp$mnq$par))
+        rop <- DF(mtd='rop', knl.prd(rsp, knl, dvp$rop$par))
+        nwt <- DF(mtd='nwt', knl.prd(rsp, knl, dvp$nwt$par))
+    })
+    
     ## ----------------------- KDN Model Fitting ----------------------- ##
     rpt <- list()
-    
-    ## use polynomial MINQUE, order 2, batched, meta-analysis
-    mq1 <- {
-        knl <- krn(dvp$gmx, yks)
-        ret <- kpc.mnq(dvp$rsp, knl[-1], ...)}
-    rop <- {
-        knl <- krn(gms[[i]], yks)
-        ret <- rop.lmm(dvp$rsp, knl)}
-    
-    ## ----------------------- Testing Errors ----------------------- ##
-    ykn <- krn(evl$gmx, yks, ...)
-    rsp <- evl$rsp
-
-    mq4.rpt <- knl.mnq.evl(rsp, ykn[-1], mq4$par, order=2, ...)
-    ## rpt <- cl(rpt, DF(mtd='mq4', dat='evl', mq4.rpt))
-    
-    ## gct.rpt <- knl.prd(rsp, ykn, gct$par, logged=FALSE)
-    ## rpt <- cl(rpt, DF(mtd='gct', dat='evl', gct.rpt))
-
-    rop.rpt <- lapply(1:Q, function(i)
-    {
-        p <- rowMeans(sapply(rop[1:i], `[[`, 'par'))
-        m <- sprintf('r%02d', i)
-        DF(mtd=m, knl.prd(rsp, ykn, p))
-    })
-
-    rop.rpt <- do.call(rbind, rop.rpt)
-    rpt <- cl(rpt, DF(dat='evl', rop.rpt))
-    
-    ## NULL
-    rpt <- cl(rpt, DF(mtd='nul', dat='evl', nul(rsp)))
-    ## GOLD
+    rpt <- cl(rpt, DF(dat='evl', evl$mnq))
+    rpt <- cl(rpt, DF(dat='evl', evl$rop))
     rpt <- cl(rpt, DF(dat='evl', evl$rpt))
+    rpt <- cl(rpt, DF(dat='evl', evl$nwt))
 
     ## report and return
     rpt <- Reduce(function(a, b) merge(a, b, all=TRUE), rpt)
@@ -92,5 +74,6 @@ main <- function(gno, N, P, H=N, frq=.1, lnk=I, eps=.2, oks=c(id, p1), yks=c(id,
 
 test <- function()
 {
-    r <- main(NULL, N=500, P=2500, Q=2, H=1500, frq=.1,  eps=.1, oks=c(id, p1), yks=c(id, p1), ejt=0.1, bsz=100, wep=2)
+    r <- main(NULL, N=500, P=3000, H=1500, frq=.1,  eps=.1, oks=c(id, p1), yks=c(id, p1),
+              ejt=0.0, bsz=100, wep=2)
 }

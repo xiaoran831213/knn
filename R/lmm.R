@@ -5,29 +5,26 @@ lmm.dv1 <- function(W, K, Y, ...)
     L <- NROW(W)                        # dim of K, lower kernels
     W <- exp(W)
     
-    V <- cmb(K, W)                      # cov: L x M cov matrices
-    H <- lapply(V, chol)                # decompotion
+    C <- cmb(K, W)                      # cov: L x M cov matrices
+    H <- lapply(C, chol)                # decompotion
     A <- lapply(H, chol2inv)            # acc: a_i, (i = 1 .. M)
 
     Y <- as.matrix(Y)
 
     ## alpha_i = a_i %*% y_i
-    YAY <- vapply(1:M, function(m) A[[m]] %*% Y[, m], Y[, 1])
-
-    ## container of first derivative
-    dv1 <- matrix(.0, L, M)
+    YAY <- lapply(1:M, function(m) A[[m]] %*% Y[, m])
 
     ## tmp_i = alpha_i alpha_i' - a_i
-    TMP <- lapply(1:M, function(m) tcrossprod(YAY[, m]) - A[[m]])
-    for(m in seq.int(M))
+    TMP <- lapply(1:M, function(m) tcrossprod(YAY[[m]]) - A[[m]])
+
+    ## 1st derivative
+    dv1 <- lapply(seq.int(M), function(m)
     {
-        for(l in seq.int(L))
+        sapply(seq.int(L), function(l)
         {
-            ## dvt(y_m, w_l) = -1/2 Tr[(alpha_i alpha_i' - a_i) K_l]
-            dv1[l, m] <- -.5 * sum(TMP[[m]] * K[[l]])
-        }
-    }
-    dv1 <- dv1 * W
+            -.5 * sum(TMP[[m]] * K[[l]])
+        }) * W
+    })
     dv1
 }
 
@@ -37,8 +34,8 @@ lmm.dv2 <- function(W, K, Y, ...)
     L <- NROW(W)                        # dim of K, lower kernels
     W <- exp(W)
 
-    V <- cmb(K, W)                      # cov: L x M cov matrices
-    H <- lapply(V, chol)                # decompotion
+    C <- cmb(K, W)                      # cov: L x M cov matrices
+    H <- lapply(C, chol)                # decompotion
     A <- lapply(H, chol2inv)            # acc: a_i, (i = 1 .. M)
 
     Y <- as.matrix(Y)
@@ -56,7 +53,6 @@ lmm.dv2 <- function(W, K, Y, ...)
             {
                 tmp <- 2 * YAY[[m]] - A[[m]]
                 dmx[r, s] <- .5 * W[r, m] * sum(A[[m]] %*% K[[r]] * tmp %*% K[[s]]) * W[s, m]
-                ## dmx[r, s] <- .5 * W[r, m] * tr.hut(A[[m]], K[[r]], tmp, K[[s]], N=1000) * W[s, m]
                 dmx[s, r] <- dmx[r, s]
             }
             tmp <- YAY[[m]] - A[[m]]
@@ -74,8 +70,8 @@ lmm.fsi <- function(W, K, Y, ...)
     L <- NROW(W)                        # dim of K, lower kernels
     W <- exp(W)
 
-    V <- cmb(K, W)                      # cov: L x M cov matrices
-    H <- lapply(V, chol)                # decompotion
+    C <- cmb(K, W)                      # cov: L x M cov matrices
+    H <- lapply(C, chol)                # decompotion
     A <- lapply(H, chol2inv)            # acc: a_i, (i = 1 .. M)
 
     ## container of second derivative
@@ -125,56 +121,73 @@ rop.lmm <- function(y, K, W=NULL)
         W <- matrix(rnorm(L, sd=.5), L, NCOL(y))
 
     obj <- function(x) nlk(y, cmb(K, exp(x))[[1]])
-    grd <- function(x) lmm.dv1(x, K, y)
-    hsn <- function(x) lmm.dv2(x, K, y)
+    grd <- function(x) lmm.dv1(x, K, y)[[1]]
+    hsn <- function(x) lmm.dv2(x, K, y)[[1]]
     fsi <- function(x) lmm.fsi(x, K, y)
 
     ## using R's optimizer
-    ## library(numDeriv)
+    library(numDeriv)
     ## print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
-    dv1 <- lmm.dv1(W, K, y)             # gradient before
+    dv1 <- lmm.dv1(W, K, y)[[1]]        # gradient before
     PF("DV1.MAX = %9.3f\n", dv1[which.max(abs(dv1))])
     time0 <- proc.time()
     opt <- optim(W, obj, grd, method="L-BFGS-B", control=list(trace=1))
     time1 <- proc.time()
     W <- opt$par
-    ## print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
-    dv1 <- lmm.dv1(W, K, y)             # gradient after
+    print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
+    dv1 <- lmm.dv1(W, K, y)[[1]]        # gradient after
     PF("DV1.MAX = %9.3f\n", dv1[which.max(abs(dv1))])
 
     ## make predictions
     prd <- knl.prd(y, K, W)
 
     ## timing
-    rtm <- DF(key='rtm', val=(time1 - time0)['elapsed'])
+    rtm <- DF(key='rtm', val=unname((time1 - time0)['elapsed']))
 
     opt$rpt <- rbind(rtm, prd)
     opt
 }
 
-mnq.lmm <- function(y, K)
+nwt.lmm <- function(y, K, W=NULL)
 {
     L <- length(K)
+    if(is.null(W))
+        W <- matrix(rnorm(L, sd=.5), L, NCOL(y))
 
-    ## use MINQUE Solver
-    X <- as.matrix(rep(0, NROW(y)))
-    p <- diag(L)
-    print('begin MINQUE')
+    PF("NWT.LMM.DV1.BEGIN = \n")
+    print(round(lmm.dv1(W, K, y)[[1]], 4))
+
     time0 <- proc.time()
-    W <- sapply(seq(L), function(l)
+    for(i in seq(100))
     {
-        A <- LMM_MINQUE_Solver(K, X, p[, l])$A
-        crossprod(y, A %*% y)
-    })
+        g <- lmm.dv1(W, K, y)[[1]]
+        if(max(abs(g)) < 1e-6)
+            break
+        H <- lmm.dv2(W, K, y)[[1]]
+
+        ## update: u = -g H^{-1} => H u = -g
+        u <- solve(H, -g)
+        if(max(abs(u)) < 1e-6)
+            break
+        W <- W + u
+    }
     time1 <- proc.time()
-    print('end MINQUE')
+
+    ## report
+    PF("NWT.LMM.DV2.END =\n")
+    print(round(H, 4))
+
+    dv1 <- lmm.dv1(W, K, y)
+    PF("NWT.LMM.DV1.END =\n")
+    print(round(g, 4))
+
     ## make predictions
-    prd <- knl.prd(y, K, W, logged=FALSE)
-
+    prd <- knl.prd(y, K, W)
+    
     ## timing
-    rtm <- DF(key='rtm', val=(time1 - time0)['elapsed'])
+    rtm <- DF(key='rtm', val=unname((time1 - time0)['elapsed']))
 
-    ret <- list(par=W, rpt=rbind(rtm, prd))
+    list(rpt=rbind(rtm, prd), par=W)
 }
 
 lmm <- function(y, v, e)
