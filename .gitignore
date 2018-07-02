@@ -43,3 +43,19 @@ sim.sh
 
 # R package's manual
 man
+
+# GCTA's test data
+data/gct
+
+# intermediate files for latex, under report directory
+rpt/*/*.aux
+rpt/*/*.log
+rpt/*/*.nav
+rpt/*/*.out
+rpt/*/*.pdf
+rpt/*/*.snm
+rpt/*/*.toc
+_region_.tex
+							
+# simulation runs
+sim/run

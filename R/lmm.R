@@ -106,10 +106,12 @@ knl.prd <- function(y, K, W, logged=TRUE, ...)
     f <- v - diag(W[1], length(y))      # W[1] is PHI
 
     ## prediction 1: conditional Gaussian
-    h <- f %*% (solve(v) %*% y)
-    
+    y <- unname(drop(as.vector(y)))
+    h <- unname(drop(f %*% (solve(v) %*% y)))
+
     mse <- mean((y - h)^2)
-    cyh <- cor(y, h)
+    ## gurad against zero-standard deviation
+    cyh <- tryCatch(cor(y, h), warning=function(w) 0, error=function(e) NA)
     nlk <- nlk(y, v)
     rpt <- DF(key=c('mse', 'nlk', 'cyh'), val=c(mse, nlk, cyh))
 
@@ -120,7 +122,7 @@ rop.lmm <- function(y, K, W=NULL)
 {
     L <- length(K)
     if(is.null(W))
-        W <- matrix(rnorm(L, sd=.05), L, 1L)
+        W <- matrix(rnorm(L, sd=.5), L, NCOL(y))
 
     obj <- function(x) nlk(y, cmb(K, exp(x))[[1]])
     grd <- function(x) lmm.dv1(x, K, y)

@@ -1,29 +1,3 @@
-#' get a consecutive section from the genomic matrix
-#' for training and testing dataset.
-#' 
-#' @param the basic gnomic matrix
-#' @param N the size of development data
-#' @param H the size of evaluation data
-#' @param P the number of variants
-get.gmx <- function(gmx, N, H=N, P=ncol(gmx) * .5)
-{
-    H <- min(N, nrow(gmx) - N)
-    P <- min(P, ncol(gmx))
-    
-    ## individual indices
-    idx <- sample.int(nrow(gmx), N + H)
-    ## variant indices
-    jdx <- seq(sample.int(ncol(gmx) - P, 1), l=P)
-
-    ## developing data
-    gmx.dvp <- as.matrix(gmx[idx[+(1:N)], jdx])
-
-    ## evaluating data
-    gmx.evl <- as.matrix(gmx[idx[-(1:N)], jdx])
-    
-    list(dvp=gmx.dvp, evl=gmx.evl)
-}
-
 ## Hutchinson trace for symmetric matrix product
 tr.hut <- function(..., N=100)
 {
