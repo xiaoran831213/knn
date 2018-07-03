@@ -51,7 +51,7 @@ sample.vcs <- function(e, k, rep=3)
     replicate(rep, c(e, rchisq(k - 1, 1)), FALSE)
 }
 
-get.sim <- function(gms, vcs, frq=1, lnk=I, oks=c(id, p1), ejt=.1)
+get.sim <- function(gms, vcs, frq=1, lnk=I, oks=c(p1), ejt=.1)
 {
     if(!is.list(gms))
     {

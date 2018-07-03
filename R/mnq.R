@@ -147,29 +147,23 @@ knl.mnq <- function(y, V, order=1, cpp=TRUE, ...)
 
     ## print('begin MINQUE')
     t0 <- Sys.time()
-    K <- knl.ply(V, order)
-    k <- length(K)                      # kernel count
+    C <- knl.ply(V, order)
+    k <- length(C)                      # kernel count
     
     ## call the kernel MINQUE core function
     ## fixed contrast matrix
     if(cpp)
-        r <- .Call('knl_mnq', PACKAGE = 'knn', as.matrix(y), K)
+        r <- .Call('knl_mnq', PACKAGE = 'knn', as.matrix(y), C)
     else
-        r <- knl.mnq.R(y, K)
+        r <- knl.mnq.R(y, C)
     td <- Sys.time() - t0; units(td) <- 'secs'; td <- as.numeric(td)
     ## print('end MINQUE')
 
     ## make predictions
+    K <- C[-1]
     prd <- knl.prd(y, K, r$vcs, logged=FALSE)
 
     ## timing
     rtm <- DF(key='rtm', val=td)
-    s2z <- DF(key='s2z', val=r$se2[2])
-    ret <- list(par=drop(r$vcs), se2=drop(r$se2), rpt=rbind(rtm, s2z, prd))
-}
-
-knl.mnq.evl <- function(y, V, vcs, order=1, ...)
-{
-    K <- knl.ply(V, order)
-    knl.prd(y, K, vcs, logged=FALSE, ...)
+    ret <- list(par=drop(r$vcs), se2=drop(r$se2), rpt=rbind(rtm, prd))
 }

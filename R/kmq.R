@@ -133,8 +133,8 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
         par <- bat.ret$par
         se2 <- bat.ret$se2
         phi <- par[1]
-        mse <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)[1, 2]
-
+        ## mse <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)[1, 2]
+        mse <- knl.prd(rsp.dvp, knl.dvp, par, logged=FALSE, ...)[1, 2]
         ## record each iteration
         hst.num[[i+1]] <- c(ep=ep, bt=bt, rtm=rtm)
         hst.par[[i+1]] <- par
@@ -164,8 +164,8 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
     hst.se2 <- split(hst.se2, hst.num[, 'ep'])
     hst.se2 <- sapply(hst.se2, function(.) 1 / colSums(1/.))
     se2 <- unname(rowMeans(hst.se2))
-    
-    rpt <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)
+
+    rpt <- knl.prd(rsp.dvp, knl.dvp, par, logged=FALSE, ...)
     rpt <- rbind(DF(key='rtm', val=tail(hst$rtm, 1)), rpt)
 
     ## return the history and new parameters

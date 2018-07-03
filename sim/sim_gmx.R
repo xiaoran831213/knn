@@ -15,53 +15,50 @@ library(devtools)
 devtools::load_all()
 
 #' simulation of kernel deep neural network;
-#' @param gno gnomic map, subject id, and genomic matrix in dosage format;
-#' @param N numeric draw this many samples for model developing;
-#' @param P numeric draw this many features (i.e., SNPs);
-#' @param H numeric draw this many samples for model eveluation;
-#' @param frq numeric percentage of functional features (i.e., casual SNPs);
-#' @param eps numeric size of white noise adds to the noise free outcome;
-#' @param bsz numeric batch size for mini-batch based training, when NULL or
-main <- function(gno, N, P, H=N, frq=.1, lnk=I, eps=.2, oks=c(id, p1), yks=c(id, p1), ...)
+#' @param N size of devolpment dataset
+#' @param P number of variants
+#' @param H size of evaluating dataset 
+#' @param frq fraction of functional variants
+#' @param eps size of white noise
+#' @param bsz size of mini-batches
+main <- function(N, P, H=N, frq=.1, lnk=I, eps=.1, oks=c(p1), yks=c(p1), ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
     set.seed(dot$seed)
-    arg <- match.call() %>% tail(-2) %>% as.list # %>% as.data.frame
+    arg <- match.call() %>% tail(-1) %>% as.list # %>% as.data.frame
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
     arg <- do.call(data.frame, arg)
 
-    if(is.character(gno)) gno <- readRDS(gno)
-    if(is.null(gno)) gno <- readRDS('data/p35_c05.rds')
-
     ## ------------------------- data genration ------------------------- ##
     ## choose N samples and P features for both development and evaluation
-    nvc <- length(oks)
-    gmx <- sample.gmx(gno$gmx, N, P, Q=1, H=H) 
-    vcs <- c(eps, rchisq(nvc - 1, 1))
-
-    sim <- get.sim(gmx, vcs, frq, lnk, oks, ejt=0)
+    gmx <- readRDS('data/p35_c05.rds')$gmx
+    gmx <- sample.gmx(gmx, N, P, Q=1, H=H) 
+    vcs <- c(eps=eps, vc=rchisq(length(oks), 1))
+    cvs <- c(eps=id, cv=oks)
+    sim <- get.sim(gmx, vcs, frq, lnk, cvs, ejt=0) # generate response
     dvp <- within(sim[[1]],
     {
         knl <- krn(gmx, yks)
-        mnq <- kpc.mnq(rsp, knl[-1], ...)
-        print(system.time(rop <- rop.lmm(rsp, knl)))
-        print(system.time(nwt <- nwt.lmm(rsp, knl[-1])))
+        nwt <- nwt.lmm(rsp, knl)
+        mnq <- kpc.mnq(rsp, knl, ...)
+        rop <- rop.lmm(rsp, knl)
     })
     evl <- within(sim[[2]],
     {
         knl <- krn(gmx, yks)
         nwt <- DF(mtd='nwt', knl.prd(rsp, knl, dvp$nwt$par))
-        mq1 <- DF(mtd='mq1', knl.mnq.evl(rsp, knl[-1], dvp$mnq$par, ...))
-        mq2 <- DF(mtd='mq2', knl.prd(rsp, knl, dvp$mnq$par, logged=FALSE, ...))
+        mnq <- DF(mtd='mnq', knl.prd(rsp, knl, dvp$mnq$par, logged=FALSE, ...))
         rop <- DF(mtd='rop', knl.prd(rsp, knl, dvp$rop$par))
     })
     
     ## ----------------------- KDN Model Fitting ----------------------- ##
     rpt <- list()
-    rpt <- cl(rpt, DF(dat='evl', evl$mq1))
-    rpt <- cl(rpt, DF(dat='evl', evl$mq2))
+    rpt <- cl(rpt, DF(dat='dvp', mtd='mnq', dvp$mnq$rpt))
+    rpt <- cl(rpt, DF(dat='dvp', mtd='rop', dvp$rop$rpt))
+    rpt <- cl(rpt, DF(dat='dvp', mtd='nwt', dvp$nwt$rpt))
+    rpt <- cl(rpt, DF(dat='evl', evl$mnq))
     rpt <- cl(rpt, DF(dat='evl', evl$rop))
     rpt <- cl(rpt, DF(dat='evl', evl$rpt))
     rpt <- cl(rpt, DF(dat='evl', evl$nwt))
@@ -76,6 +73,5 @@ main <- function(gno, N, P, H=N, frq=.1, lnk=I, eps=.2, oks=c(id, p1), yks=c(id,
 
 test <- function()
 {
-    r <- main(NULL, N=500, P=3000, H=1500, frq=.2,  eps=.02, oks=c(id, p1), yks=c(id, p1),
-              ejt=0.0, bsz=100, wep=2)
+    r <- main(N=500, P=2000, H=1500, frq=.2, eps=.1, oks=c(p1), yks=c(p1))
 }
