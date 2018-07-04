@@ -52,12 +52,12 @@ idn <- function(x, y=NULL, ...)
 #' @param ... not used
 #' 
 #' @return an N-N identity matrix
-gau <- function(x, y=NULL, sigma=.1, gamma=1/NCOL(x), ...)
+gau <- function(x, y=NULL, sigma=1, gamma=1/NCOL(x), ...)
 {
     exp(-euc2(x) * (.5 * gamma / sigma^2))
 }
 
-lap <- function(x, y=NULL, sigma=.1, gamma=1/NCOL(x), ...)
+lap <- function(x, y=NULL, sigma=1, gamma=1/NCOL(x), ...)
 {
     exp(-as.matrix(dist(x, 'man')) * gamma / sigma)
 }

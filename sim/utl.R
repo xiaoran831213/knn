@@ -91,7 +91,7 @@ get.sim <- function(gms, vcs, frq=1, lnk=I, oks=c(p1), ejt=.1)
         fcv <- cmb(fnl, vcs)[[1]]
         kcv <- cmb(knl, vcs)[[1]]
         rsp <- mvn(1, fcv) %>% drop %>% lnk
-        rsp <- rsp - mean(rsp)
+        ## rsp <- rsp - mean(rsp)
 
         ## oracle fit and null fit:
         rpt <- list()

@@ -106,10 +106,15 @@ lmm.fsi <- function(W, K, Y, ...)
     dv2
 }
 
-knl.prd <- function(y, K, W, logged=TRUE, ...)
+#' @param y a vector of response variable
+#' @param K a list of covariance kernels
+#' @param W a vector of variance components
+#' @param ln the VCs are logged? if true, exp(W) is used instead of W
+#' @param rt return a table? if false, a named vector is returned
+knl.prd <- function(y, K, W, ln=1, rt=1, ...)
 {
     ## is W logged
-    if(logged)
+    if(ln)
         W <- as.matrix(exp(W))
     N <- NROW(y)
 
@@ -128,7 +133,10 @@ knl.prd <- function(y, K, W, logged=TRUE, ...)
     ## gurad against zero-standard deviation
     cyh <- tryCatch(cor(y, h), warning=function(w) 0, error=function(e) NA)
     nlk <- nlk(y, v)
-    rpt <- DF(key=c('mse', 'nlk', 'cyh'), val=c(mse, nlk, cyh))
+    ## return
+    rpt <- c(mse=mse, nlk=nlk, cyh=cyh, ssz=N)
+    if(rt)
+        rpt <- DF(key=names(rpt), val=rpt)
     rpt
 }
 

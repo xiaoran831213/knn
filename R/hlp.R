@@ -10,6 +10,18 @@ cl <- function(ret=NULL, ...)
     ret
 }
 
+#' concatenate a list
+CL <- function(ret=NULL, ...)
+{
+    .. <- list(...)
+    ret <- ret %||% list()
+    for(i in seq_along(..))
+    {
+        ret <- c(ret, list(..[[i]]))
+    }
+    ret
+}
+
 #' short hand for data.fram
 DF <- data.frame
 
