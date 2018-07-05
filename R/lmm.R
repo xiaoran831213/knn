@@ -43,18 +43,6 @@ lmm.dv2 <- function(W, K, Y, ...)
     ## ## alpha_i = a_i y_i
     YAY1 <- lapply(1:M, function(m) A[[m]] %*% Y[, m])
 
-    ## ## tmp_i = alpha_i alpha_i' - a_i
-    ## TMP1 <- lapply(1:M, function(m) tcrossprod(YAY1[[m]]) - A[[m]])
-
-    ## ## 1st derivative
-    ## dv1 <- lapply(seq.int(M), function(m)
-    ## {
-    ##     sapply(seq.int(L), function(l)
-    ##     {
-    ##         -.5 * sum(TMP1[[m]] * K[[l]]) * W[l, m]
-    ##     }) 
-    ## })
-
     ## beta_i = (a_i y_i) (a_i y_i)' = alpha_i alpha_i'
     YAY2 <- lapply(YAY1, tcrossprod)
     
@@ -135,18 +123,22 @@ knl.prd <- function(y, K, W, ln=1, rt=1, ...)
     nlk <- nlk(y, v)
     ## return
     rpt <- c(mse=mse, nlk=nlk, cyh=cyh, ssz=N)
-    if(rt)
+    if(rt == 1)
         rpt <- DF(key=names(rpt), val=rpt)
+    if(rt == 2)
+        rpt <- DF(t(rpt))
     rpt
 }
 
 rop.lmm <- function(y, K, W=NULL, ...)
 {
     N <- NROW(y)
+    Q <- NCOL(y)
     C <- c(list(eps=diag(N)), cv=K)
     L <- length(C)
     if(is.null(W))
-        W <- matrix(rnorm(L, sd=.5), L, NCOL(y))
+        W <- matrix(rchisq(L * Q, df=1) * .1, L, Q)
+    W <- log(W)
 
     obj <- function(x) nlk(y, cmb(C, exp(x))[[1]])
     grd <- function(x) lmm.dv1(x, C, y)[[1]]
@@ -159,21 +151,22 @@ rop.lmm <- function(y, K, W=NULL, ...)
     ## dv1 <- lmm.dv1(W, C, y)[[1]]        # gradient before
     ## PF("DV1.MAX = %9.3f\n", dv1[which.max(abs(dv1))])
     time0 <- proc.time()
-    opt <- optim(W, obj, grd, method="L-BFGS-B", control=list(trace=0))
+    ret <- optim(W, obj, grd, method="L-BFGS-B", control=list(trace=0))
     time1 <- proc.time()
-    ## W <- opt$par
+    W <- ret$par
     ## print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
     ## dv1 <- lmm.dv1(W, C, y)[[1]]        # gradient after
     ## PF("DV1.MAX = %9.3f\n", dv1[which.max(abs(dv1))])
 
     ## make predictions
-    prd <- knl.prd(y, K, W)
+    prd <- knl.prd(y, K, exp(W), ln=0)
 
     ## timing
     rtm <- DF(key='rtm', val=unname((time1 - time0)['elapsed']))
 
-    opt$rpt <- rbind(rtm, prd)
-    opt
+    ret$rpt <- rbind(rtm, prd)
+    ret$par <- exp(W)
+    ret
 }
 
 nwt.lmm <- function(y, K, W=NULL, ...)

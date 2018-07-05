@@ -24,13 +24,13 @@ get.gmx <- function(gmx, N, H=N, P=ncol(gmx) * .5)
     list(dvp=gmx.dvp, evl=gmx.evl)
 }
 
-sample.gmx <- function(gmx, N=NULL, P=NULL, Q=4, H=N)
+sample.gmx <- function(gmx, N=NULL, P=NULL, Q=4)
 {
     N <- N %||% as.integer(nrow(gmx) * .2)
     P <- min(P, ncol(gmx))
     
     ## indices
-    idx <- sample.int(nrow(gmx))[seq.int(N * Q + H)]
+    idx <- sample.int(nrow(gmx))[seq.int(N * Q * 2)]
     jdx <- seq(sample.int(ncol(gmx) - P, 1), l=P)
     gmx <- gmx[idx, jdx]
     
@@ -41,9 +41,13 @@ sample.gmx <- function(gmx, N=NULL, P=NULL, Q=4, H=N)
     })
     names(dvp) <- sprintf('d%02d', seq_along(dvp))
 
-    evl <- as.matrix(gmx[seq.int(N * Q + 1, l=H), ])
+    evl <- lapply(seq(Q, l=Q), function(i)
+    {
+        as.matrix(gmx[seq.int(1 + N * i, l=N), ])
+    })
+    names(evl) <- sprintf('e%02d', seq_along(evl))
     
-    c(dvp, list(evl=evl))
+    list(dvp=dvp, evl=evl)
 }
 
 sample.vcs <- function(e, k, rep=3)

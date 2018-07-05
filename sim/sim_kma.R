@@ -36,12 +36,12 @@ main <- function(N, P, Q=5, H=N, frq=.1, lnk=I, eps=.2, oks=c(p1), yks=c(p1), ..
     ## ------------------------- data genration ------------------------- ##
     ## choose N samples and P features for both development and evaluation
     gmx <- readRDS('data/p35_c05.rds')$gmx
-    gmx <- sample.gmx(gmx, N, P, Q, H) 
+    gmx <- sample.gmx(gmx, N, P, Q)
     vcs <- c(eps=eps, vc=rchisq(length(oks), 1))
     cvs <- c(eps=id, cv=oks)
-    sim <- get.sim(gmx, vcs, frq, lnk, cvs, ejt=c(rep(ejt, Q), 0.0))
-    dvp <- sim[1:Q]
-    evl <- sim[[Q+1]]
+    ## sim <- get.sim(gmx, vcs, frq, lnk, cvs, ejt=c(rep(ejt, Q), 0.0))
+    dvp <- get.sim(gmx$dvp, vcs, frq, lnk, cvs, ejt=ejt)
+    evl <- get.sim(gmx$evl, vcs, frq, lnk, cvs, ejt=0.0)
 
     ## ----------------------- KDN Model Fitting ----------------------- ##
     rpt <- list()
@@ -67,9 +67,9 @@ main <- function(N, P, Q=5, H=N, frq=.1, lnk=I, eps=.2, oks=c(p1), yks=c(p1), ..
         
         ## average non meta analysis, 
         mnq <- sapply(sep$mnq, function(.) knl.prd(rsp, knl, .$fit$par, ln=0, rt=0)) %>%
-            rowMeans %>% {DF(mtd='avg.mnq', key=names(.), val=.)}
-        rop <- sapply(sep$rop, function(.) knl.prd(rsp, knl, .$fit$par, ln=1, rt=0)) %>%
-            rowMeans %>% {DF(mtd='avg.mnq', key=names(.), val=.)}
+            rowMeans %>% {DF(mtd='mnq.avg', key=names(.), val=.)}
+        rop <- sapply(sep$rop, function(.) knl.prd(rsp, knl, .$fit$par, ln=0, rt=0)) %>%
+            rowMeans %>% {DF(mtd='rop.avg', key=names(.), val=.)}
         rpt <- CL(rpt, mnq, rop)
         
         ## fit using all training samples
@@ -82,31 +82,46 @@ main <- function(N, P, Q=5, H=N, frq=.1, lnk=I, eps=.2, oks=c(p1), yks=c(p1), ..
     })
 
     ## ----------------------- Testing Errors ----------------------- ##
-    evl <- with(evl,
+    evl <- with(list(),
     {
+        gmx <- do.call(rbind, lapply(evl, `[[`, 'gmx')) # combined G
+        rsp <- unlist(lapply(evl, `[[`, 'rsp'))         # combined Y
         knl <- krn(gmx, yks, ...)
-        rpt <- list(rpt)
+        rpt <- list()
         ## performance: meta analysis
         mnq <- agg.mat(sep$mnq)$a[, 'nlk']
+        rpt <- cl(rpt, DF(mtd='nlk.mnq', knl.prd(rsp, knl, mnq, ln=0, ...)))
+        mnq <- agg.mat(sep$mnq)$a[, 'mse']
+        rpt <- cl(rpt, DF(mtd='mse.mnq', knl.prd(rsp, knl, mnq, ln=0, ...)))
         rop <- agg.mat(sep$rop)$a[, 'nlk']
-        rpt <- cl(rpt, DF(mtd='mat.mnq', knl.prd(rsp, knl, mnq, ln=0, ...)))
-        rpt <- cl(rpt, DF(mtd='mat.rop', knl.prd(rsp, knl, rop, ln=1, ...)))
+        rpt <- cl(rpt, DF(mtd='nlk.rop', knl.prd(rsp, knl, rop, ln=0, ...)))
 
         ## performance: average of non meta analysis
-        rpt <- CL(rpt, sapply(1:Q, function(i)
+        mnq <- sapply(1:Q, function(i)
         {
             knl.prd(rsp, knl, sep$mnq[[i]]$fit$par, ln=0, rt=0, ...)
-        }) %>% rowMeans %>% {DF(mtd='avg.mnq', key=names(.), val=.)})
-        rpt <- CL(rpt, sapply(1:Q, function(i)
+        })
+        med <- apply(t(mnq), 2L, median)
+        med <- DF(mtd='med.mnq', key=names(med), val=med)
+        avg <- apply(t(mnq), 2L, mean)
+        avg <- DF(mtd='avg.mnq', key=names(avg), val=avg)
+        rpt <- CL(rpt, med, avg)
+
+        rop <- sapply(1:Q, function(i)
         {
-            knl.prd(rsp, knl, sep$rop[[i]]$fit$par, ln=1, rt=0, ...)
-        }) %>% rowMeans %>% {DF(mtd='avg.rop', key=names(.), val=.)})
+            knl.prd(rsp, knl, sep$rop[[i]]$fit$par, ln=0, rt=0, ...)
+        })
+        med <- apply(t(rop), 2L, median)
+        med <- DF(mtd='med.rop', key=names(med), val=med)
+        avg <- apply(t(rop), 2L, mean)
+        avg <- DF(mtd='avg.rop', key=names(avg), val=avg)
+        rpt <- CL(rpt, med, avg)
         
         ## performance: model of whole training data
         mnq <- dvp$mnq$par
         rop <- dvp$rop$par
         rpt <- CL(rpt, DF(mtd='whl.mnq', knl.prd(rsp, knl, mnq, ln=0, ...)))
-        rpt <- CL(rpt, DF(mtd='whl.rop', knl.prd(rsp, knl, rop, ln=1, ...)))
+        rpt <- CL(rpt, DF(mtd='whl.rop', knl.prd(rsp, knl, rop, ln=0, ...)))
 
         ## report
         rpt=cbind(dat='evl', do.call(rbind, rpt))
