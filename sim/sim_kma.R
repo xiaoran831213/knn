@@ -16,13 +16,12 @@ devtools::load_all()
 
 #' simulation of kernel deep neural network;
 #' @param gno gnomic map, subject id, and genomic matrix in dosage format;
-#' @param N numeric draw this many samples for model developing;
-#' @param P numeric draw this many features (i.e., SNPs);
-#' @param H numeric draw this many samples for model eveluation;
+#' @param N draw this many samples for training and test, for each cohort;
+#' @param P draw this many features (i.e., SNPs);
 #' @param frq numeric percentage of functional features (i.e., casual SNPs);
 #' @param eps numeric size of white noise adds to the noise free outcome;
 #' @param bsz numeric batch size for mini-batch based training, when NULL or
-main <- function(N, P, Q=5, H=N, frq=.1, lnk=I, eps=.2, oks=c(p1), yks=c(p1), ...)
+main <- function(N, P, Q=5, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
@@ -32,16 +31,13 @@ main <- function(N, P, Q=5, H=N, frq=.1, lnk=I, eps=.2, oks=c(p1), yks=c(p1), ..
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
     arg <- do.call(data.frame, arg)
-
+    
     ## ------------------------- data genration ------------------------- ##
     ## choose N samples and P features for both development and evaluation
     gmx <- readRDS('data/p35_c05.rds')$gmx
     gmx <- sample.gmx(gmx, N, P, Q)
-    vcs <- c(eps=eps, vc=rchisq(length(oks), 1))
-    cvs <- c(eps=id, cv=oks)
-    ## sim <- get.sim(gmx, vcs, frq, lnk, cvs, ejt=c(rep(ejt, Q), 0.0))
-    dvp <- get.sim(gmx$dvp, vcs, frq, lnk, cvs, ejt=ejt)
-    evl <- get.sim(gmx$evl, vcs, frq, lnk, cvs, ejt=0.0)
+    dvp <- get.sim(gmx$dvp, frq, lnk, eps, oks, ejt=ejt)
+    evl <- get.sim(gmx$evl, frq, lnk, eps, oks, ejt=ejt)
 
     ## ----------------------- KDN Model Fitting ----------------------- ##
     rpt <- list()
@@ -55,73 +51,69 @@ main <- function(N, P, Q=5, H=N, frq=.1, lnk=I, eps=.2, oks=c(p1), yks=c(p1), ..
     {
         within(dvp[[i]], {knl <- krn(gmx, yks); fit <- rop.lmm(rsp, knl, ...)})
     })
+    gct <- lapply(1:Q, function(i)
+    {
+        within(dvp[[i]], {knl <- krn(gmx, yks); fit <- gcta.reml(rsp, knl, maxit=100)})
+    })
     sep <- list(mnq=lapply(mnq, `[`, c('rsp', 'fit', 'knl')),
-                rop=lapply(rop, `[`, c('rsp', 'fit', 'knl')))
-
-    dvp <- with(list(),
+                rop=lapply(rop, `[`, c('rsp', 'fit', 'knl')),
+                gct=lapply(gct, `[`, c('rsp', 'fit', 'knl')))
+    
+    dvp <- with(sep,
     {
         gmx <- do.call(rbind, lapply(dvp, `[[`, 'gmx')) # combined G
         rsp <- unlist(lapply(dvp, `[[`, 'rsp'))         # combined Y
         knl <- krn(gmx, yks)                            # combined K
         rpt <- list()
         
-        ## average non meta analysis, 
-        mnq <- sapply(sep$mnq, function(.) knl.prd(rsp, knl, .$fit$par, ln=0, rt=0)) %>%
-            rowMeans %>% {DF(mtd='mnq.avg', key=names(.), val=.)}
-        rop <- sapply(sep$rop, function(.) knl.prd(rsp, knl, .$fit$par, ln=0, rt=0)) %>%
-            rowMeans %>% {DF(mtd='rop.avg', key=names(.), val=.)}
-        rpt <- CL(rpt, mnq, rop)
+        ## average non meta analysis,
+        rpt <- sapply(mnq, function(.) knl.prd(rsp, knl, .$fit$par, rt=0)) %>%
+            rowMeans %>% {DF(mtd='mnq.avg', key=names(.), val=.)} %>% {CL(rpt, .)}
+        rpt <- sapply(rop, function(.) knl.prd(rsp, knl, .$fit$par, rt=0)) %>%
+            rowMeans %>% {DF(mtd='rop.avg', key=names(.), val=.)} %>% {CL(rpt, .)}
+        rpt <- sapply(gct, function(.) knl.prd(rsp, knl, .$fit$par, rt=0)) %>%
+            rowMeans %>% {DF(mtd='gct.avg', key=names(.), val=.)} %>% {CL(rpt, .)}
         
         ## fit using all training samples
         mnq <- knl.mnq(rsp, knl, ...)
         rop <- rop.lmm(rsp, knl, ...)
-        rpt <- CL(rpt, DF(mtd='whl.mnq', mnq$rpt), DF(mtd='whl.rop', rop$rpt))
+        gct <- gcta.reml(rsp, knl, maxit=100)
+        rpt <- CL(rpt, DF(mtd='whl.mnq', mnq$rpt))
+        rpt <- CL(rpt, DF(mtd='whl.rop', rop$rpt))
+        rpt <- CL(rpt, DF(mtd='whl.gct', gct$rpt))
 
         rpt <- cbind(dat='dvp', do.call(rbind, rpt))
-        list(rpt=rpt, mnq=mnq, rop=rop)
+        par <- list(mnq=mnq$par, rop=rop$par, gct=gct$par)
+        list(rpt=rpt, par=par)
     })
 
     ## ----------------------- Testing Errors ----------------------- ##
-    evl <- with(list(),
+    evl <- with(sep,
     {
         gmx <- do.call(rbind, lapply(evl, `[[`, 'gmx')) # combined G
         rsp <- unlist(lapply(evl, `[[`, 'rsp'))         # combined Y
         knl <- krn(gmx, yks, ...)
         rpt <- list()
         ## performance: meta analysis
-        mnq <- agg.mat(sep$mnq)$a[, 'nlk']
-        rpt <- cl(rpt, DF(mtd='nlk.mnq', knl.prd(rsp, knl, mnq, ln=0, ...)))
-        mnq <- agg.mat(sep$mnq)$a[, 'mse']
-        rpt <- cl(rpt, DF(mtd='mse.mnq', knl.prd(rsp, knl, mnq, ln=0, ...)))
-        rop <- agg.mat(sep$rop)$a[, 'nlk']
-        rpt <- cl(rpt, DF(mtd='nlk.rop', knl.prd(rsp, knl, rop, ln=0, ...)))
+        rpt <- CL(rpt, DF(mtd='nlk.mnq', knl.prd(rsp, knl, agg.mat(mnq, ...)$a[, 'nlk'], ...)))
+        rpt <- CL(rpt, DF(mtd='mse.mnq', knl.prd(rsp, knl, agg.mat(mnq, ...)$a[, 'mse'], ...)))
+        rpt <- CL(rpt, DF(mtd='nlk.rop', knl.prd(rsp, knl, agg.mat(rop, ...)$a[, 'nlk'], ...)))
+        rpt <- CL(rpt, DF(mtd='mse.rop', knl.prd(rsp, knl, agg.mat(rop, ...)$a[, 'mse'], ...)))
+        rpt <- CL(rpt, DF(mtd='nlk.gct', knl.prd(rsp, knl, agg.mat(gct, ...)$a[, 'nlk'], ...)))
+        rpt <- CL(rpt, DF(mtd='mse.gct', knl.prd(rsp, knl, agg.mat(gct, ...)$a[, 'mse'], ...)))
 
         ## performance: average of non meta analysis
-        mnq <- sapply(1:Q, function(i)
-        {
-            knl.prd(rsp, knl, sep$mnq[[i]]$fit$par, ln=0, rt=0, ...)
-        })
-        med <- apply(t(mnq), 2L, median)
-        med <- DF(mtd='med.mnq', key=names(med), val=med)
-        avg <- apply(t(mnq), 2L, mean)
-        avg <- DF(mtd='avg.mnq', key=names(avg), val=avg)
-        rpt <- CL(rpt, med, avg)
-
-        rop <- sapply(1:Q, function(i)
-        {
-            knl.prd(rsp, knl, sep$rop[[i]]$fit$par, ln=0, rt=0, ...)
-        })
-        med <- apply(t(rop), 2L, median)
-        med <- DF(mtd='med.rop', key=names(med), val=med)
-        avg <- apply(t(rop), 2L, mean)
-        avg <- DF(mtd='avg.rop', key=names(avg), val=avg)
-        rpt <- CL(rpt, med, avg)
+        rpt <- sapply(mnq, function(.) knl.prd(rsp, knl, .$fit$par, rt=0)) %>%
+            rowMeans %>% {DF(mtd='avg.mnq', key=names(.), val=.)} %>% {CL(rpt, .)}
+        rpt <- sapply(rop, function(.) knl.prd(rsp, knl, .$fit$par, rt=0)) %>%
+            rowMeans %>% {DF(mtd='avg.rop', key=names(.), val=.)} %>% {CL(rpt, .)}
+        rpt <- sapply(gct, function(.) knl.prd(rsp, knl, .$fit$par, rt=0)) %>%
+            rowMeans %>% {DF(mtd='avg.gct', key=names(.), val=.)} %>% {CL(rpt, .)}
         
         ## performance: model of whole training data
-        mnq <- dvp$mnq$par
-        rop <- dvp$rop$par
-        rpt <- CL(rpt, DF(mtd='whl.mnq', knl.prd(rsp, knl, mnq, ln=0, ...)))
-        rpt <- CL(rpt, DF(mtd='whl.rop', knl.prd(rsp, knl, rop, ln=0, ...)))
+        rpt <- CL(rpt, DF(mtd='whl.mnq', knl.prd(rsp, knl, dvp$par$mnq, ...)))
+        rpt <- CL(rpt, DF(mtd='whl.rop', knl.prd(rsp, knl, dvp$par$rop, ...)))
+        rpt <- CL(rpt, DF(mtd='whl.gct', knl.prd(rsp, knl, dvp$par$gct, ...)))
 
         ## report
         rpt=cbind(dat='evl', do.call(rbind, rpt))
@@ -205,5 +197,5 @@ agg.mat <- function(rpt, mat=0, ...)
 
 test <- function()
 {
-    r <- main(N=200, P=2000, Q=5, H=1000, frq=.1, eps=.1, oks=c(p1), yks=c(p1), ejt=0.2)
+    r <- main(N=200, P=2000, Q=5, frq=.1, eps=.1, oks=c(p1), yks=c(p1), ejt=0.2)
 }

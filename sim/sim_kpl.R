@@ -1,10 +1,13 @@
 source('R/kpl.R')
-id <- function(x) diag(1, NROW(x))
-p1 <- function(x) ply(x, degree=1)
-p2 <- function(x) ply(x, degree=2)
-p3 <- function(x) ply(x, degree=3)
-ga <- function(x) gau(x)
-lp <- function(x) lap(x)
+id <- c(id=function(x) diag(1, NROW(x)))
+p1 <- c(o1=function(x) ply(x, degree=1))
+p2 <- c(o1=function(x) ply(x, degree=1),
+        o2=function(x) ply(x, degree=2))
+p3 <- c(o1=function(x) ply(x, degree=1),
+        o2=function(x) ply(x, degree=2),
+        o3=function(x) ply(x, degree=3))
+ga <- c(ga=function(x) gau(x))
+lp <- c(lp=function(x) lap(x))
 s1 <- function(x) sin(1 * pi * x)
 s2 <- function(x) sin(2 * pi * x)
 sg <- function(x) 1/(1 + exp(-x))

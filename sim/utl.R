@@ -50,52 +50,39 @@ sample.gmx <- function(gmx, N=NULL, P=NULL, Q=4)
     list(dvp=dvp, evl=evl)
 }
 
-sample.vcs <- function(e, k, rep=3)
+get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, ejt=.1)
 {
-    replicate(rep, c(e, rchisq(k - 1, 1)), FALSE)
-}
+    if(!is.list(G))
+        G <- list(G)
 
-get.sim <- function(gms, vcs, frq=1, lnk=I, oks=c(p1), ejt=.1)
-{
-    if(!is.list(gms))
-    {
-        gms <- list(gms)
-    }
-
-    P <- NCOL(gms[[1]])
-    N <- NROW(gms[[1]])
-    k <- length(oks)
+    P <- NCOL(G[[1]])
+    N <- NROW(G[[1]])
+    k <- length(V)
 
     ## functional SNP mask
     fmk <- sample(c(rep(1, P * frq), rep(0, P - P * frq)))
-    
-    ## true variance components linking x to y, in log scale
-    ## print(vcs)
-    nvc <- length(vcs)
 
-    ## noise
-    eps <- vcs[1]
+    ## true variance components linking x to y, in log scale
+    nvc <- length(V)
+    vcs <- c(eps=eps, vc=rchisq(nvc, 1))
+    cvs <- c(id, V)
 
     ## jittering
-    ejt <- rep(ejt, l=length(gms))
+    ejt <- rep(ejt, l=length(G))
 
     ret <- mapply(function(gmx, a)
     {
-        ## jit <- rchisq(nvc - 1, 1)
-        ## vcs[-1] <- vcs[-1] * (1 - a) + jit * a
-        jit <- rchisq(nvc, 1)
-        vcs <- vcs * (1 - a) + jit * a
+        .vc <- vcs * (1 - a) + c(eps, rchisq(nvc, 1)) * a
     
         ## generate
-        ## fmx <- sweep(gmx, 2L, fmk, `*`)
-        fmx <- gmx[, as.logical(fmk)]
+        fmx <- sweep(gmx, 2L, fmk, `*`)
+        ## fmx <- gmx[, as.logical(fmk)]
         fmx <- sweep(fmx, 2L, rnorm(sum(fmk)), `*`)
-        fnl <- krn(fmx, oks)
-        knl <- krn(gmx, oks)
-        fcv <- cmb(fnl, vcs)[[1]]
-        kcv <- cmb(knl, vcs)[[1]]
+        fnl <- krn(fmx, cvs)
+        knl <- krn(gmx, cvs)
+        fcv <- cmb(fnl, .vc)[[1]]
+        kcv <- cmb(knl, .vc)[[1]]
         rsp <- mvn(1, fcv) %>% drop %>% lnk
-        ## rsp <- rsp - mean(rsp)
 
         ## oracle fit and null fit:
         rpt <- list()
@@ -105,7 +92,8 @@ get.sim <- function(gms, vcs, frq=1, lnk=I, oks=c(p1), ejt=.1)
         rpt <- do.call(rbind, rpt)
 
         ## return
-        list(gmx=gmx, rpt=rpt, rsp=rsp, fcv=fcv, kcv=kcv, vcs=vcs, eps=eps)
-    }, gms, ejt, SIMPLIFY=FALSE)
+        list(gmx=gmx, rpt=rpt, rsp=rsp, vcs=.vc)
+    },
+    G, ejt, SIMPLIFY=FALSE)
     ret
 }

@@ -13,7 +13,6 @@ gcta.reml <- function(y, K, qcvr=NULL, dcvr=NULL, maxit=NULL)
         stop('failed to create directory', GRM.dir)
 
     ## save GRM
-    ## GRM <- K[-1]
     GRM <- K
     if(is.null(names(GRM)))
         names(GRM) <- sprintf('G%02d', seq(length(GRM)))
@@ -59,7 +58,7 @@ gcta.reml <- function(y, K, qcvr=NULL, dcvr=NULL, maxit=NULL)
 
     ## parse the output
     out <- gcta.parse(tpd)
-
+    
     ## summary
     h <- rowSums(out$blp[-1:-3])
     v <- cmb(K, out$vcs$var)[[1]]

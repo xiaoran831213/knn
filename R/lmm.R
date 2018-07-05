@@ -99,11 +99,9 @@ lmm.fsi <- function(W, K, Y, ...)
 #' @param W a vector of variance components
 #' @param ln the VCs are logged? if true, exp(W) is used instead of W
 #' @param rt return a table? if false, a named vector is returned
-knl.prd <- function(y, K, W, ln=1, rt=1, ...)
+knl.prd <- function(y, K, W, rt=1, ...)
 {
     ## is W logged
-    if(ln)
-        W <- as.matrix(exp(W))
     N <- NROW(y)
 
     ## prepand noisy kernel
