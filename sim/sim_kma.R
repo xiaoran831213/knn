@@ -21,7 +21,7 @@ devtools::load_all()
 #' @param frq numeric percentage of functional features (i.e., casual SNPs);
 #' @param eps numeric size of white noise adds to the noise free outcome;
 #' @param bsz numeric batch size for mini-batch based training, when NULL or
-main <- function(N, P, Q=5, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
+main <- function(N, P, Q=5, R=1, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
@@ -35,7 +35,7 @@ main <- function(N, P, Q=5, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
     ## ------------------------- data genration ------------------------- ##
     ## choose N samples and P features for both development and evaluation
     gmx <- readRDS('data/p35_c05.rds')$gmx
-    gmx <- sample.gmx(gmx, N, P, Q)
+    gmx <- sample.gmx(gmx, N, P, Q, R)
     dvp <- get.sim(gmx$dvp, frq, lnk, eps, oks, ejt=ejt)
     evl <- get.sim(gmx$evl, frq, lnk, eps, oks, ejt=ejt)
 
@@ -96,9 +96,9 @@ main <- function(N, P, Q=5, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
         rpt <- list()
         ## performance: meta analysis
         rpt <- CL(rpt, DF(mtd='nlk.mnq', knl.prd(rsp, knl, agg.mat(mnq, ...)$a[, 'nlk'], ...)))
-        rpt <- CL(rpt, DF(mtd='mse.mnq', knl.prd(rsp, knl, agg.mat(mnq, ...)$a[, 'mse'], ...)))
+        ## rpt <- CL(rpt, DF(mtd='mse.mnq', knl.prd(rsp, knl, agg.mat(mnq, ...)$a[, 'mse'], ...)))
         rpt <- CL(rpt, DF(mtd='nlk.rop', knl.prd(rsp, knl, agg.mat(rop, ...)$a[, 'nlk'], ...)))
-        rpt <- CL(rpt, DF(mtd='mse.rop', knl.prd(rsp, knl, agg.mat(rop, ...)$a[, 'mse'], ...)))
+        ## rpt <- CL(rpt, DF(mtd='mse.rop', knl.prd(rsp, knl, agg.mat(rop, ...)$a[, 'mse'], ...)))
         ## rpt <- CL(rpt, DF(mtd='nlk.gct', knl.prd(rsp, knl, agg.mat(gct, ...)$a[, 'nlk'], ...)))
         ## rpt <- CL(rpt, DF(mtd='mse.gct', knl.prd(rsp, knl, agg.mat(gct, ...)$a[, 'mse'], ...)))
 
@@ -116,7 +116,7 @@ main <- function(N, P, Q=5, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
         ## rpt <- CL(rpt, DF(mtd='whl.gct', knl.prd(rsp, knl, dvp$par$gct, ...)))
 
         ## NULL
-        rpt <- CL(rpt, DF(mtd='whl.nul', nul(rsp)))
+        rpt <- CL(rpt, DF(mtd='nul', nul(rsp)))
 
         ## report
         rpt=cbind(dat='evl', do.call(rbind, rpt))
