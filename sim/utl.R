@@ -24,7 +24,7 @@ get.gmx <- function(gmx, N, H=N, P=ncol(gmx) * .5)
     list(dvp=gmx.dvp, evl=gmx.evl)
 }
 
-sample.gmx <- function(gmx, N=NULL, P=NULL, Q=4)
+sample.gmx <- function(gmx, N=NULL, P=NULL, Q=4, R=1)
 {
     N <- N %||% as.integer(nrow(gmx) * .2)
     P <- min(P, ncol(gmx))
@@ -41,7 +41,7 @@ sample.gmx <- function(gmx, N=NULL, P=NULL, Q=4)
     })
     names(dvp) <- sprintf('d%02d', seq_along(dvp))
 
-    evl <- lapply(seq(Q, l=Q), function(i)
+    evl <- lapply(seq(Q, l=R), function(i)
     {
         as.matrix(gmx[seq.int(1 + N * i, l=N), ])
     })
@@ -58,7 +58,7 @@ get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, ejt=.1)
     P <- NCOL(G[[1]])
     N <- NROW(G[[1]])
     k <- length(V)
-
+    
     ## functional SNP mask
     fmk <- sample(c(rep(1, P * frq), rep(0, P - P * frq)))
 
@@ -75,8 +75,8 @@ get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, ejt=.1)
         .vc <- vcs * (1 - a) + c(eps, rchisq(nvc, 1)) * a
     
         ## generate
-        fmx <- sweep(gmx, 2L, fmk, `*`)
-        ## fmx <- gmx[, as.logical(fmk)]
+        ## fmx <- sweep(gmx, 2L, fmk, `*`)
+        fmx <- gmx[, as.logical(fmk)]
         fmx <- sweep(fmx, 2L, rnorm(sum(fmk)), `*`)
         fnl <- krn(fmx, cvs)
         knl <- krn(gmx, cvs)
