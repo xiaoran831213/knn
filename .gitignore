@@ -53,13 +53,14 @@ rpt/*/*.log
 *.nav
 rpt/*/*.out
 rpt/*/*.pdf
+rpt/*/*.html
 *.snm
 *.toc
 _region_.tex
-doc/*/*.log
-doc/*/*.out
-doc/*/*.pdf
 
 							
 # simulation runs
 sim/run
+
+# gcta temporary files
+gcta
