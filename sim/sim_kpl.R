@@ -8,8 +8,7 @@ p3 <- c(o1=function(x) ply(x, degree=1),
         o3=function(x) ply(x, degree=3))
 ga <- c(ga=function(x) gau(x))
 lp <- c(lp=function(x) lap(x))
-s1 <- function(x) sin(1 * pi * x)
-s2 <- function(x) sin(2 * pi * x)
+sn <- function(x) sin(2 * pi * x)
 sg <- function(x) 1/(1 + exp(-x))
 
 source('R/utl.R')

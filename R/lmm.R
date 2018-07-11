@@ -118,7 +118,7 @@ knl.prd <- function(y, K, W, rt=1, ...)
     mse <- mean((y - h)^2)
     ## gurad against zero-standard deviation
     cyh <- tryCatch(cor(y, h), warning=function(w) 0, error=function(e) NA)
-    nlk <- nlk(y, v)
+    nlk <- nlk(y, v) / N
     ## return
     rpt <- c(mse=mse, nlk=nlk, cyh=cyh, ssz=N)
     if(rt == 1)

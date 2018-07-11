@@ -71,9 +71,9 @@ ln.msg <- function(...)
 #' @param wtm numeric (in ...) walltime in hours
 #' @param esz integer (in ...) number of samples to draw in for error estimation;
 #' also collect training and evaluation statistics such as L1 and L2 error.
-kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
+kpc.mnq <- function(rsp, knl, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
 {
-    N <- NROW(knl.dvp[[1]])             # sample size
+    N <- NROW(knl[[1]])             # sample size
     nbt <- N / bsz                      # number of batches
     
     ## list of history
@@ -109,15 +109,15 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
                 sq <- sample.int(N)             # permutation
 
             ix <- sq[seq.int(bt * bsz, l=bsz) %% N]
-            knl.bat <- lapply(knl.dvp, `[`, ix, ix)
-            rsp.bat <- rsp.dvp[ix]
+            knl.bat <- lapply(knl, `[`, ix, ix)
+            rsp.bat <- rsp[ix]
         }
         else
         {
             ep <- i
             bt <- 0
-            knl.bat <- knl.dvp
-            rsp.bat <- rsp.dvp
+            knl.bat <- knl
+            rsp.bat <- rsp
         }
         if(ep > wep)
         {
@@ -133,8 +133,8 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
         par <- bat.ret$par
         se2 <- bat.ret$se2
         phi <- par[1]
-        ## mse <- knl.mnq.evl(rsp.dvp, knl.dvp, par, ...)[1, 2]
-        mse <- knl.prd(rsp.dvp, knl.dvp, par, logged=FALSE, ...)[1, 2]
+        ## mse <- knl.mnq.evl(rsp, knl, par, ...)[1, 2]
+        mse <- knl.prd(rsp, knl, par, logged=FALSE, ...)[1, 2]
         ## record each iteration
         hst.num[[i+1]] <- c(ep=ep, bt=bt, rtm=rtm)
         hst.par[[i+1]] <- par
@@ -144,7 +144,8 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
         ## message tracks
         if(i %% 80 == 0)
             cat(hd.msg(tks), "\n", sep="")
-        cat(ln.msg(tks), "\n", sep="")
+        if(bt == 0)
+            cat(ln.msg(tks), "\n", sep="")
 
         if(i > max.itr) {cat('BMQ: reaching max iter:', max.itr, '\n'); break}
         if(rtm > wtm)   {cat('BMQ: reaching walltime:', wtm, 'h\n');    break}
@@ -165,7 +166,7 @@ kpc.mnq <- function(rsp.dvp, knl.dvp, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
     hst.se2 <- sapply(hst.se2, function(.) 1 / colSums(1/.))
     se2 <- unname(rowMeans(hst.se2))
 
-    rpt <- knl.prd(rsp.dvp, knl.dvp, par, logged=FALSE, ...)
+    rpt <- knl.prd(rsp, knl, par, logged=FALSE, ...)
     rpt <- rbind(DF(key='rtm', val=tail(hst$rtm, 1)), rpt)
 
     ## return the history and new parameters

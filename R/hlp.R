@@ -1,16 +1,4 @@
 #' concatenate a list
-cl <- function(ret=NULL, ...)
-{
-    dots <- list(...)
-    ret <- ret %||% list()
-    for(i in seq_along(dots))
-    {
-        ret <- c(ret, list(dots[[i]]))
-    }
-    ret
-}
-
-#' concatenate a list
 CL <- function(ret=NULL, ...)
 {
     .. <- list(...)
@@ -21,6 +9,18 @@ CL <- function(ret=NULL, ...)
     }
     ret
 }
+
+#' extract elements from a list of lists
+EL1 <- function(ll, keys)
+{
+    lapply(ll, `[`, keys)
+}
+
+EL2 <- function(ll, key)
+{
+    lapply(ll, `[[`, key)
+}
+
 
 #' short hand for data.fram
 DF <- data.frame
@@ -65,7 +65,7 @@ nul <- function(y)
     mse <- mean((y - m)^2)
 
     ## negative log likelihood
-    nlk <- nlk(y, v)
+    nlk <- nlk(y, v) / N
 
     ## leave one out
     ## h <- (sum(y) - y) / (N - 1)

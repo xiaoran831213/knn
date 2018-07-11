@@ -1,30 +1,10 @@
 #' get a consecutive section from the genomic matrix
 #' for training and testing dataset.
 #' 
-#' @param the basic gnomic matrix
+#' @param gmx the gnomic matrix
 #' @param N the size of development data
-#' @param H the size of evaluation data
 #' @param P the number of variants
-get.gmx <- function(gmx, N, H=N, P=ncol(gmx) * .5)
-{
-    H <- min(N, nrow(gmx) - N)
-    P <- min(P, ncol(gmx))
-    
-    ## individual indices
-    idx <- sample.int(nrow(gmx), N + H)
-    ## variant indices
-    jdx <- seq(sample.int(ncol(gmx) - P, 1), l=P)
-
-    ## developing data
-    gmx.dvp <- as.matrix(gmx[idx[+(1:N)], jdx])
-
-    ## evaluating data
-    gmx.evl <- as.matrix(gmx[idx[-(1:N)], jdx])
-    
-    list(dvp=gmx.dvp, evl=gmx.evl)
-}
-
-sample.gmx <- function(gmx, N=NULL, P=NULL, Q=4, R=1)
+get.gmx <- function(gmx, N=NULL, P=NULL, Q=4, R=1)
 {
     N <- N %||% as.integer(nrow(gmx) * .2)
     P <- min(P, ncol(gmx))
@@ -50,7 +30,23 @@ sample.gmx <- function(gmx, N=NULL, P=NULL, Q=4, R=1)
     list(dvp=dvp, evl=evl)
 }
 
-get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, ejt=.1)
+get.vcs <- function(n, mtd=c('softmax', 'rchisq'), sc=1)
+{
+    mtd <- match.arg(mtd, c('softmax', 'rchisq'))
+    if(mtd == 'softmax')
+    {
+        e <- rnorm(n)
+        e <- exp(e)
+        e <- e / sum(e) * sc
+    }
+    else
+    {
+        e <- rchisq(n, sc)
+    }
+    e
+}
+
+get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1)
 {
     if(!is.list(G))
         G <- list(G)
@@ -61,23 +57,26 @@ get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, ejt=.1)
     
     ## functional SNP mask
     fmk <- sample(c(rep(1, P * frq), rep(0, P - P * frq)))
-
+    
     ## true variance components linking x to y, in log scale
     nvc <- length(V)
-    vcs <- c(eps=eps, vc=rchisq(nvc, 1))
+    vcs <- c(eps=eps, vc=get.vcs(nvc, 'r', 2))
     cvs <- c(id, V)
 
     ## jittering
-    ejt <- rep(ejt, l=length(G))
+    het <- rep(het, l=length(G))
+    
+    ## effects
+    ## eft <- rnorm(P)
 
     ret <- mapply(function(gmx, a)
     {
-        .vc <- vcs * (1 - a) + c(eps, rchisq(nvc, 1)) * a
-    
+        .vc <- vcs * (1 - a) + c(eps, get.vcs(nvc, 'r', 2)) * a
+        print(.vc)
         ## generate
-        ## fmx <- sweep(gmx, 2L, fmk, `*`)
-        fmx <- gmx[, as.logical(fmk)]
-        fmx <- sweep(fmx, 2L, rnorm(sum(fmk)), `*`)
+        ## fmx <- sweep(gmx, 2L, eft, `*`)
+        fmx <- sweep(gmx, 2L, fmk, `*`)
+        ## fmx <- gmx[, as.logical(fmk)]
         fnl <- krn(fmx, cvs)
         knl <- krn(gmx, cvs)
         fcv <- cmb(fnl, .vc)[[1]]
@@ -86,14 +85,79 @@ get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, ejt=.1)
 
         ## oracle fit and null fit:
         rpt <- list()
-        rpt <- cl(rpt, DF(mtd='fmx', lmm(rsp, fcv, eps)))
-        rpt <- cl(rpt, DF(mtd='gmx', lmm(rsp, kcv, eps)))
-        rpt <- cl(rpt, DF(mtd='nul', nul(rsp)))
+        rpt <- CL(rpt, DF(mtd='fmx', lmm(rsp, fcv, eps)))
+        rpt <- CL(rpt, DF(mtd='gmx', lmm(rsp, kcv, eps)))
+        rpt <- CL(rpt, DF(mtd='nul', nul(rsp)))
         rpt <- do.call(rbind, rpt)
 
         ## return
         list(gmx=gmx, rpt=rpt, rsp=rsp, vcs=.vc)
     },
-    G, ejt, SIMPLIFY=FALSE)
+    G, het, SIMPLIFY=FALSE)
     ret
 }
+
+get2 <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1)
+{
+    ## 1) het population
+    if(!is.list(G))
+        G <- list(G)
+
+    Q <- length(G)
+    P <- NCOL(G[[1]])
+    k <- length(V)
+    
+    ## functional SNP mask
+    fmk <- sample(c(rep(1, P * frq), rep(0, P - P * frq)))
+    
+    ## true variance components linking x to y, in log scale
+    nvc <- length(V)
+    vcs <- c(eps=eps, vc=get.vcs(nvc, 'r', 2))
+    cvs <- c(id, V)
+
+    ## jittering
+    het <- rep(het, l=length(G))
+    
+    jit <- lapply(G, function(gmx)
+    {
+        .vc <- c(eps, get.vcs(nvc, 'r', 2))
+        print(.vc)
+
+        ## generate
+        eft <- rnorm(P)
+
+        fmx <- sweep(gmx, 2L, eft, `*`)
+        ## fmx <- sweep(gmx, 2L, fmk, `*`)
+        fmx <- gmx[, as.logical(fmk)]
+        fnl <- krn(fmx, cvs)
+        fcv <- cmb(fnl, .vc)[[1]]
+
+        mvn(1, fcv) %>% drop %>% lnk
+    })
+    whl <- with(list(),
+    {
+        gmx <- do.call(rbind, G)
+        fmx <- gmx[, as.logical(fmk)]
+        fnl <- krn(fmx, cvs)
+        fcv <- cmb(fnl, vcs)[[1]]
+        rsp <- mvn(1, fcv) %>% drop %>% lnk
+
+        s1 <- cumsum(sapply(G, NROW))
+        s0 <- c(0, s1[-Q]) + 1
+        mapply(function(a, b)
+        {
+            rsp[a:b]
+        },
+        s0, s1, SIMPLIFY=FALSE)
+    })
+    
+    mix <- list()
+    for(i in seq.int(1, l=Q))
+    {
+        rsp <- whl[[i]] * (1-het[i]) + jit[[i]] * het[i]
+        mix[[i]] <- list(rsp=rsp, gmx=G[[i]])
+    }
+
+    mix
+}
+
