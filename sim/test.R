@@ -28,3 +28,31 @@ test.solve <- function(N=500, P=1000, t=20)
     r <- microbenchmark(inv, qrs, slv, chl, kpa, times=t)
     r
 }
+
+test.out3 <- function(N=500, P=1000, t=20)
+{
+    library(microbenchmark)
+    a <- matrix(rnorm(N * P), N, P)
+
+    f1 <- function()
+    {
+        (apply(a, 1L, function(x) sum(tcrossprod(x, x))) - rowSums(a^2))/2
+    }
+    
+    f2 <- function()
+    {
+        r <- numeric(N)
+        for(i in seq.int(P-1))
+        {
+            for(j in seq.int(i+1, P))
+            {
+                r <- r + a[, i] * a[, j]
+            }
+        }
+        r
+    }
+
+    print(microbenchmark(r1 <- f1(), r2 <- f2(), times=t))
+    
+    list(r1, r2)
+}

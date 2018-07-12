@@ -21,7 +21,7 @@ devtools::load_all()
 #' @param frq fraction of functional variants
 #' @param eps size of white noise
 #' @param bsz size of mini-batches
-main <- function(N, P, H=N, frq=.1, lnk=I, eps=.1, oks=c(p1), yks=c(p1), ...)
+main <- function(N, P, H=N, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
@@ -34,10 +34,12 @@ main <- function(N, P, H=N, frq=.1, lnk=I, eps=.1, oks=c(p1), yks=c(p1), ...)
     ## ------------------------- data genration ------------------------- ##
     ## choose N samples and P features for both development and evaluation
     gmx <- readRDS('data/p35_c05.rds')$gmx
-    gmx <- sample.gmx(gmx, N, P, Q=1, H=H) 
-    vcs <- c(eps=eps, vc=rchisq(length(oks), 1))
+    gmx <- get.gmx(gmx, N, P, Q=1, R=1)
+    dat <- with(gmx, c(dvp, evl))
+    ncv <- length(oks)
+    vcs <- c(eps=eps, vc=rchisq(ncv, 1))
     cvs <- c(eps=id, cv=oks)
-    sim <- get.sim(gmx, vcs, frq, lnk, cvs, ejt=0) # generate response
+    sim <- get2(dat, frq, lnk, eps, yks, het=0) # generate response
     dvp <- within(sim[[1]],
     {
         knl <- krn(gmx, yks)
@@ -60,7 +62,7 @@ main <- function(N, P, H=N, frq=.1, lnk=I, eps=.1, oks=c(p1), yks=c(p1), ...)
     rpt <- cl(rpt, DF(dat='dvp', mtd='nwt', dvp$nwt$rpt))
     rpt <- cl(rpt, DF(dat='evl', evl$mnq))
     rpt <- cl(rpt, DF(dat='evl', evl$rop))
-    rpt <- cl(rpt, DF(dat='evl', evl$rpt))
+    rpt <- cl(rpt, DF(dat='evl', mtd='nul', nul(evl$rsp)))
     rpt <- cl(rpt, DF(dat='evl', evl$nwt))
 
     ## report and return
@@ -73,5 +75,5 @@ main <- function(N, P, H=N, frq=.1, lnk=I, eps=.1, oks=c(p1), yks=c(p1), ...)
 
 test <- function()
 {
-    r <- main(N=500, P=2000, H=1500, frq=.2, eps=.1, oks=c(p1), yks=c(p1))
+    r <- main(N=500, P=2000, frq=.2, eps=.1, oks=c(p1), yks=c(p1))
 }
