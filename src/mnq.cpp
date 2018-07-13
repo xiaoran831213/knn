@@ -13,7 +13,6 @@ using namespace arma;
 //' 
 //' @param V a list of k kernel matrices matched to k variance components.
 //' @param P a m-k matrix, each row is a contrast of k variance components.
-//' @export
 RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
 {
     // // [[Rcpp::export]]

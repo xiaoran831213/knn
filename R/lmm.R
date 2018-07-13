@@ -3,16 +3,14 @@ lmm.dv1 <- function(W, K, Y, ...)
 {
     M <- NCOL(Y)                        # dim of Y, upper units
     L <- NROW(W)                        # dim of K, lower kernels
-    W <- matrix(exp(W))
+    W <- as.matrix(exp(W))
     C <- cmb(K, W)                      # cov: L x M cov matrices
     Y <- as.matrix(Y)
-
     ## 1st derivative
-    dv1 <- lapply(seq.int(M), function(m)
+    dv1 <- sapply(seq.int(M), function(m)
     {
         ## a_i
         A <- chol2inv(chol(C[[m]]))
-
         ## alpha_i = a_i %*% y_i
         YAY <- A %*% Y[, m]
 
@@ -21,6 +19,15 @@ lmm.dv1 <- function(W, K, Y, ...)
         sapply(seq.int(L), function(l) -.5 * sum(TMP * K[[l]]) * W[l, m])
     })
     dv1
+}
+
+cpp.dv1 <- function(W, K, Y, ...)
+{
+    W <- as.matrix(W)
+    Y <- as.matrix(Y)
+    if(!is.list(K))
+        K <- list(K)
+    .Call('vcm_dv1', W, K, Y)$G
 }
 
 lmm.dv2 <- function(W, K, Y, ...)
@@ -134,7 +141,7 @@ rop.lmm <- function(y, K, W=NULL, ...)
     W <- log(W)
 
     obj <- function(x) nlk(y, cmb(C, exp(x))[[1]])
-    grd <- function(x) lmm.dv1(x, C, y)[[1]]
+    grd <- function(x) cpp.dv1(x, C, y)
     hsn <- function(x) lmm.dv2(x, C, y)[[1]]
     fsi <- function(x) lmm.fsi(x, C, y)[[1]]
 
@@ -173,7 +180,7 @@ nwt.lmm <- function(y, K, W=NULL, ...)
     L <- length(C)
     Q <- NCOL(y)
     if(is.null(W))
-        W <- matrix(rchisq(L * Q, df=1) * .3, L, Q)
+        W <- matrix(rchisq(L * Q, df=1), L, Q)
     W <- log(W)
 
     PF("NWT.LMM.DV1.BEGIN = \n")
@@ -182,7 +189,7 @@ nwt.lmm <- function(y, K, W=NULL, ...)
     time0 <- proc.time()
     for(i in seq.int(wep))
     {
-        g <- lmm.dv1(W, C, y)[[1]]
+        g <- lmm.dv1(W, C, y)
         if(max(abs(g)) < 1e-5)
             break
 

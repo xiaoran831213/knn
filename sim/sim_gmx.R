@@ -57,13 +57,13 @@ main <- function(N, P, H=N, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
     
     ## ----------------------- KDN Model Fitting ----------------------- ##
     rpt <- list()
-    rpt <- cl(rpt, DF(dat='dvp', mtd='mnq', dvp$mnq$rpt))
-    rpt <- cl(rpt, DF(dat='dvp', mtd='rop', dvp$rop$rpt))
-    rpt <- cl(rpt, DF(dat='dvp', mtd='nwt', dvp$nwt$rpt))
-    rpt <- cl(rpt, DF(dat='evl', evl$mnq))
-    rpt <- cl(rpt, DF(dat='evl', evl$rop))
-    rpt <- cl(rpt, DF(dat='evl', mtd='nul', nul(evl$rsp)))
-    rpt <- cl(rpt, DF(dat='evl', evl$nwt))
+    rpt <- CL(rpt, DF(dat='dvp', mtd='mnq', dvp$mnq$rpt))
+    rpt <- CL(rpt, DF(dat='dvp', mtd='rop', dvp$rop$rpt))
+    rpt <- CL(rpt, DF(dat='dvp', mtd='nwt', dvp$nwt$rpt))
+    rpt <- CL(rpt, DF(dat='evl', evl$mnq))
+    rpt <- CL(rpt, DF(dat='evl', evl$rop))
+    rpt <- CL(rpt, DF(dat='evl', mtd='nul', nul(evl$rsp)))
+    rpt <- CL(rpt, DF(dat='evl', evl$nwt))
 
     ## report and return
     rpt <- Reduce(function(a, b) merge(a, b, all=TRUE), rpt)
@@ -76,4 +76,25 @@ main <- function(N, P, H=N, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
 test <- function()
 {
     r <- main(N=500, P=2000, frq=.2, eps=.1, oks=c(p1), yks=c(p1))
+}
+
+
+test.lmm <- function(N=100, P=10, t=20)
+{
+    library(microbenchmark)
+    x <- matrix(rnorm(N * P), N, P)
+    K <- krn(x, c(id, p2, ga))
+    L <- length(K)
+    Q <- 2
+    W <- matrix(rchisq(L * Q, 1), L, Q)
+    Y <- matrix(rnorm(N * Q), N, Q)
+
+    m <- microbenchmark(
+        r1 <- lmm.dv1(W, K, Y),
+        r2 <- cpp.dv1(W, K, Y),
+        times=t)
+    print(m)
+    print(all.equal(r1, r2))
+    
+    list(r1=r1, r2=r2)
 }

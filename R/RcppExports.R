@@ -8,6 +8,13 @@
 #' 
 #' @param V a list of k kernel matrices matched to k variance components.
 #' @param P a m-k matrix, each row is a contrast of k variance components.
-#' @export
+NULL
+
+#' Gradient over variance components
+#'
+#'
+#' @param W a L-Q matrix, Q sets of variance components;
+#' @param K a list of L kernel matrices;
+#' @param Y a N-Q matrix of Q responses;
 NULL
 
