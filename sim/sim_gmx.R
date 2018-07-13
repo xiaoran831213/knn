@@ -17,24 +17,22 @@ devtools::load_all()
 #' simulation of kernel deep neural network;
 #' @param N size of devolpment dataset
 #' @param P number of variants
-#' @param H size of evaluating dataset 
 #' @param frq fraction of functional variants
 #' @param eps size of white noise
 #' @param bsz size of mini-batches
-main <- function(N, P, H=N, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
+main <- function(N, P, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
     set.seed(dot$seed)
-    arg <- match.call() %>% tail(-1) %>% as.list # %>% as.data.frame
+    arg <- match.call() %>% tail(-1) %>% as.list
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
     arg <- do.call(data.frame, arg)
 
     ## ------------------------- data genration ------------------------- ##
     ## choose N samples and P features for both development and evaluation
-    gmx <- readRDS('data/p35_c05.rds')$gmx
-    gmx <- get.gmx(gmx, N, P, Q=1, R=1)
+    gmx <- get.gmx(readRDS('data/p35_c05.rds')$gmx, N, P, Q=1, R=1)
     dat <- with(gmx, c(dvp, evl))
     ncv <- length(oks)
     vcs <- c(eps=eps, vc=rchisq(ncv, 1))
@@ -98,3 +96,4 @@ test.lmm <- function(N=100, P=10, t=20)
     
     list(r1=r1, r2=r2)
 }
+

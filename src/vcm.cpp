@@ -16,7 +16,6 @@ RcppExport SEXP vcm_dv1(SEXP _W, SEXP _K, SEXP _Y)
 {
     dmat W = exp(as<dmat>(_W));	// weights - vcs
     dmat Y = as<dmat>(_Y);	// responses
-    int N = Y.n_rows;		// sample size
     int M = Y.n_cols;		// number of responses
     int L = W.n_rows;		// number of kernels
 
@@ -46,10 +45,5 @@ RcppExport SEXP vcm_dv1(SEXP _W, SEXP _K, SEXP _Y)
 	    G(i, j) = -.5 * accu(T % K[i]) * W(i, j);
     }
 
-    List ret;
-    ret["W"] = W;		// variance components
-    ret["Y"] = Y;
-    ret["L"] = L;
-    ret["G"] = G;
-    return(Rcpp::wrap(ret));
+    return(Rcpp::wrap(G));
 }

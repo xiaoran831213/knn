@@ -72,7 +72,7 @@ get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1)
     ret <- mapply(function(gmx, a)
     {
         .vc <- vcs * (1 - a) + c(eps, get.vcs(nvc, 'r', 2)) * a
-        print(.vc)
+
         ## generate
         ## fmx <- sweep(gmx, 2L, eft, `*`)
         fmx <- sweep(gmx, 2L, fmk, `*`)
@@ -121,7 +121,6 @@ get2 <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1)
     jit <- lapply(G, function(gmx)
     {
         .vc <- c(eps, get.vcs(nvc, 'r', 2))
-        print(.vc)
 
         ## generate
         eft <- rnorm(P)

@@ -6,11 +6,13 @@ lmm.dv1 <- function(W, K, Y, ...)
     W <- as.matrix(exp(W))
     C <- cmb(K, W)                      # cov: L x M cov matrices
     Y <- as.matrix(Y)
+
     ## 1st derivative
     dv1 <- sapply(seq.int(M), function(m)
     {
         ## a_i
         A <- chol2inv(chol(C[[m]]))
+
         ## alpha_i = a_i %*% y_i
         YAY <- A %*% Y[, m]
 
@@ -27,8 +29,9 @@ cpp.dv1 <- function(W, K, Y, ...)
     Y <- as.matrix(Y)
     if(!is.list(K))
         K <- list(K)
-    .Call('vcm_dv1', W, K, Y)$G
+    .Call('vcm_dv1', W, K, Y)
 }
+
 
 lmm.dv2 <- function(W, K, Y, ...)
 {
@@ -137,11 +140,10 @@ rop.lmm <- function(y, K, W=NULL, ...)
     C <- c(list(eps=diag(N)), cv=K)
     L <- length(C)
     if(is.null(W))
-        W <- matrix(rchisq(L * Q, df=1) * .1, L, Q)
-    W <- log(W)
+        W <- matrix(rnorm(L * Q), L, Q)
 
     obj <- function(x) nlk(y, cmb(C, exp(x))[[1]])
-    grd <- function(x) cpp.dv1(x, C, y)
+    grd <- function(x) cpp.dv1(x, C, y)[, 1]
     hsn <- function(x) lmm.dv2(x, C, y)[[1]]
     fsi <- function(x) lmm.fsi(x, C, y)[[1]]
 
@@ -180,34 +182,28 @@ nwt.lmm <- function(y, K, W=NULL, ...)
     L <- length(C)
     Q <- NCOL(y)
     if(is.null(W))
-        W <- matrix(rchisq(L * Q, df=1), L, Q)
-    W <- log(W)
+        W <- matrix(rnorm(L * Q), L, Q)
 
     PF("NWT.LMM.DV1.BEGIN = \n")
-    print(round(lmm.dv1(W, C, y)[[1]], 4))
-
     time0 <- proc.time()
     for(i in seq.int(wep))
     {
-        g <- lmm.dv1(W, C, y)
-        if(max(abs(g)) < 1e-5)
+        g <- cpp.dv1(W, C, y)[, 1, drop=FALSE]
+        if(max(abs(g)) < 1e-6)
             break
 
-        H <- lmm.dv2(W, C, y)[[1]]
-        ## print(list(itr=i, hsn=H))
+        H <- lmm.fsi(W, C, y)[[1]]
+        print(list(itr=i, dv2=H, dv1=g, par=exp(W)))
 
         ## update: u = -g H^{-1} => H u = -g
-        u <- try(solve(H, -g), TRUE)
+        u <- try(solve(H, -g))
         if(inherits(u, 'try-error'))
             break
-        if(max(abs(u)) < 1e-5)
+        if(max(abs(u)) < 1e-6)
             break
         W <- W + u
     }
     time1 <- proc.time()
-
-    ## report
-    print(list(dv2=round(H, 3), dv1=round(g, 3), par=W))
     PF("NWT.LMM.DV2.END =\n")
     
     ## make predictions
