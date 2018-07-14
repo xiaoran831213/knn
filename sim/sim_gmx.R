@@ -42,26 +42,30 @@ main <- function(N, P, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
     {
         knl <- krn(gmx, yks)
         nwt <- nwt.lmm(rsp, knl)
-        mnq <- kpc.mnq(rsp, knl, ...)
+        mnq <- knl.mnq(rsp, knl)
+        kmq <- kpc.mnq(rsp, knl, ...)
         rop <- rop.lmm(rsp, knl)
     })
     evl <- within(sim[[2]],
     {
         knl <- krn(gmx, yks)
         nwt <- DF(mtd='nwt', knl.prd(rsp, knl, dvp$nwt$par))
-        mnq <- DF(mtd='mnq', knl.prd(rsp, knl, dvp$mnq$par, logged=FALSE, ...))
+        mnq <- DF(mtd='mnq', knl.prd(rsp, knl, dvp$mnq$par))
+        kmq <- DF(mtd='kmq', knl.prd(rsp, knl, dvp$kmq$par))
         rop <- DF(mtd='rop', knl.prd(rsp, knl, dvp$rop$par))
     })
     
     ## ----------------------- KDN Model Fitting ----------------------- ##
     rpt <- list()
+    rpt <- CL(rpt, DF(dat='dvp', mtd='kmq', dvp$kmq$rpt))
     rpt <- CL(rpt, DF(dat='dvp', mtd='mnq', dvp$mnq$rpt))
     rpt <- CL(rpt, DF(dat='dvp', mtd='rop', dvp$rop$rpt))
     rpt <- CL(rpt, DF(dat='dvp', mtd='nwt', dvp$nwt$rpt))
+    rpt <- CL(rpt, DF(dat='evl', evl$kmq))
     rpt <- CL(rpt, DF(dat='evl', evl$mnq))
     rpt <- CL(rpt, DF(dat='evl', evl$rop))
-    rpt <- CL(rpt, DF(dat='evl', mtd='nul', nul(evl$rsp)))
     rpt <- CL(rpt, DF(dat='evl', evl$nwt))
+    rpt <- CL(rpt, DF(dat='evl', mtd='nul', nul(evl$rsp)))
 
     ## report and return
     rpt <- Reduce(function(a, b) merge(a, b, all=TRUE), rpt)

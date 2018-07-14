@@ -148,16 +148,15 @@ rop.lmm <- function(y, K, W=NULL, ...)
     fsi <- function(x) lmm.fsi(x, C, y)[[1]]
 
     ## using R's optimizer
-    library(numDeriv)
-    print(list(grd.num=grad(obj, W), grd.fun=grd(W)))
-    print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
+    ## library(numDeriv)
+    ## print(list(grd.num=grad(obj, W), grd.fun=grd(W)))
+    ## print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
     time0 <- proc.time()
     ret <- optim(W, obj, grd, method="L-BFGS-B", control=list(trace=0))
     time1 <- proc.time()
     W <- ret$par
-    print(list(grd.num=grad(obj, W), grd.fun=grd(W)))
-    print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
-
+    ## print(list(grd.num=grad(obj, W), grd.fun=grd(W)))
+    ## print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
 
     ## make predictions
     prd <- knl.prd(y, K, exp(W), ln=0)
@@ -193,7 +192,7 @@ nwt.lmm <- function(y, K, W=NULL, ...)
             break
 
         H <- lmm.fsi(W, C, y)[[1]]
-        print(list(itr=i, dv2=H, dv1=g, par=exp(W)))
+        ## print(list(itr=i, dv2=H, dv1=g, par=exp(W)))
 
         ## update: u = -g H^{-1} => H u = -g
         u <- try(solve(H, -g))
