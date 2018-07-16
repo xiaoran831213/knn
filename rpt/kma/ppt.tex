@@ -1,0 +1,344 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Beamer Presentation LaTeX Template Version 1.0 (10/11/12)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% License: CC BY-NC-SA 3.0
+% (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ----------------------------------------------------------------------------------------
+% PACKAGES AND THEMES
+% ----------------------------------------------------------------------------------------
+
+\documentclass{beamer}
+
+\mode<presentation> {
+
+  % The Beamer class comes with a number of default slide themes which
+  % change the colors and layouts of slides. Below this is a list of
+  % all the themes, uncomment each in turn to see what they look like.
+
+  % \usetheme{default} \usetheme{AnnArbor} \usetheme{Antibes}
+  % \usetheme{Bergen} \usetheme{Berkeley} \usetheme{Berlin}
+  % \usetheme{Boadilla} \usetheme{CambridgeUS} \usetheme{Copenhagen}
+  % \usetheme{Darmstadt} \usetheme{Dresden} \usetheme{Frankfurt}
+  % \usetheme{Goettingen} \usetheme{Hannover} \usetheme{Ilmenau}
+  % \usetheme{JuanLesPins} \usetheme{Luebeck}
+  \usetheme{Madrid}
+  % \usetheme{Malmoe} \usetheme{Marburg} \usetheme{Montpellier}
+  % \usetheme{PaloAlto} \usetheme{Pittsburgh} \usetheme{Rochester}
+  % \usetheme{Singapore} \usetheme{Szeged} \usetheme{Warsaw}
+
+  % As well as themes, the Beamer class has a number of color themes
+  % for any slide theme. Uncomment each of these in turn to see how it
+  % changes the colors of your current slide theme.
+
+  % \usecolortheme{albatross}
+  \usecolortheme{beaver}
+  % \usecolortheme{beetle} \usecolortheme{crane}
+  % \usecolortheme{dolphin} \usecolortheme{dove} \usecolortheme{fly}
+  % \usecolortheme{lily} \usecolortheme{orchid} \usecolortheme{rose}
+  % \usecolortheme{seagull} \usecolortheme{seahorse}
+  % \usecolortheme{whale} \usecolortheme{wolverine}
+
+  % \setbeamertemplate{footline} % To remove the footer line in all slides uncomment this line
+  % \setbeamertemplate{footline}[page
+  % number] % To replace the footer line in all slides with a simple slide count uncomment this line
+
+  % \setbeamertemplate{navigation
+  % symbols}{} % To remove the navigation symbols from the bottom of all slides uncomment this line
+}
+\include{xtong}
+\newcommand{\xmx}{\bs{X}} \newcommand{\xmt}{\bs{X}^{\prime}}
+\newcommand{\imx}{\bs{I}} \newcommand{\umx}{\bs{U}}
+\newcommand{\umt}{\bs{U}^{\prime}} \newcommand{\yvc}{\bs{y}}
+\newcommand{\yht}{\hat{\bs{y}}}
+\usepackage{graphicx} % Allows including images
+\usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
+
+% ----------------------------------------------------------------------------------------
+% TITLE PAGE
+% ----------------------------------------------------------------------------------------
+
+\title[Kernel Genomics]{Meta analysis of Variance Components \\
+  simulation study}
+
+\author{Xiaoran Tong} % Your name
+\institute[EPI Biosta,
+MSU] % Your institution as it will appear on the bottom of every slide, may be shorthand to save space
+{ Michigan State University \\ % Your institution for the title page
+  \medskip \textit{tongxia1@msu.edu} \\% Your email address
+  \textit{qlu@epi.msu.edu} % Your email address
+} \date{\today} % Date, can be changed to a custom date
+
+\begin{document}
+
+\begin{frame}
+  \titlepage % Print the title page as the first slide
+\end{frame}
+
+\begin{frame}
+  \frametitle{Table of
+    Content} % Table of contents slide, comment this block out to remove it
+  \tableofcontents % Throughout your presentation, if you choose to use \section{} and \subsection{} commands, these will automatically be printed on this slide as an overview of your presentation
+\end{frame}
+
+% ----------------------------------------------------------------------------------------
+% PRESENTATION SLIDES
+% ----------------------------------------------------------------------------------------
+\section{Introduction}
+% ----------------------------------------------------------------------------------------
+\begin{frame}
+  \frametitle{Introduction} %
+  \textbf{Variance Component Model (VCM):} \\
+  are suitable to depict the influence of ultra high dimentional $\xx$
+  on $\vy$, with an typical construct of
+  \begin{align}\label{eq:vcm}
+    h(\vy) \sim \mathcal{N}(0, \xv), \quad
+    \xv = \xv_{\bs{e}} + \xv_{\xx} = \sigma^2_0 \id + \sum_{i=1}^L
+    \sigma^2_i \mathcal{K}_i(\xx)
+  \end{align}
+  \begin{itemize}
+  \item $h$ transform $\vy$ into a sample following multivariate
+    normrl (MVN) of mean $\bs{0}^N$ and covariance $\xv^{N \times N}$;
+  \item $\xv$ is determined partially by $\xx$ through $L$ kernels:
+    $\{\mathcal{K}_{1 \dots L}\}$, while the rest is left to an white
+    noise $\id$;
+  \item kernels are weighted by the to be fitted \textbf{variance
+      component (VC)}
+    $\bs{\theta} = \{\sigma^2_0, \sigma^2_1 \dots \sigma^2_L\}$.
+  \end{itemize}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}
+  Despite the being able to analyze problems of ultra dimensionality
+  via encoding the $N \times P$ data with a few relational kernels of
+  size $N \times N$, \textbf{VCM has its own issues}:
+  \begin{itemize}
+  \item large sample is required to stable a VCM;
+  \item inevitable $O(N^3)$ matrix inversion;
+  \item heterogeneous effect of $\xx$ when many variants are involved.
+  \end{itemize}
+  \textbf{Which motivate the meta-analysis of VCM (meta-VCM)}:
+  \begin{itemize}
+  \item pooling large sample;
+  \item distributed analytical load;
+  \item model aggregation to counter heterogeneity;
+  \end{itemize}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\section{Meta Analysis}
+\begin{frame}\frametitle{Two perspectives for meta-analysis}
+  \textbf{A nature, bottom-up perspective:}
+  \begin{itemize}
+  \item $\xc = \{\vc_1, \dots, \vc_Q \}$, gather $Q$ participating cohorts
+  \item $\hat{\bs{\Theta}}=\{\hat{\bs{\theta}}_1, \dots, \hat{\bs{\theta}}_Q\}$, get Q estimates
+  \item $\hat{\bs{\theta}} = \frac{\sum_i^Q w_i \hat{\bs{\theta}}_i}{\sum_i w_i}$, aggregate to one estimate
+  \end{itemize}
+  \textbf{An equivalent, top down perspective:}
+  \begin{itemize}
+  \item $\xc = \{\vc_1, \dots, \vc_Q \}$, divide the data by \textbf{by participation}
+  \item $\hat{\bs{\Theta}}=\{\hat{\bs{\theta}}_1, \dots, \hat{\bs{\theta}}_Q\}$, get Q estimates
+  \item $\hat{\bs{\theta}} = \frac{\sum_i^Q w_i \hat{\bs{\theta}}_i}{\sum_i w_i}$, aggregate to one estimate
+  \end{itemize}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}\frametitle{Two perspectives for mega-analysis}
+  \textbf{A nature, bottom-up perspective:}
+  \begin{itemize}
+  \item $\xc = [\vc_1^T, \dots, \vc_Q^T ]^T$, stack $Q$ participating cohorts;
+  \item $\hat{\bs{\Theta}}=\hat{\bs{\theta}}$, get 1 estimate for the entirety;
+  \end{itemize}
+  \textbf{An equivalent, top down perspective:}
+  \begin{itemize}
+  \item $\xc$, with the avaiable data,
+  \item $\hat{\bs{\Theta}}=\hat{\bs{\theta}}$, get 1 estimate for the entirety;
+  \end{itemize}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}\frametitle{Batched vs Whole sample analysis}
+  \textbf{The standard analysis of whole sample:}
+  \begin{itemize}
+  \item $\xc$, with the avaiable data,
+  \item $\hat{\bs{\Theta}}=\hat{\bs{\theta}}$, get 1 estimate for the entirety;
+  \end{itemize}
+  \textbf{An approximated, batched analysis:}
+  \begin{itemize}
+  \item $[\vc_1^T, \dots, \vc_Q^T ]^T = \xc$, divide the data by \textbf{random}
+  \item $\hat{\bs{\Theta}}=\hat{\bs{\theta}}$, get 1 estimate for the entirety;
+  \end{itemize}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\section{Simulations}
+\begin{frame}
+  \frametitle{Simulation Settings:} \textbf{Genomic Data Source
+    $\xg$:}
+  \begin{itemize}
+  \item Drawn from 1000 Genome Project (total sample size is 2504);
+  \item $P=3000$ SNP (MAF $> 0.01$) from a segment of chrosome 3.
+  \item $N=500$ per cohort;
+  \item $Q=4$ developing cohorts, $R=1$ evaluation cohort;
+  \end{itemize}
+  \textbf{Functional variants $\xx$:}
+  \begin{itemize}
+  \item $f = 0.1$, the fraction of functional SNPs;
+  \item $\xx = (\one\vm^T) \odot \xg, \quad \vm \sim \mathcal{B}^P(f)$
+  \item $\xx$ is the function part of genome data $\xg$
+  \item $\vm$ is a vector mask of funtional variants
+  \item $\mathcal{B}^P(f)$: $P$ Bernoulli experiments of success rate
+    $f$.
+  \end{itemize}
+\end{frame}
+% ---------------------------------------------------------
+\begin{frame}
+  \frametitle{Simulation Settings:}%
+  \textbf{Response Generation: homogeneous effect}
+  \begin{itemize}
+  \item
+    $ \vz_h \sim \mathcal{N}(\bs{0}, \sigma^2_0 \id + \sum_{i=1}^L
+    \sigma_i^2 \mathcal{K}_i(\xx))$
+  \item up to 3 kernels built from $\xx$:
+    \begin{itemize}
+    \item Normalized Gaussian:
+      \begin{align}
+        k(\vx, \vx^\prime)= \exp{[\frac{1}{2Pf}{\norm{\vx, \vx^\prime}_2^2}]}
+      \end{align}
+    \item Normalized Polynomial up to the 2nd order:
+      \begin{align}
+        \mathcal{K}(\xx, q)=(\frac{1}{Pf}\xx\xx^T)^q, \quad q={1, 2}
+      \end{align}
+    \end{itemize}
+  \item variance components:
+    \begin{align*}
+      \sigma_0^2 = 0.1; \quad \sigma^2_i \sim \chi^2_2, \quad i = 1 \dots L
+    \end{align*}
+  \end{itemize}
+\end{frame}
+% ---------------------------------------------------------
+\begin{frame}
+  \frametitle{Simulation Settings:} %
+  \textbf{Response Generation: heterogeneous effect}:\\
+  \begin{itemize}
+  \item the variance components varies across the $Q$ cohorts.
+  \item the white noise and type of kernel is unchanged
+    \begin{align*}
+      \vz_j & \sim \mathcal{N}(\bs{0}, \sigma^2_0 \id + \sum_{i=1}^L
+              \sigma_{i,j}^2 \mathcal{K}_i(\xx_j)), \quad
+              \sigma_{i,j}^2 \sim \chi_2^2, \quad
+              j = 1 \dots Q
+    \end{align*}
+  \item the total effect $\vz$ is a mix between the homogeneous and
+    the cohort specifit heterogeneous effect.
+  \end{itemize}
+  \begin{align*}
+    \vz & = \vz_h (1-\alpha) + [\vz_1^T, \dots, \vz_Q^T]^T \alpha,
+          \quad \alpha \in [0, 1]
+  \end{align*}
+  Gradually increase the ratio of heterogeneity $alpha$ from 0 (fully
+  homogeneous) to 1 (fully heterogeneous).
+\end{frame}
+\begin{frame}
+  Generating heterogeneous effect:
+  \begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{kma_sim_1kg.png}
+  \end{figure}
+\end{frame}
+% ---------------------------------------------------------
+\begin{frame}
+  \frametitle{Simulation Settings:} %
+  \textbf{Response Generation: Transformation on $\vy$:}
+  \begin{itemize}
+  \item the inverse transformation $g=h^{-1}$ is applied:
+    $\vy=g(\vz)$.
+  \item $g$ can be a distribution morph:
+    \begin{itemize}
+    \item normal $\bs{z}$ morph to student $t_{10}$ for outliers;
+    \item normal $\bs{z}$ morph to $\mathcal{B}(p)$ for discretion;
+    \end{itemize}
+    derive the probability $p_*$ of $z_*$ either empirically, or from
+    the diagnal of combined covariance; \\
+    search $p_*$ in the quantile table of the target distribution for
+    morphed value $y_*$;
+  \item $g$ can also be a direct transform, for example:
+    $$ y_* = \mathtt{sigmoid}(z_*), \quad \mathtt{or} \quad y_* = \mathtt{sin}(2\pi z_*) $$
+  \end{itemize}
+\end{frame}
+% ---------------------------------------------------------% ---------------------------------------------------------
+\begin{frame}
+  \frametitle{Simulation Settings:} %
+  \textbf{Training:}
+  \begin{itemize}
+  \item working model: normalized polynomial up to the 2nd order built
+    from all variants $\xg$
+    \begin{align}\label{eq:dvp}
+      \xvh = \xvh_e + \xvh_\xg = \hat{\sigma}^2_0\id +
+      \hat{\sigma}_1^2 (\frac{1}{P}{\xg \xg^T}) + \hat{\sigma}_2^2
+      (\frac{1}{P}{\xg \xg^T})^2
+    \end{align}
+  \item for each cohort, use non-batched MINQUE for simplicity;
+  \item pooling strategies:
+    \begin{itemize}
+    \item meta-analysis: aggregation of $Q$ sub-models
+    \item mega-analysis: one model derived from the entire
+      $N \times Q$ data
+    \item average analyse: apply each sub-model to the testing data,
+      get average performance, this is actually a non-pooling, but
+      included for benchmark purpose.
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+% ---------------------------------------------------------
+\begin{frame}
+  \frametitle{Simulation Settings:} %
+  \textbf{Testing Performance} \\
+  Let $(\vy, \xg)$ denote the testing cohort. First make a prediction
+  of $\vyh$ assuming it is normal, even for MINQUE:
+  \begin{align}
+    \begin{split}
+      \vyh &= \xvh_\xg \xvh^{-1} \vy,
+    \end{split}
+  \end{align}
+  where $\xvh_\xg$ and $\xvh$ take the same form of (\ref{eq:dvp}).\\
+  \textbf{Use the following performance criteria}
+  \begin{itemize}
+  \item $\mathtt{MSE} = \frac{1}{N} \norm{\vy, \hat{\vy}}_2^2 = \frac{1}{N} (\vy-\vyh)^T(\vy-\vyh)$
+  \item
+    $\mathtt{MNL} = \frac{1}{N} [\frac{1}{2}\vy\xvh^{-1}\vy +
+    \frac{1}{2}\log{|\xvh|} + \frac{N}{2}\log{2\pi}]$
+  \end{itemize}
+\end{frame}
+%---------------------------------------------------------
+\section{Simulation Results}
+% ---------------------------------------------------------
+\begin{frame}{EXP 01: Use MINQUE, NLK plotted}
+  \scriptsize super plot, left to right: gradual increase of heterogeneity;\\
+  top: response is normal; bottom: response morphed into $t_{10}$ \\
+  \normalsize
+  \begin{figure}
+    \includegraphics[width=\linewidth]{km2_mnq_s01.png} \\
+    \includegraphics[width=\linewidth]{km2_mnq_s02.png}
+  \end{figure}
+  \tiny sub plot, left to right, avg: average performance without pooling;\\
+  nlk and ssz: meta-analysis, model pooled by liklihood or sample size; \\
+  whl: mega-analysis, model trained from the whole sample;
+\end{frame}
+% ---------------------------------------------------------
+\section{Speculation}
+\begin{frame}
+  \frametitle{Speculation}
+  \begin{itemize}
+  \item increased inter-cohort heterogeneity cost the generalization
+    of models built from mega-analyis.
+  \item meta-analysis is robust to such heterogeneity.
+  \item mana-analysis only suits for fully homogeneous populations.
+  \item even without pooling of models (meta) or data (mega), the
+    averge performance of sub-models are almost stable across levels
+    of heterogeneity, showing the effect of a bagging assemble.
+  \end{itemize}
+\end{frame}
+% ---------------------------------------------------------
+\end{document}
