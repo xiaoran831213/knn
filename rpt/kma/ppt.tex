@@ -109,20 +109,19 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
     noise $\id$;
   \item kernels are weighted by the to be fitted \textbf{variance
       component (VC)}
-    $\bs{\theta} = \{\sigma^2_0, \sigma^2_1 \dots \sigma^2_L\}$.
+    $\vtheta = \{\sigma^2_0, \sigma^2_1 \dots \sigma^2_L\}$.
   \end{itemize}
 \end{frame}
 % ----------------------------------------------------------------------------------------
 \begin{frame}
-  Despite the being able to analyze problems of ultra dimensionality
-  via encoding the $N \times P$ data with a few relational kernels of
-  size $N \times N$, \textbf{VCM has its own issues}:
+  Despite being able to handle problems of ultra dimensionality, \\
+  \textbf{VCM has its own issues}:
   \begin{itemize}
   \item large sample is required to stable a VCM;
   \item inevitable $O(N^3)$ matrix inversion;
   \item heterogeneous effect of $\xx$ when many variants are involved.
   \end{itemize}
-  \textbf{Which motivate the meta-analysis of VCM (meta-VCM)}:
+  \textbf{Which motivate the meta-analysis based on VCM (MVCM)}:
   \begin{itemize}
   \item pooling large sample;
   \item distributed analytical load;
@@ -130,52 +129,224 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \end{itemize}
 \end{frame}
 % ----------------------------------------------------------------------------------------
-\section{Meta Analysis}
-\begin{frame}\frametitle{Two perspectives for meta-analysis}
-  \textbf{A nature, bottom-up perspective:}
+\section{Meta-VCM}
+\begin{frame}\frametitle{meta-VCM procedure}
+  Let $\vc_i=(\vy_i, \xx_i)$ denote the i th. participating cohort; \\
+  \textbf{{\color{red}meta}-analysis:}
   \begin{itemize}
-  \item $\xc = \{\vc_1, \dots, \vc_Q \}$, gather $Q$ participating cohorts
-  \item $\hat{\bs{\Theta}}=\{\hat{\bs{\theta}}_1, \dots, \hat{\bs{\theta}}_Q\}$, get Q estimates
-  \item $\hat{\bs{\theta}} = \frac{\sum_i^Q w_i \hat{\bs{\theta}}_i}{\sum_i w_i}$, aggregate to one estimate
+  \item $\xc = \{\vc_1, \dots, \vc_Q \}$, $Q$ cohorts joined the consortium;
+  \item $\hat{\vtheta}=\{\hat{\vtheta}_1, \dots, \hat{\vtheta}_Q\}$, develop Q models;
+  \item $\hat{\vtheta} = \frac{\sum_i^Q \vw_i
+      \hat{\vtheta}_i}{\sum_i^S \vw_i}$, weighted model aggregation
   \end{itemize}
-  \textbf{An equivalent, top down perspective:}
+  \textbf{{\color{red}mega}-analysis:}
   \begin{itemize}
-  \item $\xc = \{\vc_1, \dots, \vc_Q \}$, divide the data by \textbf{by participation}
-  \item $\hat{\bs{\Theta}}=\{\hat{\bs{\theta}}_1, \dots, \hat{\bs{\theta}}_Q\}$, get Q estimates
-  \item $\hat{\bs{\theta}} = \frac{\sum_i^Q w_i \hat{\bs{\theta}}_i}{\sum_i w_i}$, aggregate to one estimate
-  \end{itemize}
-\end{frame}
-% ----------------------------------------------------------------------------------------
-\begin{frame}\frametitle{Two perspectives for mega-analysis}
-  \textbf{A nature, bottom-up perspective:}
-  \begin{itemize}
-  \item $\xc = [\vc_1^T, \dots, \vc_Q^T ]^T$, stack $Q$ participating cohorts;
-  \item $\hat{\bs{\Theta}}=\hat{\bs{\theta}}$, get 1 estimate for the entirety;
-  \end{itemize}
-  \textbf{An equivalent, top down perspective:}
-  \begin{itemize}
-  \item $\xc$, with the avaiable data,
-  \item $\hat{\bs{\Theta}}=\hat{\bs{\theta}}$, get 1 estimate for the entirety;
+  \item develop 1 model with the entire consortium;
+  \item (included here as reference.)
   \end{itemize}
 \end{frame}
 % ----------------------------------------------------------------------------------------
-\begin{frame}\frametitle{Batched vs Whole sample analysis}
-  \textbf{The standard analysis of whole sample:}
-  \begin{itemize}
-  \item $\xc$, with the avaiable data,
-  \item $\hat{\bs{\Theta}}=\hat{\bs{\theta}}$, get 1 estimate for the entirety;
+\newcommand{\se}[1]{\hat{\mathtt{se}}\left(#1\right)}
+\newcommand{\ti}{{\tilde{i}}}
+\newcommand{\ef}{{\mathtt{o}}}
+\begin{frame}\frametitle{weight scheme}
+  Let $i = 1 \dots Q$ index the cohorts, $j = 1 \dots L$ index the VC(s).\\
+  \textbf{weight by confidence:}
+  \begin{align}
+    w_{i,j} &= \frac{\left[\se{\theta_{i,j}} \right ]^2}
+    {\sum_\ti \left[\se{\theta_{\ti,j}} \right ]^2} \\
+    w_{i,j} &= \frac{n_i}{\sum_\ti n_\ti}
+  \end{align}
+  {\color{blue}\textbf{no extra analysis required}}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}\frametitle{weight scheme, continued}
+  \textbf{weight by relative validity:}
+  \begin{align}
+    \gamma_i &= \frac{\sum_{r \in i^-}{\ef( \vc_i; \vtheta_r)}}
+    {\ef(\vc_i; \vtheta_i)} \\
+    w_{i,j}  &= \frac{\gamma_i}{\sum_\ti \gamma_\ti}
+  \end{align}
+  the function $\ef(\vc;\vtheta)$ tells in standard space how well
+  model $\vtheta$ fits cohort $\vc$, e.g., the geometric mean
+  likelihood
+  \begin{align}
+    o_\mathtt{GML}(\vc; \vtheta) = \sqrt[n]{\mathcal{N}(\bs{0}, \xv_{\vc, \vtheta})}
+  \end{align}
+  {\color{red}\textbf{dilemma: some party have to compute $o(\vc; \vtheta)$}}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}\frametitle{information completness}
+  An meta-analysis does not cover all sample pairs in its kernel, an
+  mega-analysis does.
+  \begin{figure}
+    \centering
+    \includegraphics[width=.9\textwidth]{img/meta-mega}
+    \caption{infomration completeness}
+    \label{fig:info_comp}
+  \end{figure}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}\frametitle{logistical concerns}
+  \begin{table}[h]
+    \label{tb:cost}
+    \begin{tabular}{|l|l|l|l|}
+      \hline
+      \textbf{actions}       & \textbf{meta} & \textbf{mix}  & \textbf{mega} \\ \hline
+      client prepare kernels & $O(n^2PL)$    & $O(n^2PL)$    & no            \\ \hline
+      client fit VCM         & $O(n^3C)$     & no            & no            \\ \hline
+      client validate VCM(s) & $O(n^3Q)$     & no            & no            \\ \hline
+      server prepare kernels & no            & no            & $O(n^2Q^2PL)$ \\ \hline
+      server fit VCM         & no            & $O(n^3CQ)$    & $O(n^3Q^3C)$  \\ \hline
+      server validate VCM(s) & no            & $O(n^3Q^2)$   & no            \\ \hline
+    \end{tabular}
+    \caption{computation required}
+  \end{table}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}\frametitle{logistical concerns, continue}
+  \begin{table}[h]
+    \label{tb:trust}
+    \begin{tabular}{|l|c|c|c|}
+      \hline
+      \textbf{actions}        & \textbf{meta} & \textbf{mix}  & \textbf{maga} \\ \hline
+      client prepare kernels  & no            & no            &               \\ \hline
+      client fit VCM          & no            &               &               \\ \hline
+      client validate VCM(s)  & no            &               &               \\ \hline
+      server prepare kernels  &               &               & high          \\ \hline
+      server fit VCM          &               & moderate      & moderate      \\ \hline
+      server validate VCM(s)  &               & moderate      & moderate      \\ \hline
+    \end{tabular}
+    \caption{trust required}
+  \end{table}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}\frametitle{logistical concerns, continue}
+  \begin{table}[]
+    \begin{tabular}{|l|c|c|c|}
+      \hline
+      \textbf{action}        & \textbf{meta} & \textbf{mix} & \textbf{maga} \\ \hline
+      client prepare kernels & low           & low          &               \\ \hline
+      client fit VCM         & low           &              &               \\ \hline
+      client validate VCM    & high          &              &               \\ \hline
+      server prepare kernels &               &              & no            \\ \hline
+      server fit VCM         &               & no           & no            \\ \hline
+      server validate VCM    &               & no           & no            \\ \hline
+    \end{tabular}
+    \caption{incentive required}
+  \end{table}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}
+  \begin{itemize}\frametitle{logistical concern, summarize}
+  \item meta-analysis:
+    \begin{itemize}
+    \item least resource, almost no server involvement;
+    \item rely on volunteerism to run validation test;
+    \end{itemize}
+  \item maga-analysis
+    \begin{itemize}
+    \item completness of information
+    \item server should be $Q^2$ more powerful than an average client
+    \item require enormous trust with raw data.
+    \end{itemize}
+  \item mixed-analysis
+    \begin{itemize}
+    \item validation analysis is readily applicable.
+    \item have to trust the server with ``encrypted'' data.
+    \end{itemize}
   \end{itemize}
-  \textbf{An approximated, batched analysis:}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}\frametitle{access model validity}
+  A VCM
+  $\hat{\vtheta}=\{\hat{\sigma}^2_0, \hat{\sigma}^2_1 \dots
+  \hat{\sigma}^2_L\}$ so developed must strive to generalize better on
+  new data $(\vy, \xx)$, gauged by the following criteria:
+  \begin{block}{\textbf{MNL}: mean negative log likelihood}
+    $\mathtt{MNL}(\vy, \xx; \hat{\vtheta}) = \frac{1}{n}
+    [\frac{1}{2}\vy\xvh^{-1}\vy + \frac{1}{2}\log{|\xvh|} +
+    \frac{n}{2}\log{2\pi}]$
+  \end{block}
+  \begin{block}{\textbf{MSE}: mean squre error}
+    $\mathtt{MSE}(\vy, \xx; \hat{\vtheta}) = \frac{\sigma_0^4}{n}
+    \vy^T\hat{\xv}^{-1} \hat{\xv}^{-1}\vy$
+  \end{block}
+  where,
+  $\xvh = \xvh_e + \xvh_\vx = \hat{\sigma}^2_0\id +
+  \sum_{i=1}^L\hat{\sigma}_i^2 \mathcal{K}_i(\xx)$ are covariance
+  composed from the new data by the meta-VCM $\hat{\vtheta}$; $n$
+  is the size of new data.
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}\frametitle{simulation study}
+  Validity of an Meta-VCM developed on $4$ cohorts, tested on a hold
+  out cohort; data generated with a Gaussian kernel and polynomial
+  kernels up to
+  the 2nd order; \\
+  \begin{figure}
+    \raggedright  \scriptsize
+    \begin{itemize}
+    \item left to right: increase of inter-cohort heterogeneity;\\
+    \item top to bottom: generalization error (top:MNL, bottom:MSE);
+    \end{itemize}
+    \normalsize
+    \includegraphics[width=\linewidth]{km2_mnq_s01.png}
+  \end{figure}
+  \textbf{Information completeness is not necessarily an advantage when
+  client cohorts are not homogeneous.}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\section{Client Analysis}
+\begin{frame}\frametitle{Client Analysis}
+  \textbf{Improved VCM package can ease the participation} \\
   \begin{itemize}
-  \item $[\vc_1^T, \dots, \vc_Q^T ]^T = \xc$, divide the data by \textbf{random}
-  \item $\hat{\bs{\Theta}}=\hat{\bs{\theta}}$, get 1 estimate for the entirety;
+  \item \textbf{use expanded MINQUE for speed:}
+    \begin{itemize}
+    \item directly solve $\vtheta$ instead of iterative search;
+    \item easily expanded to improve fit;
+    \end{itemize}
+  \item the meta analysis paradim applied to one client
+    \begin{itemize}
+    \item 
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}\frametitle{meta-analysis as batch-analysis}
+  Let $\vb_{ij}=(\vy_{ij}, \xx_{ij})$ denote the $j$ th partition of the $i$ th cohort; \\
+  \textbf{batch-analysis:}
+  \begin{itemize}
+  \item $\vc_i = [\vb_{i1}^T, \dots, \vb_{iR}^T ]^T$, $R$ batches form a cohort;
+  \item $\hat{\vtheta}=\{\hat{\vtheta}_1, \dots, \hat{\vtheta}_R\}$, analyse for R estimates;
+  \item Repeat for $S$ times;
+  \item $\hat{\vtheta} = \frac{\sum_i^{R \times S} w_i \hat{\vtheta}_i}{\sum_i^{R \times S} w_i}$, aggregate
+  \end{itemize}
+  \textbf{standard analysis:}
+  \begin{itemize}
+  \item get 1 estimate $\hat{\vtheta}$ for the entire cohort;
+  \end{itemize}
+\end{frame}
+% ----------------------------------------------------------------------------------------
+\begin{frame}\frametitle{meta-analysis as batch-analysis}
+  \textbf{meta-analysis in common sense = batch-analysis of consortium}
+  \begin{align*}
+    \vb_{ij} & \in & \vc_i  & \in & \xc \\
+    batch    & \qquad(stack)\to & cohort & \qquad(stack)\to & consortium
+  \end{align*}
+  \textbf{meta-analysis of a cohort = batch-analysis in common sense} \\
+  treating a large, high dimensional cohort as an consortium inherits the benefits of a mata-analysis
+  in common sense: \\
+  \begin{itemize}
+  \item computation reduced and easily distributed; 
+  \item robust against within cohort heterogeneity.
   \end{itemize}
 \end{frame}
 % ----------------------------------------------------------------------------------------
 \section{Simulations}
 \begin{frame}
   \frametitle{Simulation Settings:} \textbf{Genomic Data Source
-    $\xg$:}
+    $\xx$:}
   \begin{itemize}
   \item Drawn from 1000 Genome Project (total sample size is 2504);
   \item $P=3000$ SNP (MAF $> 0.01$) from a segment of chrosome 3.
