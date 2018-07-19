@@ -46,7 +46,7 @@ get.vcs <- function(n, mtd=c('softmax', 'rchisq'), sc=1)
     e
 }
 
-get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1)
+get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc=NULL)
 {
     if(!is.list(G))
         G <- list(G)
@@ -60,7 +60,10 @@ get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1)
     
     ## true variance components linking x to y, in log scale
     nvc <- length(V)
-    vcs <- c(eps=eps, vc=get.vcs(nvc, 'r', 2))
+    if(is.null(vc))
+        vcs <- c(eps=eps, vc=get.vcs(nvc, 'r', 2))
+    else
+        vcs <- c(eps=eps, vc=vc)
     cvs <- c(id, V)
 
     ## jittering
@@ -97,7 +100,7 @@ get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1)
     ret
 }
 
-get2 <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1)
+get2 <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc1=NULL)
 {
     ## 1) het population
     if(!is.list(G))
@@ -112,7 +115,9 @@ get2 <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1)
     
     ## true variance components linking x to y, in log scale
     nvc <- length(V)
-    vcs <- c(eps=eps, vc=get.vcs(nvc, 'r', 2))
+    if(is.null(vc1))
+        vc1 <- get.vcs(nvc, 'r', 2)
+    vcs <- c(eps=eps, vc=vc1)
     cvs <- c(id, V)
 
     ## jittering
