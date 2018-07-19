@@ -280,47 +280,55 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 \end{frame}
 % ----------------------------------------------------------------------------------------
 \begin{frame}\frametitle{simulation study}
-  Validity of an Meta-VCM developed on $4$ cohorts, tested on a hold
-  out cohort; data generated with a Gaussian kernel and polynomial
-  kernels up to
-  the 2nd order; \\
+  Validity of an Meta-VCM built on $4$ cohorts tested on one holdout cohort;
   \begin{figure}
-    \raggedright  \scriptsize
+    \raggedright \scriptsize
     \begin{itemize}
     \item left to right: increase of inter-cohort heterogeneity;\\
-    \item top to bottom: generalization error (top:MNL, bottom:MSE);
+    \item sub plot, left to right
+      \begin{itemize} \scriptsize
+      \item avg: average validity of all 4 VCMs;
+      \item nlk and ssz: model weighted by geometric mean liklihood
+        and sample size;
+      \item whl: mega-analysis
+      \end{itemize}
     \end{itemize}
-    \normalsize
+    \centering
     \includegraphics[width=\linewidth]{km2_mnq_s01.png}
   \end{figure}
-  \textbf{Information completeness is not necessarily an advantage when
-  client cohorts are not homogeneous.}
+  \normalsize
+  \textbf{Information completeness is not necessarily advantageous
+    when client cohorts are not homogeneous.}
 \end{frame}
 % ----------------------------------------------------------------------------------------
-\section{Client Analysis}
+\section{Meta-analysis at cohort}
 \begin{frame}\frametitle{Client Analysis}
-  \textbf{Improved VCM package can ease the participation} \\
+  \textbf{Improved VCM package} \\
+  \textbf{use MINQUE for speed}
   \begin{itemize}
-  \item \textbf{use expanded MINQUE for speed:}
-    \begin{itemize}
-    \item directly solve $\vtheta$ instead of iterative search;
-    \item easily expanded to improve fit;
-    \end{itemize}
-  \item the meta analysis paradim applied to one client
-    \begin{itemize}
-    \item 
-    \end{itemize}
+  \item directly solve $\vtheta$ instead of iterative search;
+  \item expanded the kernels to improve model capacity;
+  \end{itemize}
+  {\color{green} \textbf{treat a cohort as a consortium}}
+  \begin{itemize}
+  \item divide and apply meta-analysis to the batches;
+  \item view the classical analysis as maga-analysis.
   \end{itemize}
 \end{frame}
 % ----------------------------------------------------------------------------------------
-\begin{frame}\frametitle{meta-analysis as batch-analysis}
-  Let $\vb_{ij}=(\vy_{ij}, \xx_{ij})$ denote the $j$ th partition of the $i$ th cohort; \\
+\begin{frame}\frametitle{batch-analysis: procedure}
+  Let $\vb_{j}=(\vy_{j}, \xx_{j})$ denote the $j$ th. batch of a cohort $\vc$; \\
   \textbf{batch-analysis:}
   \begin{itemize}
-  \item $\vc_i = [\vb_{i1}^T, \dots, \vb_{iR}^T ]^T$, $R$ batches form a cohort;
-  \item $\hat{\vtheta}=\{\hat{\vtheta}_1, \dots, \hat{\vtheta}_R\}$, analyse for R estimates;
+  \item $\vc = [\vb_1^{(k)T}, \dots, \vb_R^{(k)T} ]^T$, $R$ batches of
+    cohort $\vc$;
+  \item $\hat{\vtheta}=\{\hat{\vtheta}_1, \dots, \hat{\vtheta}_R\}$,
+    get R estimates;
   \item Repeat for $S$ times;
-  \item $\hat{\vtheta} = \frac{\sum_i^{R \times S} w_i \hat{\vtheta}_i}{\sum_i^{R \times S} w_i}$, aggregate
+  \item
+    $\vthetah = \frac{\sum_j^R\sum_k^S w_j^{(k)} \vthetah_j^{(k)}}
+    {\sum_{\tilde{j}}^R \sum_{\tilde{k}}^S
+      w_{\tilde{j}}^{(\tilde{k})}}$, aggregate
   \end{itemize}
   \textbf{standard analysis:}
   \begin{itemize}
@@ -328,65 +336,29 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \end{itemize}
 \end{frame}
 % ----------------------------------------------------------------------------------------
-\begin{frame}\frametitle{meta-analysis as batch-analysis}
-  \textbf{meta-analysis in common sense = batch-analysis of consortium}
+\begin{frame}\frametitle{batch-analysis: as domestic meta-analysis}
+  \textbf{meta-analysis in common sense $\approx$ batch-analysis of a
+    consortium}
   \begin{align*}
-    \vb_{ij} & \in & \vc_i  & \in & \xc \\
-    batch    & \qquad(stack)\to & cohort & \qquad(stack)\to & consortium
+    \vb_{ij} & \qquad \in & \vc_i  & \qquad \in & \xc \\
+    batch    & \qquad \to & cohort & \qquad \to & consortium
   \end{align*}
-  \textbf{meta-analysis of a cohort = batch-analysis in common sense} \\
-  treating a large, high dimensional cohort as an consortium inherits the benefits of a mata-analysis
-  in common sense: \\
-  \begin{itemize}
-  \item computation reduced and easily distributed; 
-  \item robust against within cohort heterogeneity.
-  \end{itemize}
+  \textbf{batch-analysis in common sense $\approx$ meta-analysis of a cohort} \\
+  batches are {\color{red}\textbf{random}} partition of a cohort,
+  cohorts are {\color{red}\textbf{fixed}} partition of a consortium. \\
+  despite the difference, batch-analysis of a cohort should inherit
+  properties of mata-analysis applied to a consortium;
 \end{frame}
 % ----------------------------------------------------------------------------------------
-\section{Simulations}
-\begin{frame}
-  \frametitle{Simulation Settings:} \textbf{Genomic Data Source
-    $\xx$:}
-  \begin{itemize}
-  \item Drawn from 1000 Genome Project (total sample size is 2504);
-  \item $P=3000$ SNP (MAF $> 0.01$) from a segment of chrosome 3.
-  \item $N=500$ per cohort;
-  \item $Q=4$ developing cohorts, $R=1$ evaluation cohort;
-  \end{itemize}
-  \textbf{Functional variants $\xx$:}
-  \begin{itemize}
-  \item $f = 0.1$, the fraction of functional SNPs;
-  \item $\xx = (\one\vm^T) \odot \xg, \quad \vm \sim \mathcal{B}^P(f)$
-  \item $\xx$ is the function part of genome data $\xg$
-  \item $\vm$ is a vector mask of funtional variants
-  \item $\mathcal{B}^P(f)$: $P$ Bernoulli experiments of success rate
-    $f$.
-  \end{itemize}
+\begin{frame} \frametitle{batch-analysis: simulation study} %
+  \textbf{Validity of VCM trained by batch, tested on one holdout
+    cohort:} \textbf{Randomly pooled batches is robust against
+    heterogeneity.}
 \end{frame}
 % ---------------------------------------------------------
-\begin{frame}
-  \frametitle{Simulation Settings:}%
-  \textbf{Response Generation: homogeneous effect}
-  \begin{itemize}
-  \item
-    $ \vz_h \sim \mathcal{N}(\bs{0}, \sigma^2_0 \id + \sum_{i=1}^L
-    \sigma_i^2 \mathcal{K}_i(\xx))$
-  \item up to 3 kernels built from $\xx$:
-    \begin{itemize}
-    \item Normalized Gaussian:
-      \begin{align}
-        k(\vx, \vx^\prime)= \exp{[\frac{1}{2Pf}{\norm{\vx, \vx^\prime}_2^2}]}
-      \end{align}
-    \item Normalized Polynomial up to the 2nd order:
-      \begin{align}
-        \mathcal{K}(\xx, q)=(\frac{1}{Pf}\xx\xx^T)^q, \quad q={1, 2}
-      \end{align}
-    \end{itemize}
-  \item variance components:
-    \begin{align*}
-      \sigma_0^2 = 0.1; \quad \sigma^2_i \sim \chi^2_2, \quad i = 1 \dots L
-    \end{align*}
-  \end{itemize}
+\section{Theoratical Ground}
+\begin{frame} \frametitle{Theoratical Ground:}%
+  \textbf{why aggregated min-VCM outperform complete VCM?}
 \end{frame}
 % ---------------------------------------------------------
 \begin{frame}
@@ -476,13 +448,15 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   where $\xvh_\xg$ and $\xvh$ take the same form of (\ref{eq:dvp}).\\
   \textbf{Use the following performance criteria}
   \begin{itemize}
-  \item $\mathtt{MSE} = \frac{1}{N} \norm{\vy, \hat{\vy}}_2^2 = \frac{1}{N} (\vy-\vyh)^T(\vy-\vyh)$
+  \item
+    $\mathtt{MSE} = \frac{1}{N} \norm{\vy, \hat{\vy}}_2^2 =
+    \frac{1}{N} (\vy-\vyh)^T(\vy-\vyh)$
   \item
     $\mathtt{MNL} = \frac{1}{N} [\frac{1}{2}\vy\xvh^{-1}\vy +
     \frac{1}{2}\log{|\xvh|} + \frac{N}{2}\log{2\pi}]$
   \end{itemize}
 \end{frame}
-%---------------------------------------------------------
+% ---------------------------------------------------------
 \section{Simulation Results}
 % ---------------------------------------------------------
 \begin{frame}{EXP 01: Use MINQUE, NLK plotted}
@@ -494,8 +468,8 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
     \includegraphics[width=\linewidth]{km2_mnq_s02.png}
   \end{figure}
   \tiny sub plot, left to right, avg: average performance without pooling;\\
-  nlk and ssz: meta-analysis, model pooled by liklihood or sample size; \\
-  whl: mega-analysis, model trained from the whole sample;
+  nlk and ssz: meta-analysis, weighted by mean geometric liklihood, or sample size; \\
+  whl: mega-analysis, model trained with the whole sample;
 \end{frame}
 % ---------------------------------------------------------
 \section{Speculation}
