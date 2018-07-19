@@ -73,7 +73,7 @@ ln.msg <- function(...)
 #' also collect training and evaluation statistics such as L1 and L2 error.
 kpc.mnq <- function(rsp, knl, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
 {
-    N <- NROW(knl[[1]])             # sample size
+    N <- NROW(rsp)                      # sample size
     nbt <- N / bsz                      # number of batches
     
     ## list of history

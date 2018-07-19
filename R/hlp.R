@@ -27,6 +27,8 @@ DF <- data.frame
 
 `%||%` <- function(x, y) if(is.null(x)) y else x
 
+`%$%` <- function(ll, key) lapply(ll, `[[`, key)
+
 #' Dimension Change.
 .dim <- function(x, ...) {dim(x) <- c(...); x}
 

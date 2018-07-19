@@ -5,7 +5,7 @@
 ## g: GRMs
 ## y and GRMS are assumed to be aligned.
 ## make sure the name 'gcta64' points to the executable
-gcta.reml <- function(y, K, qcvr=NULL, dcvr=NULL, maxit=1000)
+gcta.reml <- function(y, K, qcvr=NULL, dcvr=NULL, maxit=100)
 {
     ## temporary directory
     tpd <- paste0("gcta", tempfile("", ''))

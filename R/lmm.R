@@ -114,18 +114,24 @@ knl.prd <- function(y, K, W, rt=1, ...)
     
     ## make predictions
     v <- cmb(C, W)[[1]]
+    a <- solve(v)
     f <- v - diag(W[1], length(y))      # W[1] is PHI
 
     ## prediction 1: conditional Gaussian
     y <- unname(drop(as.vector(y)))
-    h <- unname(drop(f %*% (solve(v) %*% y)))
+    h <- unname(drop(f %*% (a %*% y)))
 
     mse <- mean((y - h)^2)
     ## gurad against zero-standard deviation
     cyh <- tryCatch(cor(y, h), warning=function(w) 0, error=function(e) NA)
     nlk <- nlk(y, v) / N
+
+    ## prediction 2: leave one out CV
+    h <- y - a %*% y / diag(a)
+    loo <- mean((y - h)^2)
+
     ## return
-    rpt <- c(mse=mse, nlk=nlk, cyh=cyh, ssz=N)
+    rpt <- c(mse=mse, loo=loo, nlk=nlk, cyh=cyh, ssz=N)
     if(rt == 1)
         rpt <- DF(key=names(rpt), val=rpt)
     if(rt == 2)
@@ -227,11 +233,11 @@ lmm <- function(y, v, e)
     cyh <- cor(y, h)
 
     ## prediction 2: leave one out CV
-    ## h <- y - a %*% y / diag(a)
-    ## loo <- mean((y - h)^2)
+    h <- y - a %*% y / diag(a)
+    loo <- mean((y - h)^2)
 
     ## negative log likelihood
     nlk <- nlk(y, v, u, a)
 
-    DF(key=c('mse', 'nlk', 'cyh'), val=c(mse, nlk, cyh))
+    DF(key=c('mse', 'loo', 'nlk', 'cyh'), val=c(mse, 'loo', nlk, cyh))
 }
