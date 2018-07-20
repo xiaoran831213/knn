@@ -133,10 +133,13 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   Let $\vc_i=(\vy_i, \xx_i)$ denote the i th. participating cohort; \\
   \textbf{{\color{red}meta}-analysis:}
   \begin{itemize}
-  \item $\xc = \{\vc_1, \dots, \vc_Q \}$, $Q$ cohorts joined the consortium;
-  \item $\hat{\vtheta}=\{\hat{\vtheta}_1, \dots, \hat{\vtheta}_Q\}$, develop Q models;
-  \item $\hat{\vtheta} = \frac{\sum_i^Q \vw_i
-      \hat{\vtheta}_i}{\sum_i^S \vw_i}$, weighted model aggregation
+  \item $\xc = \{\vc_1, \dots, \vc_Q \}$, $Q$ cohorts joined the
+    consortium;
+  \item $\hat{\vtheta}=\{\hat{\vtheta}_1, \dots, \hat{\vtheta}_Q\}$,
+    develop Q models;
+  \item
+    $\hat{\vtheta} = \frac{\sum_i^Q \vw_i \hat{\vtheta}_i}{\sum_i^S
+      \vw_i}$, weighted model aggregation
   \end{itemize}
   \textbf{{\color{red}mega}-analysis:}
   \begin{itemize}
@@ -146,14 +149,13 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 \end{frame}
 % ----------------------------------------------------------------------------------------
 \newcommand{\se}[1]{\hat{\mathtt{se}}\left(#1\right)}
-\newcommand{\ti}{{\tilde{i}}}
-\newcommand{\ef}{{\mathtt{o}}}
+\newcommand{\ti}{{\tilde{i}}} \newcommand{\ef}{{\mathtt{o}}}
 \begin{frame}\frametitle{weight scheme}
   Let $i = 1 \dots Q$ index the cohorts, $j = 1 \dots L$ index the VC(s).\\
   \textbf{weight by confidence:}
   \begin{align}
     w_{i,j} &= \frac{\left[\se{\theta_{i,j}} \right ]^2}
-    {\sum_\ti \left[\se{\theta_{\ti,j}} \right ]^2} \\
+              {\sum_\ti \left[\se{\theta_{\ti,j}} \right ]^2} \\
     w_{i,j} &= \frac{n_i}{\sum_\ti n_\ti}
   \end{align}
   {\color{blue}\textbf{no extra analysis required}}
@@ -163,7 +165,7 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \textbf{weight by relative validity:}
   \begin{align}
     \gamma_i &= \frac{\sum_{r \in i^-}{\ef( \vc_i; \vtheta_r)}}
-    {\ef(\vc_i; \vtheta_i)} \\
+               {\ef(\vc_i; \vtheta_i)} \\
     w_{i,j}  &= \frac{\gamma_i}{\sum_\ti \gamma_\ti}
   \end{align}
   the function $\ef(\vc;\vtheta)$ tells in standard space how well
@@ -172,15 +174,15 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \begin{align}
     o_\mathtt{GML}(\vc; \vtheta) = \sqrt[n]{\mathcal{N}(\bs{0}, \xv_{\vc, \vtheta})}
   \end{align}
-  {\color{red}\textbf{dilemma: some party have to compute $o(\vc; \vtheta)$}}
+  {\color{red}\textbf{dilemma: some party have to compute
+      $o(\vc; \vtheta)$}}
 \end{frame}
 % ----------------------------------------------------------------------------------------
 \begin{frame}\frametitle{information completness}
   An meta-analysis does not cover all sample pairs in its kernel, an
   mega-analysis does.
   \begin{figure}
-    \centering
-    \includegraphics[width=.9\textwidth]{img/meta-mega}
+    \centering \includegraphics[width=.9\textwidth]{img/meta-mega}
     \caption{infomration completeness}
     \label{fig:info_comp}
   \end{figure}
@@ -274,12 +276,13 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   where,
   $\xvh = \xvh_e + \xvh_\vx = \hat{\sigma}^2_0\id +
   \sum_{i=1}^L\hat{\sigma}_i^2 \mathcal{K}_i(\xx)$ are covariance
-  composed from the new data by the meta-VCM $\hat{\vtheta}$; $n$
-  is the size of new data.
+  composed from the new data by the meta-VCM $\hat{\vtheta}$; $n$ is
+  the size of new data.
 \end{frame}
 % ----------------------------------------------------------------------------------------
 \begin{frame}\frametitle{simulation study}
-  Validity of an Meta-VCM built on $4$ cohorts tested on one holdout cohort;
+  Validity of an Meta-VCM built on $4$ cohorts tested on one holdout
+  cohort;
   \begin{figure}
     \raggedright \scriptsize
     \begin{itemize}
@@ -292,12 +295,10 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
       \item whl: mega-analysis
       \end{itemize}
     \end{itemize}
-    \centering
-    \includegraphics[width=\linewidth]{km2_mnq_s01.png}
+    \centering \includegraphics[width=\linewidth]{km2_mnq_s01.png}
   \end{figure}
-  \normalsize
-  \textbf{Information completeness is not necessarily advantageous
-    when client cohorts are not homogeneous.}
+  \normalsize \textbf{Information completeness is not necessarily
+    advantageous when client cohorts are not homogeneous.}
 \end{frame}
 % ----------------------------------------------------------------------------------------
 \section{Meta-analysis at cohort}
@@ -350,30 +351,32 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 \end{frame}
 % ----------------------------------------------------------------------------------------
 \begin{frame} \frametitle{batch-analysis: simulation study} %
-  \textbf{Validity of VCM trained by batch, tested on one holdout cohort:}
+  \textbf{Validity of VCM trained by batch, tested on one holdout
+    cohort:}
   \begin{figure}[h]
-    \centering
-    \includegraphics[width=1.0\textwidth]{img/bat_vcm_mse}
+    \centering \includegraphics[width=1.0\textwidth]{img/bat_vcm_mse}
     \caption{batched versus standard analysis}
     \label{fig:bat}
   \end{figure}
 \end{frame}
 % ---------------------------------------------------------
 \begin{frame} \frametitle{batch-analysis: simulation study}
+  \large
   \textbf{Randomly pooled batches is robust against heterogeneity.}
+  \normalsize
 \end{frame}
 % ---------------------------------------------------------
 \section{Theoratical Ground}
-\begin{frame} \frametitle{Theoratical Ground:}%
-  \textbf{why aggregated min-VCM outperform complete VCM?} \\
-  Let $\ve=[e_1 \dots e_Q]$ be the error made by the $Q$ client models
-  on any random future data point, such that
+\begin{frame} \frametitle{Theoratical Ground: essenble}%
+  \textbf{Why the average error of VCMs lower than the full-VCM?} \\
+  Let $\ve=[e_1 \dots e_Q]$ be the validation error made by the $Q$
+  client models on a unseen random data point, such that
   \begin{itemize}
   \item $\EX(e_i) = v$
   \item $\EX(e_i e_j) = c$
   \end{itemize}
-  The average error made by of all $Q$ models is
-  $\frac{1}{k}\sum_i e_i$, and
+  The average error made by all $Q$ models is $\frac{1}{k}\sum_i e_i$,
+  and
   \begin{align}
     \EX\left[ \left(\frac{1}{k}\sum_i e_i\right)^2 \right]
     &= \frac{1}{k^2}\EX\left[\sum_i \left(e_i^2 + \sum_{j \ne i}e_ie_j \right)  \right] \\
@@ -381,115 +384,12 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \end{align}
 \end{frame}
 % ---------------------------------------------------------
-\begin{frame}
-  \frametitle{Simulation Settings:} %
-  \textbf{Response Generation: heterogeneous effect}:\\
+\begin{frame} \frametitle{Theoratical Ground: essenble}%
+  \textbf{Why the error of an average VCM lower than the average error of VCMs?} \\
   \begin{itemize}
-  \item the variance components varies across the $Q$ cohorts.
-  \item the white noise and type of kernel is unchanged
-    \begin{align*}
-      \vz_j & \sim \mathcal{N}(\bs{0}, \sigma^2_0 \id + \sum_{i=1}^L
-              \sigma_{i,j}^2 \mathcal{K}_i(\xx_j)), \quad
-              \sigma_{i,j}^2 \sim \chi_2^2, \quad
-              j = 1 \dots Q
-    \end{align*}
-  \item the total effect $\vz$ is a mix between the homogeneous and
-    the cohort specifit heterogeneous effect.
+  \item aggregation of models first, validation test later
+  \item validation test first, aggregation of test result later
   \end{itemize}
-  \begin{align*}
-    \vz & = \vz_h (1-\alpha) + [\vz_1^T, \dots, \vz_Q^T]^T \alpha,
-          \quad \alpha \in [0, 1]
-  \end{align*}
-  Gradually increase the ratio of heterogeneity $alpha$ from 0 (fully
-  homogeneous) to 1 (fully heterogeneous).
-\end{frame}
-\begin{frame}
-  Generating heterogeneous effect:
-  \begin{figure}
-    \centering
-    \includegraphics[width=\linewidth]{kma_sim_1kg.png}
-  \end{figure}
-\end{frame}
-% ---------------------------------------------------------
-\begin{frame}
-  \frametitle{Simulation Settings:} %
-  \textbf{Response Generation: Transformation on $\vy$:}
-  \begin{itemize}
-  \item the inverse transformation $g=h^{-1}$ is applied:
-    $\vy=g(\vz)$.
-  \item $g$ can be a distribution morph:
-    \begin{itemize}
-    \item normal $\bs{z}$ morph to student $t_{10}$ for outliers;
-    \item normal $\bs{z}$ morph to $\mathcal{B}(p)$ for discretion;
-    \end{itemize}
-    derive the probability $p_*$ of $z_*$ either empirically, or from
-    the diagnal of combined covariance; \\
-    search $p_*$ in the quantile table of the target distribution for
-    morphed value $y_*$;
-  \item $g$ can also be a direct transform, for example:
-    $$ y_* = \mathtt{sigmoid}(z_*), \quad \mathtt{or} \quad y_* = \mathtt{sin}(2\pi z_*) $$
-  \end{itemize}
-\end{frame}
-% ---------------------------------------------------------% ---------------------------------------------------------
-\begin{frame}
-  \frametitle{Simulation Settings:} %
-  \textbf{Training:}
-  \begin{itemize}
-  \item working model: normalized polynomial up to the 2nd order built
-    from all variants $\xg$
-    \begin{align}\label{eq:dvp}
-      \xvh = \xvh_e + \xvh_\xg = \hat{\sigma}^2_0\id +
-      \hat{\sigma}_1^2 (\frac{1}{P}{\xg \xg^T}) + \hat{\sigma}_2^2
-      (\frac{1}{P}{\xg \xg^T})^2
-    \end{align}
-  \item for each cohort, use non-batched MINQUE for simplicity;
-  \item pooling strategies:
-    \begin{itemize}
-    \item meta-analysis: aggregation of $Q$ sub-models
-    \item mega-analysis: one model derived from the entire
-      $N \times Q$ data
-    \item average analyse: apply each sub-model to the testing data,
-      get average performance, this is actually a non-pooling, but
-      included for benchmark purpose.
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-% ---------------------------------------------------------
-\begin{frame}
-  \frametitle{Simulation Settings:} %
-  \textbf{Testing Performance} \\
-  Let $(\vy, \xg)$ denote the testing cohort. First make a prediction
-  of $\vyh$ assuming it is normal, even for MINQUE:
-  \begin{align}
-    \begin{split}
-      \vyh &= \xvh_\xg \xvh^{-1} \vy,
-    \end{split}
-  \end{align}
-  where $\xvh_\xg$ and $\xvh$ take the same form of (\ref{eq:dvp}).\\
-  \textbf{Use the following performance criteria}
-  \begin{itemize}
-  \item
-    $\mathtt{MSE} = \frac{1}{N} \norm{\vy, \hat{\vy}}_2^2 =
-    \frac{1}{N} (\vy-\vyh)^T(\vy-\vyh)$
-  \item
-    $\mathtt{MNL} = \frac{1}{N} [\frac{1}{2}\vy\xvh^{-1}\vy +
-    \frac{1}{2}\log{|\xvh|} + \frac{N}{2}\log{2\pi}]$
-  \end{itemize}
-\end{frame}
-% ---------------------------------------------------------
-\section{Simulation Results}
-% ---------------------------------------------------------
-\begin{frame}{EXP 01: Use MINQUE, NLK plotted}
-  \scriptsize super plot, left to right: gradual increase of heterogeneity;\\
-  top: response is normal; bottom: response morphed into $t_{10}$ \\
-  \normalsize
-  \begin{figure}
-    \includegraphics[width=\linewidth]{km2_mnq_s01.png} \\
-    \includegraphics[width=\linewidth]{km2_mnq_s02.png}
-  \end{figure}
-  \tiny sub plot, left to right, avg: average performance without pooling;\\
-  nlk and ssz: meta-analysis, weighted by mean geometric liklihood, or sample size; \\
-  whl: mega-analysis, model trained with the whole sample;
 \end{frame}
 % ---------------------------------------------------------
 \section{Speculation}
