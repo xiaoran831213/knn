@@ -83,9 +83,8 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 \begin{frame}
   \frametitle{Table of
     Content} % Table of contents slide, comment this block out to remove it
-  \tableofcontents % Throughout your presentation, if you choose to use \section{} and \subsection{} commands, these will automatically be printed on this slide as an overview of your presentation
+  \tableofcontents
 \end{frame}
-
 % ----------------------------------------------------------------------------------------
 % PRESENTATION SLIDES
 % ----------------------------------------------------------------------------------------
@@ -351,14 +350,35 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 \end{frame}
 % ----------------------------------------------------------------------------------------
 \begin{frame} \frametitle{batch-analysis: simulation study} %
-  \textbf{Validity of VCM trained by batch, tested on one holdout
-    cohort:} \textbf{Randomly pooled batches is robust against
-    heterogeneity.}
+  \textbf{Validity of VCM trained by batch, tested on one holdout cohort:}
+  \begin{figure}[h]
+    \centering
+    \includegraphics[width=1.0\textwidth]{img/bat_vcm_mse}
+    \caption{batched versus standard analysis}
+    \label{fig:bat}
+  \end{figure}
+\end{frame}
+% ---------------------------------------------------------
+\begin{frame} \frametitle{batch-analysis: simulation study}
+  \textbf{Randomly pooled batches is robust against heterogeneity.}
 \end{frame}
 % ---------------------------------------------------------
 \section{Theoratical Ground}
 \begin{frame} \frametitle{Theoratical Ground:}%
-  \textbf{why aggregated min-VCM outperform complete VCM?}
+  \textbf{why aggregated min-VCM outperform complete VCM?} \\
+  Let $\ve=[e_1 \dots e_Q]$ be the error made by the $Q$ client models
+  on any random future data point, such that
+  \begin{itemize}
+  \item $\EX(e_i) = v$
+  \item $\EX(e_i e_j) = c$
+  \end{itemize}
+  The average error made by of all $Q$ models is
+  $\frac{1}{k}\sum_i e_i$, and
+  \begin{align}
+    \EX\left[ \left(\frac{1}{k}\sum_i e_i\right)^2 \right]
+    &= \frac{1}{k^2}\EX\left[\sum_i \left(e_i^2 + \sum_{j \ne i}e_ie_j \right)  \right] \\
+    &= \frac{1}{k}v + \frac{k-1}{k}c
+  \end{align}
 \end{frame}
 % ---------------------------------------------------------
 \begin{frame}
