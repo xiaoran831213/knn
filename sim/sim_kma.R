@@ -8,6 +8,7 @@ source('R/utl.R')
 source('R/lmm.R')
 source("R/mnq.R")
 source("R/kmq.R")
+source('R/msg.R')
 source("sim/sim_kpl.R")
 source('sim/utl.R')
 
@@ -143,16 +144,16 @@ main <- function(N, P, Q=5, R=1, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
 
 ccv <- function(rpt, ...)
 {
-    l <- length(rpt)
-    ds <- sprintf('d%02d', 1:l)
-    ms <- sprintf('m%02d', 1:l)
-    ret <- array(list(), c(l, l), list(ds, ms))
+    Q <- length(rpt)
+    ds <- sprintf('d%02d', 1L:Q)
+    ms <- sprintf('m%02d', 1L:Q)
+    ret <- array(list(), c(Q, Q), list(ds, ms))
     err <- c()
-    for(i in seq.int(l))
+    for(i in seq.int(Q))
     {
         ki <- rpt[[i]]$knl              # data[i]
         ri <- rpt[[i]]$rsp              # data[i]
-        for(j in seq.int(l))
+        for(j in seq.int(Q))
         {
             pj <- rpt[[j]]$fit$par      # model[j]
             ij <- knl.prd(ri, ki, pj, rt=0, ...)
@@ -172,27 +173,27 @@ ccv <- function(rpt, ...)
     ret
 }
 
-cwt <- function(mat, type='nlk', ...)
+cwt <- function(rpt, type='nlk', ...)
 {
     ## relative generlization in training sets
     if(type == 'nlk')
     {
-        tmp <- -sweep(mat, 2L, diag(mat))
+        tmp <- -sweep(rpt, 2L, diag(rpt))
         wmt <- exp(colSums(tmp))
-        ## wmt <- exp(colSums(diag(mat) - mat))
+        ## wmt <- exp(colSums(diag(rpt) - rpt))
     }
     if(type == 'cyh')
     {
-        wmt <- exp(colSums(mat - diag(mat)))
+        wmt <- exp(colSums(rpt - diag(rpt)))
     }
-    if(type == 'mse')
+    if(type %in% c('mse', 'loo'))
     {
-        tmp <- -sweep(mat, 2L, diag(mat))
+        tmp <- -sweep(rpt, 2L, diag(rpt))
         wmt <- exp(colSums(tmp))
     }
     if(type == 'ssz')
     {
-        wmt <- exp(colSums(diag(mat) - mat))
+        wmt <- exp(colSums(diag(rpt) - rpt))
     }
     wmt <- wmt / sum(wmt)
     wmt
@@ -200,7 +201,7 @@ cwt <- function(mat, type='nlk', ...)
 
 
 #' aggregate cohorts
-mat <- function(rpt, mat=0, ...)
+mat <- function(rpt, ...)
 {
     ## report of leave one (cohort) out
     ## row: cohort, col: errors
@@ -217,5 +218,5 @@ mat <- function(rpt, mat=0, ...)
 
 test <- function()
 {
-    r <- main(N=200, P=2000, Q=5, frq=.1, eps=.1, oks=c(p1), yks=c(p1), het=0.2)
+    r <- main(N=200, P=2000, Q=5, R=1, frq=.1, eps=.1, oks=ga, yks=p2, het=0.2)
 }

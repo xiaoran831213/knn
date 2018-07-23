@@ -11,14 +11,23 @@ CL <- function(ret=NULL, ...)
 }
 
 #' extract elements from a list of lists
-EL1 <- function(ll, keys)
+EL1 <- function(ll, keys, ret=c('list', 'data.frame'))
 {
-    lapply(ll, `[`, keys)
+    ret <- match.arg(ret, c('list', 'data.frame'))
+    ll <- lapply(ll, `[`, keys)
+    ll <- lapply(ll, do.call, what=data.frame)
+    if(ret == 'data.frame')
+        ll <- do.call(rbind, ll)
+    ll
 }
 
-EL2 <- function(ll, key)
+EL2 <- function(ll, key, ret=c('list', 'data.frame'))
 {
-    lapply(ll, `[[`, key)
+    ret <- match.arg(ret, c('list', 'data.frame'))
+    ll <- lapply(ll, `[[`, key)
+    if(ret == 'data.frame')
+        ll <- do.call(rbind, ll)
+    ll
 }
 
 

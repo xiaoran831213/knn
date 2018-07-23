@@ -1,66 +1,5 @@
 ## Kernel MINQUE (KMQ)
 
-## Training Track
-msg <- function(obj, fmt=NULL, hdr=NULL, ...)
-{
-    if(is.function(obj))
-    {
-        ret <- function()
-        {
-            sprintf(fmt, obj(...))
-        }
-    }
-    else if(inherits(obj, 'formula'))
-    {
-        ret <- function()
-        {
-            e <- environment(obj)
-            sprintf(fmt, eval(attr(terms(obj), 'variables'), e)[[1]])
-        }
-    }
-    else
-    {
-        ret <- function()
-        {
-            sprintf(fmt, obj)
-        }
-    }
-
-    if(is.null(fmt))
-        fmt <- "%8s"
-
-    if(is.null(hdr))
-        hdr <- deparse(substitute(obj))
-    hdr <- sub("^~", "", hdr)
-    
-    len <- as.integer(sub("^%[+-]?([0-9]*)[.]?([0-9])?[A-z]$", "\\1", fmt))
-    hdr <- sprintf(paste0("% ", len, "s"), hdr)
-    structure(ret, class=c('msg', 'function'), hdr=hdr)
-}
-
-## is
-is.msg <- function(.) 'msg' %in% class(.)
-
-## Header of the tracks
-hd.msg <- function(...)
-{
-    d <- Filter(is.msg, unlist(list(...)))
-    d <- sapply(d, function(.)
-    {
-        h <- attr(., "hdr")
-    })
-    paste(d, collapse=" ")
-}
-
-## A line of the tracks
-ln.msg <- function(...)
-{
-    d <- Filter(is.msg, unlist(list(...)))
-    d <- sapply(d, do.call, list())
-    paste(d, collapse=" ")
-}
-
-
 #' @title gradient descent for kernel deep net
 #' @param par vector initial values of parameters;
 #' @param ctx list context of the training task, such as input features and lables;
@@ -91,11 +30,6 @@ kpc.mnq <- function(rsp, knl, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
     
     ## initial parameters
     i <- 0
-    hst.mse <- list()
-    hst.se2 <- list()
-    hst.par <- list()
-    hst.num <- list()
-    hst.err <- list()
     rtm <- 0
     while(TRUE)
     {
@@ -128,48 +62,37 @@ kpc.mnq <- function(rsp, knl, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
         td <- t1 - t0; units(td) <- 'secs'; td <- as.numeric(td)
         
         ## MINQUE on each batch
-        bat.ret <- knl.mnq(rsp.bat, knl.bat, cpp=TRUE, ...)
-        rtm <- rtm + bat.ret$rpt[1, 2] + td
-        par <- bat.ret$par
-        se2 <- bat.ret$se2
-        phi <- par[1]
-        ## mse <- knl.mnq.evl(rsp, knl, par, ...)[1, 2]
-        mse <- knl.prd(rsp, knl, par, logged=FALSE, ...)[1, 2]
+        bat <- knl.mnq(rsp.bat, knl.bat, cpp=TRUE, ...)
+        rtm <- rtm + bat$rpt[1, 2] + td
+
         ## record each iteration
-        hst.num[[i+1]] <- c(ep=ep, bt=bt, rtm=rtm)
-        hst.par[[i+1]] <- par
-        hst.se2[[i+1]] <- se2
-        hst.mse[[i+1]] <- mse
+        hst[[i+1]] <- list(ep=ep, bt=bt, rtm=rtm, par=bat$par, se2=bat$se2)
 
         ## message tracks
-        if(i %% 80 == 0)
-            cat(hd.msg(tks), "\n", sep="")
         if(bt == 0)
+        {
+            par <- bat$par
+            phi <- par[1]
+            mse <- knl.prd(rsp, knl, par, logged=FALSE, ...)[1, 2]
             cat(ln.msg(tks), "\n", sep="")
+        }
 
-        if(i > max.itr) {cat('BMQ: reaching max iter:', max.itr, '\n'); break}
-        if(rtm > wtm)   {cat('BMQ: reaching walltime:', wtm, 'h\n');    break}
+        if(i > max.itr) {cat('BMQ: reach max iter:', max.itr, '\n'); break}
+        if(rtm > wtm)   {cat('BMQ: reach walltime:', wtm, 'secs\n'); break}
         i <- i + 1
     }
-
     ## rearrange history
-    hst.num <- do.call(rbind, hst.num)
-    hst.mse <- do.call(rbind, hst.mse)
-    hst.se2 <- DF(do.call(rbind, hst.se2))
-    hst <- DF(hst.num, mse=hst.mse)
+    tck <- EL1(hst, c('ep', 'bt', 'rtm'), 'd')
+    par <- EL2(hst, 'par', 'd')
+    se2 <- EL2(hst, 'se2', 'd')
+    hst <- cbind(tck, par, se2)
     
-    ## mean parameter solution
-    par <- Reduce(`+`, hst.par) / length(hst.par)
-
-    ## mean SE
-    hst.se2 <- split(hst.se2, hst.num[, 'ep'])
-    hst.se2 <- sapply(hst.se2, function(.) 1 / colSums(1/.))
-    se2 <- unname(rowMeans(hst.se2))
-
-    rpt <- knl.prd(rsp, knl, par, logged=FALSE, ...)
-    rpt <- rbind(DF(key='rtm', val=tail(hst$rtm, 1)), rpt)
-
+    ## mean solution
+    ret <- list(par=colMeans(par), se2=colMeans(se2))
+    rpt <- with(ret, knl.prd(rsp, knl, par, ...))
+    rpt <- rbind(rtm=DF(key='rtm', val=rtm), rpt)
+    
     ## return the history and new parameters
-    ret <- list(rpt=rpt, par=par, se2=se2, hst=hst)
+    ret <- c(ret, list(rpt=rpt, hst=hst))
     ret
 }
