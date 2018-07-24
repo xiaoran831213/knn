@@ -160,7 +160,7 @@ knl.mnq <- function(y, V, order=1, cpp=TRUE, ...)
     ## print('end MINQUE')
 
     ## make predictions
-    prd <- knl.prd(y, V, r$vcs, ln=0, rt=1)
+    prd <- vpd(y, V, r$vcs, ln=0, rt=1)
 
     ## timing
     rtm <- DF(key='rtm', val=td)

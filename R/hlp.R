@@ -26,9 +26,16 @@ EL2 <- function(ll, key, ret=c('list', 'data.frame'))
     ret <- match.arg(ret, c('list', 'data.frame'))
     ll <- lapply(ll, `[[`, key)
     if(ret == 'data.frame')
-        ll <- do.call(rbind, ll)
+    {
+        . <- lapply(ll, unlist)
+        . <- lapply(., drop)
+        if(all(sapply(sapply(., dim), is.null)))
+            ll <- as.data.frame(do.call(rbind, .))
+    }
     ll
 }
+
+mean.list <- function(x) Reduce(`+`, x) / length(x)
 
 
 #' short hand for data.fram
@@ -63,29 +70,6 @@ nlk <- function(x, v=NULL, u=NULL, a=NULL, ...)
     a <- a %||% chol2inv(u)
     .5 * sum(crossprod(x, a) * x) + sum(log(diag(u))) + .5 * nrow(v) * log(2*pi)
 }
-
-nul <- function(y)
-{
-    N <- NROW(y)
-
-    ## the distribution of y
-    m <- mean(y)
-    v <- diag(var(y), N)
-
-    ## mean square error
-    mse <- mean((y - m)^2)
-
-    ## negative log likelihood
-    nlk <- nlk(y, v) / N
-
-    ## leave one out
-    ## h <- (sum(y) - y) / (N - 1)
-    ## loo <- mean((y - h)^2)
-
-    ## report
-    DF(key=c('mse', 'nlk'), val=c(mse, nlk))
-}
-
 
 #' @title multi variant norm from upper Cholesky
 #' Most mathimatical notation uses lower Cholesky Decomposition (CD), but

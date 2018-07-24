@@ -99,6 +99,8 @@ lmm.fsi <- function(W, K, Y, ...)
     dv2
 }
 
+#' Variance component model prediction
+#' 
 #' @param y a vector of response variable
 #' @param K a list of covariance kernels
 #' @param W a vector of variance components
@@ -133,11 +135,12 @@ knl.prd <- function(y, K, W, rt=1, ...)
     ## return
     rpt <- c(mse=mse, loo=loo, nlk=nlk, cyh=cyh, ssz=N)
     if(rt == 1)
-        rpt <- DF(key=names(rpt), val=rpt)
+        rpt <- DF(key=names(rpt), val=rpt, row.names=names(rpt))
     if(rt == 2)
         rpt <- DF(t(rpt))
     rpt
 }
+vpd <- knl.prd
 
 rop.lmm <- function(y, K, W=NULL, ...)
 {
@@ -165,12 +168,12 @@ rop.lmm <- function(y, K, W=NULL, ...)
     ## print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
 
     ## make predictions
-    prd <- knl.prd(y, K, exp(W), ln=0)
+    prd <- vpd(y, K, exp(W))
 
     ## timing
     rtm <- DF(key='rtm', val=unname((time1 - time0)['elapsed']))
 
-    ret$rpt <- rbind(rtm, prd)
+    ret$rpt <- rbind(rtm=rtm, prd)
     ret$par <- exp(W)
     ret
 }
@@ -212,7 +215,7 @@ nwt.lmm <- function(y, K, W=NULL, ...)
     PF("NWT.LMM.DV2.END =\n")
     
     ## make predictions
-    prd <- knl.prd(y, K, exp(W))
+    prd <- vpd(y, K, exp(W))
     
     ## timing
     rtm <- DF(key='rtm', val=unname((time1 - time0)['elapsed']))
@@ -239,5 +242,33 @@ lmm <- function(y, v, e)
     ## negative log likelihood
     nlk <- nlk(y, v, u, a)
 
-    DF(key=c('mse', 'loo', 'nlk', 'cyh'), val=c(mse, 'loo', nlk, cyh))
+    DF(key=c('mse', 'loo', 'nlk', 'cyh'), val=c(mse, loo, nlk, cyh))
+}
+
+#' the null model prediction
+nul <- function(y)
+{
+    N <- NROW(y)
+
+    ## the distribution of y
+    m <- mean(y)
+    v <- diag(var(y), N)
+
+    ## mean square error
+    mse <- mean((y - m)^2)
+
+    ## negative log likelihood
+    nlk <- nlk(y, v) / N
+
+    ## leave one out
+    h <- (sum(y) - y) / (N - 1)
+    loo <- mean((y - h)^2)
+
+    ## correlation
+    cyh <- cor(y, h)
+
+    ## report
+    ret <- DF(key=c('mse', 'nlk', 'loo', 'cyh'), val=c(mse, nlk, loo, cyh))
+    rownames(ret) <- ret$key
+    ret
 }

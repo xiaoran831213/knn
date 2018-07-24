@@ -81,10 +81,10 @@ m3 <- function()
         da <- readRDS(rds)
     else
     {
-        b0 <- readRpt('sim/run/b30', ref=1)
-        b1 <- readRpt('sim/run/b31', ref=1)
-        b2 <- readRpt('sim/run/b32', ref=1)
-        b3 <- readRpt('sim/run/b33', ref=1)
+        b0 <- readRpt('sim/run/b30')
+        b1 <- readRpt('sim/run/b31')
+        b2 <- readRpt('sim/run/b32')
+        b3 <- readRpt('sim/run/b33')
         da <- rbind(b0, b1, b2, b3)
         saveRDS(da, rds)
     }
@@ -101,4 +101,32 @@ m3 <- function()
 
     dc <- subset(db, het==0.0, -het)
     plt(dc, oxy=.~key, ipt=bxp, axi=val~mtd, out='rpt/kma/img/jsm_vcm_bmk.png')
+}
+
+m4 <- function()
+{
+    rds <- 'sim/run/b4x.rds'
+    if(file.exists(rds))
+        da <- readRDS(rds)
+    else
+    {
+        b0 <- readRpt('sim/run/b40')
+        b1 <- readRpt('sim/run/b41')
+        b2 <- readRpt('sim/run/b42')
+        b3 <- readRpt('sim/run/b43')
+        da <- rbind(b0, b1, b2, b3)
+        saveRDS(da, rds)
+    }
+    da <- within(da, {H <- N * R; N <- N * Q})
+    da <- subset(da, se=-c(Q, R))
+    
+    mse <- subset(da, key=='mse', -key)
+    plt(mse, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_mse.png')
+    nlk <- subset(da, key=='nlk', -key)
+    plt(nlk, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_nlk.png')
+
+    db <- subset(da, sim=="st(ga)~p1" & key!='rtm', -sim)
+
+    ## dc <- subset(db, het==0.0, -het)
+    plt(db, oxy=key~het, ipt=bxp, axi=val~mtd, out='rpt/kma/img/jsm_vcm_bmk.png')
 }

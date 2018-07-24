@@ -31,6 +31,7 @@ kpc.mnq <- function(rsp, knl, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
     ## initial parameters
     i <- 0
     rtm <- 0
+    print.count <- 0
     while(TRUE)
     {
         ## create batches
@@ -63,18 +64,21 @@ kpc.mnq <- function(rsp, knl, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
         
         ## MINQUE on each batch
         bat <- knl.mnq(rsp.bat, knl.bat, cpp=TRUE, ...)
-        rtm <- rtm + bat$rpt[1, 2] + td
+        rtm <- rtm + bat$rpt['rtm', 'val'] + td
 
         ## record each iteration
         hst[[i+1]] <- list(ep=ep, bt=bt, rtm=rtm, par=bat$par, se2=bat$se2)
 
         ## message tracks
+        if(print.count %% 80 == 0)
+            cat(hd.msg(tks), "\n", sep="")
         if(bt == 0)
         {
             par <- bat$par
             phi <- par[1]
-            mse <- knl.prd(rsp, knl, par, logged=FALSE, ...)[1, 2]
+            mse <- vpd(rsp, knl, par, logged=FALSE, ...)[1, 2]
             cat(ln.msg(tks), "\n", sep="")
+            print.count <- print.count + 1
         }
 
         if(i > max.itr) {cat('BMQ: reach max iter:', max.itr, '\n'); break}
@@ -85,11 +89,11 @@ kpc.mnq <- function(rsp, knl, rsp.evl=NULL, knl.evl=NULL, bsz=N, ...)
     tck <- EL1(hst, c('ep', 'bt', 'rtm'), 'd')
     par <- EL2(hst, 'par', 'd')
     se2 <- EL2(hst, 'se2', 'd')
-    hst <- cbind(tck, par, se2)
+    hst <- cbind(tck, p=par, v=se2)
     
     ## mean solution
     ret <- list(par=colMeans(par), se2=colMeans(se2))
-    rpt <- with(ret, knl.prd(rsp, knl, par, ...))
+    rpt <- with(ret, vpd(rsp, knl, par, ...))
     rpt <- rbind(rtm=DF(key='rtm', val=rtm), rpt)
     
     ## return the history and new parameters

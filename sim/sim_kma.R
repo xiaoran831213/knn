@@ -48,6 +48,7 @@ main <- function(N, P, Q=5, R=1, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
     ## fit each cohort separately
     sep <- list()
     dvp <- lapply(dvp, function(.) within(., knl <- krn(gmx, yks)))
+    ## ******** TODO: change "fit" to director concatenation ********
     sep$mnq <- lapply(dvp, function(.) within(., fit <- knl.mnq(rsp, knl, ...)))
     sep$rop <- lapply(dvp, function(.) within(., fit <- rop.lmm(rsp, knl, ...)))
     ## sep$gct <- lapply(dvp, function(.) within(., fit <- gcta.reml(rsp, knl)))
@@ -97,31 +98,31 @@ main <- function(N, P, Q=5, R=1, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
         rpt <- list()
 
         ## performance: meta analysis
-        rpt <- CL(rpt, DF(mtd='nlk.mnq', knl.prd(rsp, knl, agg$mnq[, 'nlk'], ...)))
-        rpt <- CL(rpt, DF(mtd='ssz.mnq', knl.prd(rsp, knl, agg$mnq[, 'ssz'], ...)))
-        rpt <- sapply(mnq, function(.) knl.prd(rsp, knl, .$fit$par, rt=0)) %>%
+        rpt <- CL(rpt, DF(mtd='nlk.mnq', vpd(rsp, knl, agg$mnq[, 'nlk'], ...)))
+        rpt <- CL(rpt, DF(mtd='ssz.mnq', vpd(rsp, knl, agg$mnq[, 'ssz'], ...)))
+        rpt <- sapply(mnq, function(.) vpd(rsp, knl, .$fit$par, rt=0)) %>%
             rowMeans %>% {DF(mtd='avg.mnq', key=names(.), val=.)} %>% {CL(rpt, .)}
 
-        rpt <- CL(rpt, DF(mtd='nlk.rop', knl.prd(rsp, knl, agg$rop[, 'nlk'], ...)))
-        rpt <- CL(rpt, DF(mtd='ssz.rop', knl.prd(rsp, knl, agg$rop[, 'ssz'], ...)))
-        rpt <- sapply(rop, function(.) knl.prd(rsp, knl, .$fit$par, rt=0)) %>%
+        rpt <- CL(rpt, DF(mtd='nlk.rop', vpd(rsp, knl, agg$rop[, 'nlk'], ...)))
+        rpt <- CL(rpt, DF(mtd='ssz.rop', vpd(rsp, knl, agg$rop[, 'ssz'], ...)))
+        rpt <- sapply(rop, function(.) vpd(rsp, knl, .$fit$par, rt=0)) %>%
             rowMeans %>% {DF(mtd='avg.rop', key=names(.), val=.)} %>% {CL(rpt, .)}
 
-        ## rpt <- CL(rpt, DF(mtd='nlk.gct', knl.prd(rsp, knl, agg$gct[, 'nlk'], ...)))
-        ## rpt <- CL(rpt, DF(mtd='ssz.gct', knl.prd(rsp, knl, agg$gct[, 'ssz'], ...)))
-        ## rpt <- sapply(gct, function(.) knl.prd(rsp, knl, .$fit$par, rt=0)) %>%
+        ## rpt <- CL(rpt, DF(mtd='nlk.gct', vpd(rsp, knl, agg$gct[, 'nlk'], ...)))
+        ## rpt <- CL(rpt, DF(mtd='ssz.gct', vpd(rsp, knl, agg$gct[, 'ssz'], ...)))
+        ## rpt <- sapply(gct, function(.) vpd(rsp, knl, .$fit$par, rt=0)) %>%
         ##     rowMeans %>% {DF(mtd='avg.gct', key=names(.), val=.)} %>% {CL(rpt, .)}
 
-        ## rpt <- CL(rpt, DF(mtd='nlk.kmq', knl.prd(rsp, knl, agg$kmq[, 'nlk'], ...)))
-        ## rpt <- CL(rpt, DF(mtd='ssz.kmq', knl.prd(rsp, knl, agg$kmq[, 'ssz'], ...)))
-        ## rpt <- sapply(kmq, function(.) knl.prd(rsp, knl, .$fit$par, rt=0)) %>%
+        ## rpt <- CL(rpt, DF(mtd='nlk.kmq', vpd(rsp, knl, agg$kmq[, 'nlk'], ...)))
+        ## rpt <- CL(rpt, DF(mtd='ssz.kmq', vpd(rsp, knl, agg$kmq[, 'ssz'], ...)))
+        ## rpt <- sapply(kmq, function(.) vpd(rsp, knl, .$fit$par, rt=0)) %>%
         ##      rowMeans %>% {DF(mtd='avg.kmq', key=names(.), val=.)} %>% {CL(rpt, .)}
         
         ## performance: model of whole training data
-        rpt <- CL(rpt, DF(mtd='whl.mnq', knl.prd(rsp, knl, dvp$par$mnq, ...)))
-        rpt <- CL(rpt, DF(mtd='whl.rop', knl.prd(rsp, knl, dvp$par$rop, ...)))
-        ## rpt <- CL(rpt, DF(mtd='whl.gct', knl.prd(rsp, knl, dvp$par$gct, ...)))
-        ## rpt <- CL(rpt, DF(mtd='whl.kmq', knl.prd(rsp, knl, dvp$par$kmq, ...)))
+        rpt <- CL(rpt, DF(mtd='whl.mnq', vpd(rsp, knl, dvp$par$mnq, ...)))
+        rpt <- CL(rpt, DF(mtd='whl.rop', vpd(rsp, knl, dvp$par$rop, ...)))
+        ## rpt <- CL(rpt, DF(mtd='whl.gct', vpd(rsp, knl, dvp$par$gct, ...)))
+        ## rpt <- CL(rpt, DF(mtd='whl.kmq', vpd(rsp, knl, dvp$par$kmq, ...)))
 
         ## NULL & GOLD
         rpt <- CL(rpt, DF(mtd='nul', nul(rsp)))
@@ -141,80 +142,6 @@ main <- function(N, P, Q=5, R=1, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
     invisible(ret)
 }
 
-
-ccv <- function(rpt, ...)
-{
-    Q <- length(rpt)
-    ds <- sprintf('d%02d', 1L:Q)
-    ms <- sprintf('m%02d', 1L:Q)
-    ret <- array(list(), c(Q, Q), list(ds, ms))
-    err <- c()
-    for(i in seq.int(Q))
-    {
-        ki <- rpt[[i]]$knl              # data[i]
-        ri <- rpt[[i]]$rsp              # data[i]
-        for(j in seq.int(Q))
-        {
-            pj <- rpt[[j]]$fit$par      # model[j]
-            ij <- knl.prd(ri, ki, pj, rt=0, ...)
-            ret[i, j] <- list(ij)
-        }
-
-        ## collect the types of error/loss
-        err <- union(err, names(ij))
-    }
-
-    ## organize by error type
-    ret <- sapply(err, function(e)
-    {
-        apply(ret, c(1, 2), function(r) r[[1]][e])
-    },
-    simplify=FALSE)
-    ret
-}
-
-cwt <- function(rpt, type='nlk', ...)
-{
-    ## relative generlization in training sets
-    if(type == 'nlk')
-    {
-        tmp <- -sweep(rpt, 2L, diag(rpt))
-        wmt <- exp(colSums(tmp))
-        ## wmt <- exp(colSums(diag(rpt) - rpt))
-    }
-    if(type == 'cyh')
-    {
-        wmt <- exp(colSums(rpt - diag(rpt)))
-    }
-    if(type %in% c('mse', 'loo'))
-    {
-        tmp <- -sweep(rpt, 2L, diag(rpt))
-        wmt <- exp(colSums(tmp))
-    }
-    if(type == 'ssz')
-    {
-        wmt <- exp(colSums(diag(rpt) - rpt))
-    }
-    wmt <- wmt / sum(wmt)
-    wmt
-}
-
-
-#' aggregate cohorts
-mat <- function(rpt, ...)
-{
-    ## report of leave one (cohort) out
-    ## row: cohort, col: errors
-    v <- ccv(rpt)
-    w <- sapply(names(v), function(e)
-    {
-        cwt(v[[e]], e)
-    })
-    
-    ## row: parameter, col: cohort
-    p <- sapply(rpt, function(.) .$fit$par)
-    p %*% w
-}
 
 test <- function()
 {

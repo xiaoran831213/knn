@@ -11,8 +11,9 @@ source('R/lmm.R')
 source("R/mnq.R")
 source("R/kmq.R")
 source("R/msg.R")
+source("R/bat.R")
 source("sim/sim_kpl.R")
-source('sim/ut1.R')
+source('sim/utl.R')
 
 devtools::load_all()
 
@@ -48,28 +49,34 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
         gct <- gcta.reml(rsp, knl)
         mnq <- knl.mnq(rsp, knl)
         kmq <- kpc.mnq(rsp, knl, ...)
-        rop <- rop.lmm(rsp, knl)
+        kml <- GBT(rop.lmm, rsp, knl, ...)
+        mle <- rop.lmm(rsp, knl)
     })
     evl <- within(list(),
     {
         gmx <- do.call(rbind, EL2(evl, 'gmx'))
         rsp <- unlist(EL2(evl, 'rsp'))
         knl <- krn(gmx, yks)
-        gct <- DF(mtd='gct', knl.prd(rsp, knl, dvp$gct$par))
-        mnq <- DF(mtd='mnq', knl.prd(rsp, knl, dvp$mnq$par))
-        kmq <- DF(mtd='kmq', knl.prd(rsp, knl, dvp$kmq$par))
-        rop <- DF(mtd='rop', knl.prd(rsp, knl, dvp$rop$par))
+        gct <- DF(mtd='gct', vpd(rsp, knl, dvp$gct$par))
+        mnq <- DF(mtd='mnq', vpd(rsp, knl, dvp$mnq$par))
+        kmq <- DF(mtd='kmq', vpd(rsp, knl, dvp$kmq$par))
+        kml <- DF(mtd='kml', vpd(rsp, knl, dvp$kml$par))
+        mle <- DF(mtd='mle', vpd(rsp, knl, dvp$mle$par))
     })
     
     ## ----------------------- KDN Model Fitting ----------------------- ##
     rpt <- list()
     rpt <- CL(rpt, DF(dat='dvp', mtd='kmq', dvp$kmq$rpt))
     rpt <- CL(rpt, DF(dat='dvp', mtd='mnq', dvp$mnq$rpt))
-    rpt <- CL(rpt, DF(dat='dvp', mtd='rop', dvp$rop$rpt))
+    rpt <- CL(rpt, DF(dat='dvp', mtd='mle', dvp$mle$rpt))
+    rpt <- CL(rpt, DF(dat='dvp', mtd='kml', dvp$kml$rpt))
     rpt <- CL(rpt, DF(dat='dvp', mtd='gct', dvp$gct$rpt))
+    rpt <- CL(rpt, DF(dat='dvp', mtd='nul', nul(dvp$rsp)))
+
     rpt <- CL(rpt, DF(dat='evl', evl$kmq))
     rpt <- CL(rpt, DF(dat='evl', evl$mnq))
-    rpt <- CL(rpt, DF(dat='evl', evl$rop))
+    rpt <- CL(rpt, DF(dat='evl', evl$mle))
+    rpt <- CL(rpt, DF(dat='evl', evl$kml))
     rpt <- CL(rpt, DF(dat='evl', evl$gct))
     rpt <- CL(rpt, DF(dat='evl', mtd='nul', nul(evl$rsp)))
 
@@ -78,13 +85,13 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
     rpt <- within(rpt, val <- round(val, 4L))
     ret <- cbind(arg, rpt)
 
-    print(list(kmq=dvp$kmq$par, mnq=dvp$mnq$par, gct=dvp$gct$par, rop=dvp$rop$par))
+    print(list(kmq=dvp$kmq$par, mnq=dvp$mnq$par, gct=dvp$gct$par, mle=dvp$mle$par))
     invisible(ret)
 }
 
 test <- function()
 {
-    r <- main(N=500, P=2000, frq=.2, eps=.1, oks=p1, yks=p1)
+    r <- main(N=500, P=2000, frq=.2, eps=.1, oks=p1, yks=p1, bsz=100)
 }
 
 
@@ -107,4 +114,3 @@ test.lmm <- function(N=100, P=10, t=20)
     
     list(r1=r1, r2=r2)
 }
-
