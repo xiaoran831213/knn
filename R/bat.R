@@ -22,14 +22,12 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
     wit <- dot$wit %||% 1000
 
     ## message tracks
-    tks <- list(msg(~ep, "%04d"), msg(~bt, "%04d"), msg(~mse, "%7.3f"),
+    tks <- list(msg(~ep, "%04d"),
+                msg(~mse, "%7.3f"), msg(~nlk, "%7.3f"), msg(~loo, "%7.3f"),
                 msg(~phi, "%7.3f"), msg(~rtm, "%4.1f"))
     
     ## initial parameters
-    itr <- 0L
-    rtm <- 0
-    ep <- 0
-    bt <- 0
+    itr <- 0; rtm <- 0; ep <- 0; bt <- 0
     while(TRUE)
     {
         ## create batches
@@ -48,7 +46,7 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
         }
         else
         {
-            ep <- itr
+            ep <- itr + 1
             bt <- 0
             knl.bat <- knl
             rsp.bat <- rsp
@@ -60,43 +58,40 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
         ## MINQUE on each batch
         bat <- c(bat, with(bat, FUN(rsp, knl, ...)))
         rtm <- rtm + bat$rpt['rtm', 'val'] + td
-        par <- bat$par
 
-        ## accumulate an epoch
+        ## processing at the end of an epoch
         eph <- CL(eph, bat)
         if(length(eph) == nbt)
         {
-            par <- mat(eph)[, 'nlk']
-            hst <- CL(hst, list(ep=ep, rtm=rtm, par=par))
+            ## par <- mean(EL2(eph, 'par'))
+            par <- mat(eph)
+            phi <- par[1, 'ssz']
+            rpt <- vpd(rsp, knl, par, rt=0, ...)
+            mse <- rpt['mse']
+            nlk <- rpt['nlk']
+            loo <- rpt['loo']
+            cat(ln.msg(tks), "\n", sep="")
+            hst <- CL(hst, c(ep=ep, rtm=rtm, rpt, list(par=par)))
         }
         
-        ## record each iteration
-
-        ## message tracks
-        if(bt == 0)
-        {
-            if(ep %% 70 == 0)
-                cat(hd.msg(tks), "\n", sep="")
-            phi <- par[1]
-            mse <- vpd(rsp, knl, par, rt=0, ...)['mse']
-            cat(ln.msg(tks), "\n", sep="")
-        }
+        ## append message track on each new epoch
+        if(bt == 0 && ep %% 40 == 1)
+            cat(hd.msg(tks), "\n", sep="")
 
         if(itr > wit) {cat('BMQ: reach max_iter:', wit, 'b\n'); break}
         if(rtm > wtm) {cat('BMQ: reach walltime:', wtm, 's\n'); break}
         itr <- itr + 1L
     }
     ## rearrange history
-    tck <- EL1(hst, c('ep', 'rtm'), 'd')
+    tck <- EL1(hst, c('ep', 'rtm', 'mse', 'loo', 'nlk', 'cyh'), 'd')
     par <- EL2(hst, 'par')
-    hst <- list(tck, par=par)
     
     ## mean solution
-    ret <- list(par=mean(par))
-    rpt <- with(ret, vpd(rsp, knl, par, ...))
-    rpt <- rbind(rtm=DF(key='rtm', val=rtm), rpt)
-    
-    ## return the history and new parameters
-    ret <- c(ret, list(rpt=rpt, hst=hst))
+    par <- mean(par)
+    par <- sapply(colnames(par), function(i) par[, i], simplify=FALSE)
+    rpt <- lapply(par, vpd, y=rsp, K=knl)
+
+    ## return
+    ret <- list(par=par, rpt=rpt, rtm=rtm, hst=tck)
     ret
 }
