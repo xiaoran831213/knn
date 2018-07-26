@@ -150,7 +150,7 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame}\frametitle{Meta-VCM: information completeness}
+\begin{frame}\frametitle{Meta-VCM: light but incomplete}
   \begin{figure}
     \centering \includegraphics[width=.9\textwidth]{img/meta-mega}
     \caption{meta-VCM and mega-VCM}
@@ -214,8 +214,8 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   some flexibility of models and and algorithms.
   \begin{itemize}
   \item kernel manipulation;
-  \item non-likelihood based model;
-  \item non-gradient based optimization.
+  \item non-likelihood based model, non-gradient based iteration.
+  % \item cross-validity based model averaging
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
@@ -232,14 +232,24 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 \begin{frame}\frametitle{VCM Tools: \textbf{MINQUE}}
   \textbf{MINQUE: minimum norm quadratic unbiased estimation,}
   \begin{itemize}
-  \item  an alternative variance component estimator;
   \item faster by solving $\vtheta=\{\sigma_0, \sigma_1, \dots \}$ in
     close form;
   \item numerically more stable by using generalized inverse;
   \item more robust by having no assumption on $\vz$'s distribution.
   \end{itemize}
-  Developed by (\textbf{Rao et. al.}), an alternative to ML (maximum
-  likelihood) and REML (restricted ML).
+  Developed by (\textbf{Rao et. al.}).
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}<presentation:0> %
+  \frametitle{meta-VCM Tools: \textbf{validity weighting}} %
+  \textbf{MINQUE: minimum norm quadratic unbiased estimation,}
+  \begin{itemize}
+  \item faster by solving $\vtheta=\{\sigma_0, \sigma_1, \dots \}$ in
+    close form;
+  \item numerically more stable by using generalized inverse;
+  \item more robust by having no assumption on $\vz$'s distribution.
+  \end{itemize}
+  Developed by (\textbf{Rao et. al.}).
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame}<presentation:0>
@@ -266,54 +276,81 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 % -------------------------------------------------------------------
 \section{simulation study}
 \begin{frame}\frametitle{simulation: meta-VCM}
-  \textbf{error made by meta-VCM built on $8$ cohorts, tested on 2 others;} \\
+  \textbf{a meta-VCM of $8$ cohorts tested on 4 others;} \\
   \textbf{residual z follows $t_{10}$ instead of normal;} \\
-  {\color{blue}\textbf{outer plots:}}
+  {\color{blue}\textbf{outer plots: the benchmarks, from left to right:}}
   \begin{itemize}
-  \item \textbf{L $\to$ R:} increased inter-chort heterogeneity;
-  \item \textbf{T:} mean square error;
-  \item \textbf{B:} mean negative log likelihood.
-  \end{itemize}
-  {\color{blue}\textbf{inner plots:}}
-  \begin{itemize}
-  \item \textbf{avg:} average test error made by 4 VCMs;
+  \item \textbf{MSE:} mean square error;
+  \item \textbf{NLK:} mean negative log likelihood;
+  \item \textbf{RTM:} running time;
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame} \frametitle{simulation: meta-VCM, MINQUE}
+  \textbf{the cohorts are \color{blue}{homogeneous}:} \\
   \begin{figure}
-    \centering \includegraphics[width=.95\linewidth]{img/jsm_mm3_mnq}
+    \centering \includegraphics[width=.95\linewidth]{img/met_hom_stt_mnq_ssz}
   \end{figure}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
+  \begin{itemize}
+  \item \textbf{avg:} average error and running time of 8 client VCMs.
+  \item \textbf{mega/meta:} mega/meta-analysis
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame} \frametitle{simulation: meta-VCM, MINQUE}
+  \textbf{the cohorts are \color{red}{heterogeneous}:} \\
+  \begin{figure}
+    \centering \includegraphics[width=.95\linewidth]{img/met_het_stt_mnq_ssz}
+  \end{figure}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
+  \begin{itemize}
+  \item \textbf{avg:} average error and running time of 8 client VCMs.
+  \item \textbf{mega/meta:} mega/meta-analysis
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}<presentation:1> %
+  \frametitle{simulation: meta-VCM, MINQUE} %
+  \textbf{the cohorts are \color{red}{heterogeneous}, weighted by validity:} \\
+  \begin{figure}
+    \centering \includegraphics[width=.95\linewidth]{img/met_het_stt_mnq_cyh}
+  \end{figure}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
+  \begin{itemize}
+  \item \textbf{avg:} average error and running time of 8 client VCMs.
+  \item \textbf{mega/meta:} mega/meta-analysis
+  \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame} <presentation:0>%
-  \frametitle{simulation: meta-VCM, MLE} %
+  \frametitle{simulation: meta-VCM, REML} %
   \begin{figure}
-    \centering \includegraphics[width=.95\linewidth]{img/jsm_mm3_rop}
+    \centering \includegraphics[width=.95\linewidth]{img/met_hom_stt_gct_ssz}
   \end{figure}
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame}\frametitle{simulation: VCM Tools}
-  \textbf{error made by one VCM build on one cohort, tested on another;} \\
+  \textbf{a client VCM tested on a new cohort;} \\
   \textbf{residual z follows $t_{10}$ instead of normal;} \\
-  {\color{blue}\textbf{outer plots: the benchmark}}
+  {\color{blue}\textbf{outer plots: the benchmark, from left to right:}}
   \begin{itemize}
-  \item \textbf{L:} mean negative log likehood;
-  \item \textbf{M:} mean square error;
-  \item \textbf{R:} computation time;
-  \end{itemize}
-  {\color{blue}\textbf{inner plots, model and algorithms:}}
-  \begin{itemize}
-  \item \textbf{gct:} GCTA's REML, developed by (\textbf{Yang et. al.});
-  \item \textbf{mq1:} MINQUE;
-  \item \textbf{mq2:} MINQUE with enriched kernels
+  \item \textbf{MSE:} mean square error;
+  \item \textbf{NLK:} mean negative log likehood;
+  \item \textbf{RTM:} running time;
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame} \frametitle{simulation: VCM Tools}
   \begin{figure}
-    \centering \includegraphics[width=.95\linewidth]{img/jsm_vcm_bmk}
+    \centering \includegraphics[width=.95\linewidth]{img/vcm_bmk_gau}
   \end{figure}
+  {\color{blue}\textbf{inner plots, model and algorithms:}}
+  \begin{itemize}
+  \item \textbf{GCTA:} GCTA's REML, developed by (\textbf{Yang et. al.});
+  \item \textbf{MNQ1:} MINQUE ;
+  \item \textbf{MNQ2:} MINQUE with kernel enrichment
+  \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
 % \section{Theoratical Ground}
