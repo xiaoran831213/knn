@@ -117,12 +117,11 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \begin{itemize}
   \item client sends L kernels $\xk = \mathcal{K}_{1 \dots L}(\xx)$ and residual
     $\vz=h(\vy)$;
-  \item server models each $(\vz, \xk)$ using a \textbf{vcm}, then
-    average;
+  \item server models each $(\vz, \xk)$ with a \textbf{VCM}.
   \end{itemize}
   \textbf{advantages:}
   \begin{itemize}
-  \item flexibility over modeling and algorithms;
+  \item moderate flexibility over modeling and algorithms;
   \item reduced raw data $\xx^{N \times P}$ to kernel
     $\xv^{N \times N}$;
   \item secured -- $\mathcal{K}(\xx)$ encrypts $\xx$, $h(\vy)$
@@ -131,7 +130,27 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 \end{frame}
 % -------------------------------------------------------------------
 \section{Meta-VCM}
-\begin{frame}\frametitle{Meta-VCM: procedure}
+\newcommand{\fit}[1]{{\color{magenta}{#1}}}
+\newcommand{\blue}[1]{{\color{blue}{#1}}}
+\begin{frame}
+  \frametitle{Meta-\blue{\textbf{VCM}}: \blue{v}ariance \blue{c}omponent \blue{m}odel} %
+  \textbf{VCM} depicts the influence of ultra high dimentional $\xx$
+  on $\vy$,
+  \begin{align}\label{eq:vcm}
+    h(\vy) = \vz \sim \mathcal{N}(0, \xv), \quad
+       \xv = \fit{\sigma^2_0} \id + \fit{\sigma^2_1} \mck_1(\xx) + \dots + \fit{\sigma^2_L} \mck_L(\xx)
+  \end{align}
+  \begin{itemize}
+  \item residual $\vz$ follows multivariate normal of mean
+    $\bs{0}$ and covariance $\xv$;
+  \item $\xv$ is the sum of $L$ kernels from $\xx$, plus a white noise $\mck_0 = \id$;
+  \item the to be fitted weights
+    $\vtheta = \{\fit{\sigma^2_0}, \fit{\sigma^2_1} \dots
+    \fit{\sigma^2_L}\}$ comprises a \textbf{VCM}.
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{\blue{\textbf{Meta}}-VCM: procedure}
   Let $\vc_i=(\vy_i, \xx_i)$ be the i th. cohort in the consortium. \\
   \textbf{{\color{red}meta}-VCMs:}
   \begin{itemize}
@@ -150,33 +169,22 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame}\frametitle{Meta-VCM: light but incomplete}
+\begin{frame}\frametitle{Meta-VCM: Proposed procedure}
   \begin{figure}
-    \centering \includegraphics[width=.9\textwidth]{img/meta-mega}
-    \caption{meta-VCM and mega-VCM}
-    \label{fig:info_comp}
+    \centering \includegraphics[width=\textwidth]{img/meta1}
+    \caption{proposed meta-VCM}
+    \label{fig:mata1}
   \end{figure}
-  \textbf{meta-VCM does not cover all sample pairs.}
+  \textbf{meta-VCM does not cover corss-cohort sample pairs!}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame}
-  \frametitle{Meta-VCM: variance component model} %
-  \textbf{VCM} depicts the influence of ultra high dimentional $\xx$
-  on $\vy$,
-  \begin{align}\label{eq:vcm}
-    \vz=h(\vy) \sim \mathcal{N}(0, \xv), \quad
-    \xv = \xv_{\bs{e}} + \xv_{\xx} = \sigma^2_0 \id + \sum_{i=1}^L
-    \sigma^2_i \mathcal{K}_i(\xx)
-  \end{align}
-  \begin{itemize}
-  \item $h$ transform $\vy$ into following multivariate normrl (MVN)
-    of mean $\bs{0}^N$ and covariance $\xv^{N \times N}$;
-  \item $\xv$ is determined by $\xx$ through $L$ kernels:
-    $\{\mathcal{K}_{1 \dots L}\}$, white noise $\id$;
-  \item kernels are weighted by the to be fitted \textbf{variance
-      component (VC)}
-    $\vtheta = \{\sigma^2_0, \sigma^2_1 \dots \sigma^2_L\}$.
-  \end{itemize}
+\begin{frame}\frametitle{Meta-VCM verse Mega-VCM}
+  \begin{figure}
+    \centering \includegraphics[width=\textwidth]{img/meta-mega}
+    \caption{meta-VCM versus mega-VCM}
+    \label{fig:info_comp}
+  \end{figure}
+  \textbf{meta-VCM does not cover corss-cohort sample pairs!}
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame}<presentation:0> %
@@ -211,15 +219,15 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 \section{VCM Tools}
 \begin{frame}\frametitle{VCM Tools}
   Having the clinets upload encrypted data $\vc=(\xk, \vz)$ allows
-  some flexibility of models and and algorithms.
+  flexibility of models and and algorithms.
   \begin{itemize}
   \item kernel manipulation;
-  \item non-likelihood based model, non-gradient based iteration.
+  \item non-likelihood models, non-gradient based optimization.
   % \item cross-validity based model averaging
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame}\frametitle{VCM Tools: kernel manipulation}
+\begin{frame}\frametitle{VCM Tools: kernel manipuation}
   \textbf{``polynomial expansion'' by kernel:}
   \begin{align*}
     \xk^{(1)} & = \bigcup_{i}^L \kn_i(\xx) = \{\xk_1, \dots, \xk_L\} \\
@@ -229,7 +237,8 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   {\color{blue}\textbf{improve model capacity, clients only upload $\xk^{(1)}$.}}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame}\frametitle{VCM Tools: \textbf{MINQUE}}
+\begin{frame} %
+  \frametitle{VCM Tools: \textbf{MINQUE}} %
   \textbf{MINQUE: minimum norm quadratic unbiased estimation,}
   \begin{itemize}
   \item faster by solving $\vtheta=\{\sigma_0, \sigma_1, \dots \}$ in
@@ -249,7 +258,7 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \item numerically more stable by using generalized inverse;
   \item more robust by having no assumption on $\vz$'s distribution.
   \end{itemize}
-  Developed by (\textbf{Rao et. al.}).
+  Developed by (\textbf{Rao et. al.}(1971)).
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame}<presentation:0>
@@ -276,6 +285,14 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 % -------------------------------------------------------------------
 \section{simulation study}
 \begin{frame}\frametitle{simulation: meta-VCM}
+  \centering
+  \huge{\textbf{Simulation Studies}}
+  \begin{itemize}
+  \item Meta-Analysis
+  \item Per-cohort analysis
+  \end{itemize}
+\end{frame}
+\begin{frame}\frametitle{simulation: meta-analysis}
   \textbf{a meta-VCM of $8$ cohorts tested on 4 others;} \\
   \textbf{residual z follows $t_{10}$ instead of normal;} \\
   {\color{blue}\textbf{outer plots: the benchmarks, from left to right:}}
@@ -293,7 +310,7 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \end{figure}
   \textbf{\color{blue}{inner plot: strategies, from left to right:}}
   \begin{itemize}
-  \item \textbf{avg:} average error and running time of 8 client VCMs.
+  \item \textbf{avg:} the performance of 8 client VCMs, averaged.
   \item \textbf{mega/meta:} mega/meta-analysis
   \end{itemize}
 \end{frame}
@@ -305,12 +322,12 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \end{figure}
   \textbf{\color{blue}{inner plot: strategies, from left to right:}}
   \begin{itemize}
-  \item \textbf{avg:} average error and running time of 8 client VCMs.
+  \item \textbf{avg:} the performance of 8 client VCMs, averaged.
   \item \textbf{mega/meta:} mega/meta-analysis
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame}<presentation:1> %
+\begin{frame}<presentation:0> %
   \frametitle{simulation: meta-VCM, MINQUE} %
   \textbf{the cohorts are \color{red}{heterogeneous}, weighted by validity:} \\
   \begin{figure}
@@ -318,7 +335,7 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \end{figure}
   \textbf{\color{blue}{inner plot: strategies, from left to right:}}
   \begin{itemize}
-  \item \textbf{avg:} average error and running time of 8 client VCMs.
+  \item \textbf{avg:} the performance of 8 client VCMs, averaged.
   \item \textbf{mega/meta:} mega/meta-analysis
   \end{itemize}
 \end{frame}
@@ -330,7 +347,7 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \end{figure}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame}\frametitle{simulation: VCM Tools}
+\begin{frame}\frametitle{simulation: cohort-VCM}
   \textbf{a client VCM tested on a new cohort;} \\
   \textbf{residual z follows $t_{10}$ instead of normal;} \\
   {\color{blue}\textbf{outer plots: the benchmark, from left to right:}}
@@ -341,7 +358,7 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame} \frametitle{simulation: VCM Tools}
+\begin{frame} \frametitle{simulation: chort-VCM}
   \begin{figure}
     \centering \includegraphics[width=.95\linewidth]{img/vcm_bmk_gau}
   \end{figure}
@@ -395,7 +412,7 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 \section{Summary}
 \begin{frame} %
   \frametitle{Summary} %
-  \textbf{Meta-VCM} manage to combine the strength of meta-analysis and
+  \textbf{Meta-VCM} manages to combine the strength of meta-analysis and
   variance component model.
   \begin{itemize}
   \item \textbf{``Meta''}
@@ -411,4 +428,14 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
+\begin{frame} %
+  \frametitle{Contact} %
+  Xiaoran Tong \\
+  Department of Epidemiology \& Biostatistics \\
+  Michigan State University
+  \begin{itemize}
+  \item email: tongxia1@msu.edu
+  \item phone: (1)517-220-1229
+  \end{itemize}
+\end{frame}
 \end{document}
