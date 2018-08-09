@@ -1,0 +1,483 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Beamer Presentation LaTeX Template Version 1.0 (10/11/12)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% License: CC BY-NC-SA 3.0
+% (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ----------------------------------------------------------------------------------------
+% PACKAGES AND THEMES
+% ----------------------------------------------------------------------------------------
+
+\documentclass{beamer}
+
+\mode<presentation> {
+
+  % The Beamer class comes with a number of default slide themes which
+  % change the colors and layouts of slides. Below this is a list of
+  % all the themes, uncomment each in turn to see what they look like.
+
+  % \usetheme{default} \usetheme{AnnArbor} \usetheme{Antibes}
+  % \usetheme{Bergen} \usetheme{Berkeley} \usetheme{Berlin}
+  % \usetheme{Boadilla} \usetheme{CambridgeUS} \usetheme{Copenhagen}
+  % \usetheme{Darmstadt} \usetheme{Dresden} \usetheme{Frankfurt}
+  % \usetheme{Goettingen} \usetheme{Hannover} \usetheme{Ilmenau}
+  % \usetheme{JuanLesPins} \usetheme{Luebeck}
+  \usetheme{Madrid}
+  % \usetheme{Malmoe} \usetheme{Marburg} \usetheme{Montpellier}
+  % \usetheme{PaloAlto} \usetheme{Pittsburgh} \usetheme{Rochester}
+  % \usetheme{Singapore} \usetheme{Szeged} \usetheme{Warsaw}
+
+  % As well as themes, the Beamer class has a number of color themes
+  % for any slide theme. Uncomment each of these in turn to see how it
+  % changes the colors of your current slide theme.
+
+  % \usecolortheme{albatross}
+  \usecolortheme{beaver}
+  % \usecolortheme{beetle} \usecolortheme{crane}
+  % \usecolortheme{dolphin} \usecolortheme{dove} \usecolortheme{fly}
+  % \usecolortheme{lily} \usecolortheme{orchid} \usecolortheme{rose}
+  % \usecolortheme{seagull} \usecolortheme{seahorse}
+  % \usecolortheme{whale} \usecolortheme{wolverine}
+
+  % \setbeamertemplate{footline} % To remove the footer line in all slides uncomment this line
+  % \setbeamertemplate{footline}[page
+  % number] % To replace the footer line in all slides with a simple slide count uncomment this line
+
+  % \setbeamertemplate{navigation
+  % symbols}{} % To remove the navigation symbols from the bottom of all slides uncomment this line
+}
+\include{xtong}
+\newcommand{\se}[1]{\hat{\mathtt{se}}\left(#1\right)} % standard error
+\newcommand{\ti}{{\tilde{i}}} % tilde i
+\newcommand{\ef}{{\mathtt{o}}} % error function
+\newcommand{\kn}{\mathcal{K}} % kernel
+\usepackage{graphicx} % Allows including images
+\usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
+
+% ----------------------------------------------------------------------------------------
+% TITLE PAGE
+% ----------------------------------------------------------------------------------------
+
+\title[Meta-VCM]{Meta analysis by Variance Component Model}
+
+\author{Xiaoran Tong} % Your name
+\institute[EPI Biosta,
+MSU] % Your institution as it will appear on the bottom of every slide, may be shorthand to save space
+{ Michigan State University \\ % Your institution for the title page
+  \medskip \textit{tongxia1@msu.edu} \\% Your email address
+  \textit{qlu@epi.msu.edu} % Your email address
+} \date{\today} % Date, can be changed to a custom date
+
+\begin{document}
+
+\begin{frame}
+  \titlepage % Print the title page as the first slide
+\end{frame}
+
+\begin{frame}
+  \frametitle{Table of
+    Content} % Table of contents slide, comment this block out to remove it
+  \tableofcontents
+\end{frame}
+% ----------------------------------------------------------------------------------------
+% PRESENTATION SLIDES
+% -------------------------------------------------------------------
+\section{Motivation}
+\begin{frame}\frametitle{Motivation: Issues}
+  Analyzing ultra-high dimensional profiles are increasingly popular,
+  e.g.,
+  \begin{itemize}
+  \item deeply sequenced genome
+  \item neural imaginings (i.e., MRI, fMRI, DTI)
+  \end{itemize}
+  \textbf{Variance Component Model (VCM)} is a sensible choice to
+  \begin{itemize}
+  \item aggregate weak effect of massive number of correlated variants
+  \item partially solve the curse of dimension: $N \times P \to N^2$
+  \end{itemize}
+  \textbf{VCM} is also known as
+  \begin{itemize}
+  \item kernel machine, kernel method
+  \item random effect model
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\newcommand{\fit}[1]{{\color{magenta}{#1}}}
+\newcommand{\blue}[1]{{\color{blue}{#1}}}
+\newcommand{\red}[1]{{\color{red}{#1}}}
+\newcommand{\green}[1]{{\color{green}{#1}}}
+\begin{frame}
+  \frametitle{Motivation: \blue{v}ariance \blue{c}omponent
+    \blue{m}odel (\blue{\textbf{VCM}})} %
+  \textbf{VCM} depicts the influence of ultra high dimensional $\xx$
+  on $\vy$,
+  \begin{align}\label{eq:vcm}
+    h(\vy) = \vz \sim \mathcal{N}(0, \xv), \quad
+    \xv = \fit{\sigma^2_0} \id + \fit{\sigma^2_1} \mck_1(\xx) + \dots + \fit{\sigma^2_L} \mck_L(\xx)
+  \end{align}
+  \begin{itemize}
+  \item as the residual of $\vy$, $\vz$ follows MVN of covariance
+    $\xv$;
+  \item $\xv$ is the sum of $L$ kernels plus a white noise
+    $\mck_0 = \id$;
+  \item kernels are built from $\xx$
+  \item The to be fitted
+    $\vtheta = \{\fit{\sigma^2_0}, \fit{\sigma^2_1} \dots
+    \fit{\sigma^2_L}\}$ comprises a \textbf{VCM}.
+  \end{itemize}
+  A \textbf{VCM} requires large sample to stabilize, one may consider
+  \begin{itemize}
+  \item \textbf{\red{meta}-VCM},
+  \item \textbf{\red{mega}-VCM}.
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame} <presentation:0> %
+  \frametitle{Motivation: \textbf{\blue{meta}-VCM \&
+      \blue{mega}-VCM:}} %
+  Let $\vc_i=(\vy_i, \xx_i)$ be the i th. cohort in the consortium. \\
+  \textbf{{\color{red}meta}-VCMs:}
+  \begin{itemize}
+  \item $\xc = \{\vc_1, \dots, \vc_Q \}$, $Q$ cohorts joined the
+    consortium;
+  \item $\hat{\xtheta}=\{\hat{\vtheta}_1, \dots, \hat{\vtheta}_Q\}$,
+    develop Q \textbf{vcm};
+  \item
+    $\hat{\vtheta} = \frac{\sum_i^Q \vw_i \hat{\vtheta}_i}{\sum_i^S
+      \vw_i}$, weighted model aggregation
+  \end{itemize}
+  \textbf{{\color{red}mega}-VCMs:}
+  \begin{itemize}
+  \item develop 1 model with the entire consortium;
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{Motivation: \textbf{consider
+      \blue{meta}-VCM:}} %
+  \begin{figure}\includegraphics[width=.90\textwidth]{img/meta0}\end{figure}
+  \textbf{\red{decentralized!}}  \textbf{limited choice in model and
+    algorithm;}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{Motivation: \textbf{consider
+      \blue{mega}-VCM:}} %
+  \begin{figure}\includegraphics[width=.90\textwidth]{img/mega0}\end{figure}
+  \textbf{\red{full information!} insecured data, renewed curse of
+    dimension.}
+\end{frame}
+% -------------------------------------------------------------------
+\section{Meta-Kernel-VCM}
+% -------------------------------------------------------------------
+\begin{frame}
+  \large{\textbf{Proposal}}: \\
+  \huge{\textbf{\red{Kernel}-\red{Meta}-\blue{VCM}}} \\
+  \large{\textbf{\red{Kernel} mediated \red{Meta} analysis of
+      \blue{v}ariance \blue{c}omponent \blue{m}odel}}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{KM-VCM: proposal}
+  \textbf{seek a compromise between classic meta-VCM and mega-VCM,
+    balance the work and trust between the clients and server.}
+  \textbf{meta-kernel-VCM):}
+  \begin{itemize}
+  \item client sends L kernels $\xk = \mathcal{K}_{1 \dots L}(\xx)$
+    and residual $\vz=h(\vy)$;
+  \item server models each $(\vz, \xk)$ with a \textbf{VCM}.
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{KM-VCM: Diagram}
+  \begin{figure}
+    \centering \includegraphics[width=\textwidth]{img/meta1}
+    \caption{proposed meta-VCM}
+    \label{fig:mata1}
+  \end{figure}
+  \textbf{meta-VCM does not cover cross-cohort sample pairs!}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{\textbf{KM-VCM}: overview}
+  \textbf{Advantages:}
+  \begin{itemize}
+  \item secured -- $\mathcal{K}(\xx)$ encrypts $\xx$, $h(\vy)$
+    encrypts $\vy$;
+  \item avoid the curse of $O(N^3)$ matrix inversion.
+  \item \blue{flexibility of models and algorithms};
+  \item \blue{validity guided weighting};
+  \end{itemize}
+  \textbf{Concerns:}
+  \begin{itemize}
+  \item incomplete information used;
+  \item inter-cohort heterogeneity.
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}<presentation:1> %
+  \frametitle{KM-VCM: weight by precision (classics)} %
+  Let $i = 1 \dots Q$ index the Q uploads, $j = 0 \dots L$ index the
+  variance components.\\
+  \textbf{weight by confidence:}
+  \begin{align}
+    w_{i,j} &= \frac{\left[\se{\theta_{i,j}} \right ]^2}
+              {\sum_\ti \left[\se{\theta_{\ti,j}} \right ]^2} \\
+    w_{i,j} &= \frac{n_i}{\sum_\ti n_\ti}
+  \end{align}
+  {\color{blue}\textbf{no extra analysis required}}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}<presentation:1> %
+  \frametitle{KM-VCM: weight by validity (proposal)} %
+  For each upload $\bs{c_i}=(\vz_i, \xk_i)$, get losses for all $Q$ models
+  \begin{table}[]
+    \small
+    \begin{tabular}{c|cccc}
+      .           & $\vtheta_1$            & $\vtheta_2$            & $\dots$  & $\vtheta_Q$            \\ \hline
+      $\vc_1$     & o($\vc_1$,$\vtheta_1$) & o($\vc_1$,$\vtheta_2$) & $\dots$  & o($\vc_1$,$\vtheta_Q$) \\
+      $\vc_2$     & o($\vc_2$,$\vtheta_1$) & o($\vc_2$,$\vtheta_2$) & $\dots$  & o($\vc_2$,$\vtheta_Q$) \\
+      $\vdots$    & $\vdots$               & $\vdots$               & $\ddots$ & $\vdots$               \\
+      $\vc_Q$     & o($\vc_Q$,$\vtheta_1$) & o($\vc_Q$,$\vtheta_2$) & $\dots$  & o($\vc_Q$,$\vtheta_Q$) \\
+    \end{tabular}
+  \end{table}
+  The invert loss \red{$[\ef(\vc_i, \vtheta_j)]^{-1}$} tells the
+  \red{\textbf{validity}} of model $r$ on cohort $j$,
+  \begin{itemize}
+  \item internal validity $\leftarrow$ diagonal
+  \item external validity $\leftarrow$ off-diagonal
+  \end{itemize}
+  The sum of $j$ th. column weights the $j$ model by overall validity:
+  \begin{align}
+    w_r = \sum_i{\left[\ef( \vc_i; \vtheta_r)\right]^{-1}}
+  \end{align}
+  
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}%
+  \frametitle{KM-VCM: flexible models}
+  \textbf{``polynomial expansion'' by kernel:}
+  \begin{align*}
+    \xk^{(1)} & = \bigcup_{i}^L \kn_i(\xx) = \{\xk_1, \dots, \xk_L\} \\
+    \xk^{(2)} & = \bigcup_{i,j}^{L \times L} \kn_i(\xx) \circ \kn_j(\xx) = \{\xk_1\xk_1, \xk_1\xk_2, \dots, \xk_L\xk_L\} \\
+    \xk^{(3)} & = \bigcup_{i,j,k}^{L^{(3)}}  \kn_i(\xx) \circ \kn_j(\xx) \circ \kn_k(\xx)
+  \end{align*}
+  {\color{blue}\textbf{improve model capacity, clients only upload $\xk^{(1)}$.}}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame} %
+  \frametitle{KM-VCM: flexible algorithms} %
+  \textbf{use \blue{MINQUE} for estimation}
+  \begin{itemize}
+  \item faster by solving $\vtheta=\{\sigma_0^2, \sigma_1^2, \dots \}$
+    in close form;
+  \item numerically more stable via generalized inverse;
+  \item no assumption on $\vz$'s distribution.
+  \end{itemize}
+  MINQUE -- minimum norm quadratic unbiased estimation, was developed
+  by (\textbf{Rao et. al.}).
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}<presentation:0>
+  \frametitle{access model validity}
+  A VCM
+  $\hat{\vtheta}=\{\hat{\sigma}^2_0, \hat{\sigma}^2_1 \dots
+  \hat{\sigma}^2_L\}$ so developed must strive to generalize better on
+  new data $(\vy, \xx)$, gauged by the following criteria:
+  \begin{block}{\textbf{MNL}: mean negative log likelihood}
+    $\mathtt{MNL}(\vy, \xx; \hat{\vtheta}) = \frac{1}{n}
+    [\frac{1}{2}\vy\xvh^{-1}\vy + \frac{1}{2}\log{|\xvh|} +
+    \frac{n}{2}\log{2\pi}]$
+  \end{block}
+  \begin{block}{\textbf{MSE}: mean squre error}
+    $\mathtt{MSE}(\vy, \xx; \hat{\vtheta}) = \frac{\sigma_0^4}{n}
+    \vy^T\hat{\xv}^{-1} \hat{\xv}^{-1}\vy$
+  \end{block}
+  where,
+  $\xvh = \xvh_e + \xvh_\vx = \hat{\sigma}^2_0\id +
+  \sum_{i=1}^L\hat{\sigma}_i^2 \mathcal{K}_i(\xx)$ are covariance
+  composed from the new data by the meta-VCM $\hat{\vtheta}$; $n$ is
+  the size of new data.
+\end{frame}
+% -------------------------------------------------------------------
+\section{Simulation}
+\begin{frame}
+  \frametitle{KM-VCM: simulation} %
+  \centering
+  \Large{\textbf{Simulation Studies}}
+  \normalsize
+  \begin{itemize}
+  \item Meta-Analysis
+  \item Per-cohort analysis
+  \end{itemize}
+\end{frame}
+\begin{frame}\frametitle{simulation: meta-analysis}
+  \textbf{a meta-VCM of $8$ cohorts tested on 4 others;} \\
+  \textbf{residual z follows $t_{10}$;} \\
+  {\color{blue}\textbf{outer plots: the benchmarks, from left to right:}}
+  \begin{itemize}
+  \item \textbf{MSE:} mean square error;
+  \item \textbf{NLK:} mean negative log likelihood;
+  \item \textbf{RTM:} running time;
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame} \frametitle{simulation: meta-analysis}
+  \textbf{the cohorts are \color{blue}{homogeneous}:} \\
+  \begin{figure}
+    \centering \includegraphics[width=.95\linewidth]{img/met_hom_stt_mnq_ssz}
+  \end{figure}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
+  \begin{itemize}
+  \item \textbf{avg:} the test error of 8 VCMs, averaged.
+  \item \textbf{mega/meta:} mega/meta-VCM
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}%
+  \frametitle{simulation: meta-analysis} %
+  \textbf{the cohorts are \color{red}{heterogeneous}:} \\
+  \begin{figure}
+    \centering \includegraphics[width=.95\linewidth]{img/met_het_stt_mnq_ssz}
+  \end{figure}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
+  \begin{itemize}
+  \item \textbf{avg:} the test error of 8 VCMs, averaged.
+  \item \textbf{mega/meta:} mega/meta-VCM
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}%
+  \frametitle{simulation: weight-by validity vs. precision, MSE} %
+  \begin{figure}
+    \centering \includegraphics[width=1.0\linewidth]{img/met_mnq_cyh_mse}
+  \end{figure}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
+  \begin{itemize}
+  \item \textbf{avg:} average testing error of all VCMs;
+  \item \textbf{cyh:} meta-analysis weight by validity;
+  \item \textbf{ssz:} meta-analysis weight by precision;
+  \item \textbf{whl:} mega-analysis.
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}%
+  \frametitle{simulation: weight-by validity vs. precision, NLK} %
+  \begin{figure}
+    \centering \includegraphics[width=1.0\linewidth]{img/met_mnq_cyh_nlk}
+  \end{figure}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
+  \begin{itemize}
+  \item \textbf{avg:} average testing error of all VCMs;
+  \item \textbf{cyh:} meta-analysis weight by validity;
+  \item \textbf{ssz:} meta-analysis weight by precision;
+  \item \textbf{whl:} mega-analysis.
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame} <presentation:0>%
+  \frametitle{simulation: meta-VCM, REML} %
+  \begin{figure}
+    \centering \includegraphics[width=.95\linewidth]{img/met_hom_stt_gct_ssz}
+  \end{figure}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{simulation: per cohort analysis}
+  \textbf{a client VCM tested on a new cohort;} \\
+  \textbf{residual z follows $t_{10}$ instead of normal;} \\
+  {\color{blue}\textbf{outer plots: the benchmark, from left to right:}}
+  \begin{itemize}
+  \item \textbf{MSE:} mean square error;
+  \item \textbf{NLK:} mean negative log likelihood;
+  \item \textbf{RTM:} running time;
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame} \frametitle{simulation: per cohort analysis}
+  \begin{figure}
+    \centering \includegraphics[width=.95\linewidth]{img/vcm_ply_mnq}
+  \end{figure}
+  {\color{blue}\textbf{inner plots, model and algorithms:}}
+  \begin{itemize}
+  \item \textbf{GCTA:} GCTA's REML, developed by (\textbf{Yang et. al.});
+  \item \textbf{MNQ1:} MINQUE ;
+  \item \textbf{MNQ2:} MINQUE with kernel enrichment
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+% \section{Theoratical Ground}
+\begin{frame} <presentation:0> %
+  \frametitle{Theoretical Ground} %
+  \textbf{How meta-VCM built on incomplete data outperform maga-VCM?} \\
+  Let $\ve=[e_1 \dots e_Q]$ be the validation error made by the $Q$
+  client models on a unseen random data point, such that
+  \begin{itemize}
+  \item $\EX(e_i) = v$
+  \item $\EX(e_i e_j) = c$
+  \end{itemize}
+  The average error made by all $Q$ models is $\frac{1}{k}\sum_i e_i$,
+  and
+  \begin{align} \label{eq:beg} \EX\left[ \left(\frac{1}{k}\sum_i
+        e_i\right)^2 \right]
+    &= \frac{1}{k^2}\EX\left[\sum_i \left(e_i^2 + \sum_{j \ne i}e_ie_j \right)  \right] \\
+    &= \frac{1}{k}v + \frac{k-1}{k}c
+  \end{align}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame} <presentation:0>%
+  \frametitle{Theoretical Ground}%
+  \textbf{when inter-cohort heterogeneity increases:}
+  \begin{itemize}
+  \item VCMs become less correlated, $\EX(e_i e_j) = c$ goes to 0;
+  \item $\EX\left[ \left(\frac{1}{k}\sum_i e_i\right)^2 \right]$
+    shrinks to $\frac{v}{k}$ -- averaging VCMs benefits;
+  \item heterogeneity act as noise for the full, mega-VCM;
+  \end{itemize}
+  \textbf{when cohort become more homogeneous:}
+  \begin{itemize}
+  \item VCMs become more correlated, $\EX(e_i e_j) = c$ goes to 1;
+  \item $\EX\left[ \left(\frac{1}{k}\sum_i e_i\right)^2 \right]$
+    remains to be $v$ -- averaging VCMs has no effect;
+  \item the whole data is less noisy to the full, mega-VCM;
+  \end{itemize}
+  The model averaging (\ref{eq:beg}) is called ``bootstrap aggregating
+  (bagging)'', developed by (Breiman, 1994, et. al.).
+\end{frame}
+% -------------------------------------------------------------------
+\section{Summary}
+\begin{frame} %
+  \frametitle{Summary} %
+  \textbf{Kernel-Meta-VCM} manages to combine the strength of
+  meta-analysis, kernel, and variance component model.
+  \begin{itemize}
+  \item \textbf{``Meta''}
+    \begin{itemize}
+    \item inherits the economical advantage of distributed research;
+    \end{itemize}
+  \item \textbf{``VCM''}
+    \begin{itemize}
+    \item overcome the curse of dimensionality;
+    \end{itemize}
+  \item \textbf{``Meta'' + ``VCM''}
+    \begin{itemize}
+    \item robust against inter-cohort heterogeneity.
+    \end{itemize}
+  \item \textbf{``Kernel'' and ``residual'' uploads}
+    \begin{itemize}
+    \item balance flexibility, security, and work load;
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame} %
+  \frametitle{Contact} %
+  Xiaoran Tong \\
+  Department of Epidemiology \& Biostatistics \\
+  Michigan State University
+  \begin{itemize}
+  \item email: tongxia1@msu.edu
+  \item phone: (1)517-220-1229
+  \end{itemize}
+\end{frame}
+\end{document}
