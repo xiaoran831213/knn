@@ -1,132 +1,134 @@
 source('sim/rpt.R')
 
-m0 <- function()
-{
-    b0 <- readRpt('sim/run/b00', ref=1)
-    b1 <- readRpt('sim/run/b01', ref=1)
-    b2 <- readRpt('sim/run/b02', ref=1)
-
-    b0.mse <- subset(b0, key=='mse', -key)
-    plt(b0.mse, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt0_mse.png')
-    b0.nlk <- subset(b0, key=='nlk', -key)
-    plt(b0.nlk, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt0_nlk.png')
-    
-    b1.mse <- subset(b1, key=='mse', -key)
-    plt(b1.mse, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt1_mse.png')
-    b1.nlk <- subset(b1, key=='nlk', -key)
-    plt(b1.nlk, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt1_nlk.png')
-
-    b2.mse <- subset(b2, key=='mse', -key)
-    plt(b2.mse, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt2_mse.png')
-    b2.nlk <- subset(b2, key=='nlk', -key)
-    plt(b2.nlk, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt2_nlk.png')
-}
-
 m1 <- function()
 {
-    b0 <- readRpt('sim/run/b10', ref=1)
-    b1 <- readRpt('sim/run/b11', ref=1)
-    b2 <- readRpt('sim/run/b12', ref=1)
-
-    b0.mse <- subset(b0, key=='mse', -key)
-    plt(b0.mse, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/b10_mse.png')
-    b0.nlk <- subset(b0, key=='nlk', -key)
-    plt(b0.nlk, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/b10_nlk.png')
-    
-    b1.mse <- subset(b1, key=='mse', -key)
-    plt(b1.mse, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/b11_mse.png')
-    b1.nlk <- subset(b1, key=='nlk', -key)
-    plt(b1.nlk, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/b11_nlk.png')
-
-    b2.mse <- subset(b2, key=='mse', -key)
-    plt(b2.mse, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/b12_mse.png')
-    b2.nlk <- subset(b2, key=='nlk', -key)
-    plt(b2.nlk, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/b12_nlk.png')
-}
-
-m2 <- function()
-{
-    b0 <- readRpt('sim/run/b20')
-    b1 <- readRpt('sim/run/b21')
-    b2 <- readRpt('sim/run/b22')
-
-    b0 <- subset(b0, het %in% c(0.0, 0.5))
-    b1 <- subset(b1, het %in% c(0.0, 0.5))
-    b2 <- subset(b2, het %in% c(0.0, 0.5))
-
-    b0 <- subset(b0, mtd != 'rop')
-    b1 <- subset(b1, mtd != 'rop')
-    b2 <- subset(b2, mtd != 'rop')
-
-    b0.mse <- subset(b0, key=='mse', -key)
-    plt(b0.mse, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/b20_mse.png')
-    b0.nlk <- subset(b0, key=='nlk', -key)
-    plt(b0.nlk, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/b20_nlk.png')
-    
-    b1.mse <- subset(b1, key=='mse', -key)
-    plt(b1.mse, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/b21_mse.png')
-    b1.nlk <- subset(b1, key=='nlk', -key)
-    plt(b1.nlk, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/b21_nlk.png')
-
-    b2.mse <- subset(b2, key=='mse', -key)
-    plt(b2.mse, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/b22_mse.png')
-    b2.nlk <- subset(b2, key=='nlk', -key)
-    plt(b2.nlk, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/b22_nlk.png')
-}
-
-m3 <- function()
-{
-    rds <- 'sim/run/b3x.rds'
+    rds <- 'sim/run/b1x.rds'
     if(file.exists(rds))
-        da <- readRDS(rds)
+    {
+        d <- readRDS(rds)
+    }
     else
     {
-        b0 <- readRpt('sim/run/b30')
-        b1 <- readRpt('sim/run/b31')
-        b2 <- readRpt('sim/run/b32')
-        b3 <- readRpt('sim/run/b33')
-        da <- rbind(b0, b1, b2, b3)
-        saveRDS(da, rds)
+        b0 <- readRpt('sim/run/b10')
+        b1 <- readRpt('sim/run/b11')
+        b2 <- readRpt('sim/run/b12')
+        b3 <- readRpt('sim/run/b13')
+        d <- rbind(b0, b1, b2, b3)
+        saveRDS(d, rds)
     }
-    da <- within(da, {H <- N * R; N <- N * Q})
-    da <- subset(da, se=-c(Q, R))
-    
-    ## take out MNQUE and GCTA
-    d1 <- subset(da, sim=="st(ga)~p1" & mtd=="gct", -sim) # gcta
-    d2 <- subset(da, sim=="st(ga)~p1" & mtd=="mnq", -sim) # minque 1
-    d3 <- subset(da, sim=="st(ga)~p2" & mtd=="mnq", -sim) # minque 2
-    d2 <- within(d2, mtd <- "mq1")
-    d3 <- within(d3, mtd <- "mq2")
-    db <- rbind(d1, d2, d3)
+    d <- within(d, {H <- N * R; N <- N * Q})
+    d <- subset(d, se=-c(Q, R))
 
-    dc <- subset(db, het==0.0, -het)
-    plt(dc, oxy=.~key, ipt=bxp, axi=val~mtd, out='rpt/kma/img/jsm_vcm_bmk.png')
+    f1 <- function()
+    {
+        ## kmq mle.cyh mle.loo mle.mse mle.nlk mle.ssz mle.whl     mnq mnq.ssz mnq.whl 
+        x <- subset(d, sim=='I(ga)~p2')
+        x <- subset(x, mtd %in% c('mle.cyh', 'mle.whl', 'mnq.cyh', 'mnq.whl', 'gct'))
+        plt(subset(x, key=='nlk'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt1_nlk_cyh.png')
+        plt(subset(x, key=='mse'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt1_mse_cyh.png')
+    }
+
+    f2 <- function()
+    {
+        ## kmq mle.cyh mle.loo mle.mse mle.nlk mle.ssz mle.whl     mnq mnq.ssz mnq.whl 
+        x <- subset(d, sim=='I(ga)~p2')
+        x <- subset(x, mtd %in% c('mle.ssz', 'mle.whl', 'mnq.ssz', 'mnq.whl', 'gct'))
+        plt(subset(x, key=='nlk'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt1_nlk_ssz.png')
+        plt(subset(x, key=='mse'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt1_mse_ssz.png')
+    }
+
+    g1 <- function()
+    {
+        ## kmq mle.cyh mle.loo mle.mse mle.nlk mle.ssz mle.whl     mnq mnq.ssz mnq.whl 
+        d <- subset(d, sim=='I(p2)~p2')
+        d <- subset(d, mtd %in% c('mle.cyh', 'mle.whl', 'mnq.cyh', 'mnq.whl', 'gct'))
+        plt(subset(d, key=='nlk'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt1_nlk_cyh.png')
+        plt(subset(d, key=='mse'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt1_mse_cyh.png')
+    }
+
+    g2 <- function()
+    {
+        ## kmq mle.cyh mle.loo mle.mse mle.nlk mle.ssz mle.whl     mnq mnq.ssz mnq.whl 
+        d <- subset(d, sim=='I(p2)~p2')
+        d <- subset(d, mtd %in% c('mle.ssz', 'mle.whl', 'mnq.ssz', 'mnq.whl', 'gct'))
+        plt(subset(d, key=='nlk'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt1_nlk_ssz.png')
+        plt(subset(d, key=='mse'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt1_mse_ssz.png')
+    }
+
+    f3 <- function()
+    {
+        ## kmq mle.cyh mle.loo mle.mse mle.nlk mle.ssz mle.whl     mnq mnq.ssz mnq.whl 
+        d <- subset(d, sim=='I(ga)~p2')
+        d <- subset(d, mtd %in% c('mle.bat', 'mle.whl', 'mnq.bat', 'mnq.whl', 'gct'))
+        plt(subset(d, key=='rtm'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt1_rtm.png')
+    }
 }
 
 m4 <- function()
 {
     rds <- 'sim/run/b4x.rds'
     if(file.exists(rds))
-        da <- readRDS(rds)
+    {
+        d <- readRDS(rds)
+    }
     else
     {
         b0 <- readRpt('sim/run/b40')
         b1 <- readRpt('sim/run/b41')
         b2 <- readRpt('sim/run/b42')
         b3 <- readRpt('sim/run/b43')
-        da <- rbind(b0, b1, b2, b3)
-        saveRDS(da, rds)
+        d <- rbind(b0, b1, b2, b3)
+        saveRDS(d, rds)
     }
-    da <- within(da, {H <- N * R; N <- N * Q})
-    da <- subset(da, se=-c(Q, R))
-    
-    mse <- subset(da, key=='mse', -key)
-    plt(mse, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_mse.png')
-    nlk <- subset(da, key=='nlk', -key)
-    plt(nlk, oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_nlk.png')
+    d <- within(d, {H <- N * R; N <- N * Q})
+    d <- subset(d, se=-c(Q, R))
 
-    db <- subset(da, sim=="st(ga)~p1" & key!='rtm', -sim)
+    f1 <- function()
+    {
+        ## kmq mle.cyh mle.loo mle.mse mle.nlk mle.ssz mle.whl     mnq mnq.ssz mnq.whl 
+        d <- subset(d, sim=='I(ga)~p1')
+        d <- subset(d, mtd %in% c('mle.cyh', 'mle.whl', 'mnq.cyh', 'mnq.whl', 'gct'))
+        plt(subset(d, key=='nlk'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_nlk_cyh.png')
+        plt(subset(d, key=='mse'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_mse_cyh.png')
+    }
 
-    ## dc <- subset(db, het==0.0, -het)
-    plt(db, oxy=key~het, ipt=bxp, axi=val~mtd, out='rpt/kma/img/jsm_vcm_bmk.png')
+    f2 <- function()
+    {
+        ## kmq mle.cyh mle.loo mle.mse mle.nlk mle.ssz mle.whl     mnq mnq.ssz mnq.whl 
+        d <- subset(d, sim=='I(ga)~p1')
+        d <- subset(d, mtd %in% c('mle.ssz', 'mle.whl', 'mnq.ssz', 'mnq.whl', 'gct'))
+        plt(subset(d, key=='nlk'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_nlk_ssz.png')
+        plt(subset(d, key=='mse'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_mse_ssz.png')
+    }
+
+    g1 <- function()
+    {
+        ## kmq mle.cyh mle.loo mle.mse mle.nlk mle.ssz mle.whl     mnq mnq.ssz mnq.whl 
+        d <- subset(d, sim=='I(p2)~p2')
+        d <- subset(d, mtd %in% c('mle.cyh', 'mle.whl', 'mnq.cyh', 'mnq.whl', 'gct'))
+        plt(subset(d, key=='nlk'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_nlk_cyh.png')
+        plt(subset(d, key=='mse'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_mse_cyh.png')
+    }
+
+    g2 <- function()
+    {
+        ## kmq mle.cyh mle.loo mle.mse mle.nlk mle.ssz mle.whl     mnq mnq.ssz mnq.whl 
+        d <- subset(d, sim=='I(p2)~p2')
+        d <- subset(d, mtd %in% c('mle.ssz', 'mle.whl', 'mnq.ssz', 'mnq.whl', 'gct'))
+        plt(subset(d, key=='nlk'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_nlk_ssz.png')
+        plt(subset(d, key=='mse'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_mse_ssz.png')
+    }
+
+    f3 <- function()
+    {
+        ## kmq mle.cyh mle.loo mle.mse mle.nlk mle.ssz mle.whl     mnq mnq.ssz mnq.whl 
+        d <- subset(d, sim=='I(ga)~p2')
+        d <- subset(d, mtd %in% c('mle.bat', 'mle.whl', 'mnq.bat', 'mnq.whl', 'gct'))
+        plt(subset(d, key=='rtm'), oxy=het~bsz, ipt=bxp, out='rpt/2018_07_15/bt4_rtm.png')
+    }
+}
+
+c0 <- function()
+{
+    d <- readRpt('sim/run/c00', 'sim/run/c01', 'sim/run/c02', 'sim/run/c03')
 }

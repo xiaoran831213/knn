@@ -14,7 +14,7 @@ CL <- function(ret=NULL, ...)
 EL1 <- function(ll, keys, ret=c('list', 'data.frame'))
 {
     ret <- match.arg(ret, c('list', 'data.frame'))
-    ll <- lapply(ll, `[`, keys)
+    ll <- lapply(ll, `[`, keys, drop=FALSE)
     ll <- lapply(ll, do.call, what=data.frame)
     if(ret == 'data.frame')
         ll <- do.call(rbind, ll)
@@ -24,7 +24,7 @@ EL1 <- function(ll, keys, ret=c('list', 'data.frame'))
 EL2 <- function(ll, key, ret=c('list', 'data.frame'))
 {
     ret <- match.arg(ret, c('list', 'data.frame'))
-    ll <- lapply(ll, `[[`, key)
+    ll <- lapply(ll, `[[`, key, drop=FALSE)
     if(ret == 'data.frame')
     {
         . <- lapply(ll, unlist)
@@ -43,6 +43,7 @@ DF <- data.frame
 
 `%||%` <- function(x, y) if(is.null(x)) y else x
 
+`%[%` <- function(ll, key) lapply(ll, `[`, key)
 `%$%` <- function(ll, key) lapply(ll, `[[`, key)
 
 #' Dimension Change.

@@ -1,9 +1,45 @@
 library(dplyr)
 
-readRpt <- function(fdr, ...)
+## clean up parentheses
+.cp <- function(x)
+{
+    x <- gsub("^c", "", x)
+    x <- gsub("[ ()]", "", x)
+    x <- gsub(",", "+", x)
+    x
+}
+
+readRtm <- function(...)
 {
     rpt <- list()
-    for(f in dir(c(fdr, ...), '.rds$', full.names=TRUE))
+    dot <- c(...)
+    for(f in dir(dot, '.rds', full=TRUE))
+    {
+        print(f)
+        r <- try(readRDS(f))
+        if(inherits(r, 'try-error'))
+            next
+        r <- subset(r, dat=='dvp' & key=='rtm', -dat)
+        rpt <- c(rpt, list(r))
+    }
+    rpt <- do.call(rbind, rpt)
+
+    rpt <- within(rpt,
+    {
+        sim <- sprintf("%s(%s)~%s", lnk, .cp(oks), .cp(yks))
+    })
+
+    ## the longest time span as measuring stick
+    rpt <- as_tibble(rpt) %>% group_by(seed) %>% mutate(val=val/max(val)) %>% ungroup
+    rpt <- rpt %>% select(-c(seed, oks, lnk, yks))
+    as.data.frame(rpt)
+}
+    
+readRpt <- function(...)
+{
+    rpt <- list()
+    dot <- c(...)
+    for(f in dir(dot, '.rds$', full=TRUE))
     {
         print(f)
         r <- try(readRDS(f))
@@ -20,28 +56,13 @@ readRpt <- function(fdr, ...)
         nul <- subset(evl, key == 'nlk' & mtd == 'nul', val)
         nlk <- within(nlk, val <- val / unlist(nul))
 
-        ## use MNQ as a time reference
-        dvp <- subset(r, dat == 'dvp', -dat)
-        rtm <- subset(dvp, key == 'rtm')
-        ref <- subset(rtm, mtd != 'kmq', val)
-        rtm <- within(rtm, val <- val / max(unlist(ref)))
-        
-        r <- rbind(mse, nlk, rtm)
-        r <- na.omit(r)
-        rpt <- c(rpt, list(r))
+        rpt <- c(rpt, list(rbind(mse, nlk)))
     }
     rpt <- do.call(rbind, rpt)
     
-    clp <- function(x)
-    {
-        x <- gsub("^c", "", x)
-        x <- gsub("[ ()]", "", x)
-        x <- gsub(",", "+", x)
-        x
-    }
     rpt <- within(rpt,
     {
-        sim <- sprintf("%s(%s)~%s", lnk, clp(oks), clp(yks))
+        sim <- sprintf("%s(%s)~%s", lnk, .cp(oks), .cp(yks))
     })
     rpt <- subset(rpt, se=-c(seed, oks, lnk, yks))
     rpt
@@ -69,12 +90,10 @@ bxp <- function(dat, axi=val~mtd, ...)
     ## limites
     vmx <- with(dat, max(val))
     vmi <- with(dat, min(val))
-    ## vq1 <- with(dat, quantile(val, .95))
-    vq0 <- with(dat, quantile(val, .05))
     ylm <- get0('ylim', inherits=FALSE, ifnotfound=c(0, 1.0))
 
     ## title
-    ttl <- get.unique(dat)$ttl
+    ttl <- get0('itt', inherits=FALSE, ifnotfound=get.unique(dat)$ttl)
 
     ## box plot
     boxplot(axi, dat, xlab=xlb, ylab=ylb, ylim=ylm, ...)

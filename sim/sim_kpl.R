@@ -8,6 +8,7 @@ p3 <- c(o1=function(x) ply(x, degree=1),
         o3=function(x) ply(x, degree=3))
 ga <- c(ga=function(x) gau(x))
 lp <- c(lp=function(x) lap(x))
+ib <- c(ib=function(x) ibs(x))
 sn <- function(x) sin(2 * pi * x)
 sg <- function(x) 1/(1 + exp(-x))
 

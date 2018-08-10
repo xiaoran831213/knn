@@ -9,6 +9,7 @@ source('R/lmm.R')
 source("R/mnq.R")
 source("R/kmq.R")
 source('R/msg.R')
+source('R/agg.R')
 source("sim/sim_kpl.R")
 source('sim/utl.R')
 
@@ -38,7 +39,7 @@ main <- function(N, P, Q=5, R=1, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
     gmx <- readRDS('data/p35_c05.rds')$gmx
     gmx <- get.gmx(gmx, N, P, Q, R)
     dat <- with(gmx, c(dvp, evl))
-    dat <- get2(dat, frq, lnk, eps, oks, c(rep(het, Q), rep(.0, R)))
+    dat <- get.sim(dat, frq, lnk, eps, oks, c(rep(het, Q), rep(.0, R)))
     dvp <- dat[+(1:Q)]
     evl <- dat[-(1:Q)]
     
@@ -49,47 +50,47 @@ main <- function(N, P, Q=5, R=1, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
     sep <- list()
     dvp <- lapply(dvp, function(.) within(., knl <- krn(gmx, yks)))
     ## ******** TODO: change "fit" to director concatenation ********
-    sep$mnq <- lapply(dvp, function(.) within(., fit <- knl.mnq(rsp, knl, ...)))
-    sep$rop <- lapply(dvp, function(.) within(., fit <- rop.lmm(rsp, knl, ...)))
-    ## sep$gct <- lapply(dvp, function(.) within(., fit <- gcta.reml(rsp, knl)))
-    ## sep$kmq <- lapply(dvp, function(.) within(., fit <- kpc.mnq(rsp, knl, ...)))
+    sep$mnq <- lapply(dvp, function(.) {r <- with(., knl.mnq(rsp, knl, ...)); c(., r)})
+    sep$rop <- lapply(dvp, function(.) {r <- with(., rop.lmm(rsp, knl, ...)); c(., r)})
+    ## sep$gct <- lapply(dvp, function(.) {r <- with(., gcta.reml(rsp, knl)); c(., r)})
     
     dvp <- with(sep,
     {
         ## combine all training samples
         gmx <- do.call(rbind, EL2(dvp, 'gmx')) # combined G
-        rsp <- unlist(EL2(dvp, 'rsp'))  # combined Y
-        knl <- krn(gmx, yks)            # combined K
+        rsp <- unlist(EL2(dvp, 'rsp'))         # combined Y
+        knl <- krn(gmx, yks)                   # combined K
         rpt <- list()
         par <- list()
 
-        tmp <- mean(sapply(mnq, function(.) subset(.$fit$rpt, key=='nlk')$val))
-        rpt <- CL(rpt, DF(mtd='avg.mnq', key='nlk', val=tmp))
-        mnq <- knl.mnq(rsp, knl, ...)
-        rpt <- CL(rpt, DF(mtd='whl.mnq', mnq$rpt))
-        par$mnq <- mnq$par
-        
-        tmp <- mean(sapply(rop, function(.) subset(.$fit$rpt, key=='nlk')$val))
-        rpt <- CL(rpt, DF(mtd='avg.rop', key='nlk', val=tmp))
-        rop <- rop.lmm(rsp, knl, ...)
-        rpt <- CL(rpt, DF(mtd='whl.rop', rop$rpt))
-        par$rop <- rop$par
-        
-        ## gct <- gcta.reml(rsp, knl)
-        ## rpt <- CL(rpt, DF(mtd='whl.gct', gct$rpt))
-        ## par$gct <- gct$par
+        ## MINQUE
+        . <- mean(mnq %$% 'rpt' %[% 'val')
+        rpt <- CL(rpt, DF(mtd='mnq.avg', key=rownames(.), .))
+        . <- knl.mnq(rsp, knl, ...)
+        rpt <- CL(rpt, DF(mtd='mnq.whl', .$rpt))
+        par$mnq <- DF(mat(mnq), whl=.$par)
 
-        ## kmq <- kpc.mnq(rsp, knl, ...)
-        ## rpt <- CL(rpt, DF(mtd='whl.kmq', kmq$rpt))
-        ## par$kmq <- kmq$par
+        ## MLE
+        . <- mean(rop %$% 'rpt' %[% 'val')
+        rpt <- CL(rpt, DF(mtd='mle.avg', key=rownames(.), .))
+        . <- rop.lmm(rsp, knl, ...)
+        rpt <- CL(rpt, DF(mtd='mle.whl', .$rpt))
+        par$rop <- DF(mat(rop), whl=.$par)
+
+        ## GCTA-REML
+        ## . <- mean(gct %$% 'rpt' %[% 'val')
+        ## rpt <- CL(rpt, DF(mtd='gct.avg', key=rownames(.), .))
+        ## . <- gcta.reml(rsp, knl)
+        ## rpt <- CL(rpt, DF(mtd='gct.whl', .$rpt))
+        ## par$gct <- DF(mat(gct), whl=.$par)
 
         rpt <- CL(rpt, DF(mtd='nul', nul(rsp)))
         rpt <- cbind(dat='dvp', do.call(rbind, rpt))
         list(rpt=rpt, par=par)
     })
-
+    print(dvp$par)
     ## ----------------------- Testing Errors ----------------------- ##
-    agg <- lapply(sep, mat)
+
     evl <- with(sep,
     {
         gmx <- do.call(rbind, EL2(evl, 'gmx')) # combined G
@@ -97,36 +98,29 @@ main <- function(N, P, Q=5, R=1, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
         knl <- krn(gmx, yks, ...)
         rpt <- list()
 
-        ## performance: meta analysis
-        rpt <- CL(rpt, DF(mtd='nlk.mnq', vpd(rsp, knl, agg$mnq[, 'nlk'], ...)))
-        rpt <- CL(rpt, DF(mtd='ssz.mnq', vpd(rsp, knl, agg$mnq[, 'ssz'], ...)))
-        rpt <- sapply(mnq, function(.) vpd(rsp, knl, .$fit$par, rt=0)) %>%
-            rowMeans %>% {DF(mtd='avg.mnq', key=names(.), val=.)} %>% {CL(rpt, .)}
+        ## MINQUE
+        . <- lapply(dvp$par$mnq, vpd, y=rsp, K=knl, ...)
+        . <- mapply(function(n, r) DF(mtd=paste0('mnq.', n), r), names(.), ., SIMPLIFY=FALSE)
+        rpt <- c(rpt, .)
+        . <- mean(lapply(mnq %$% 'par', vpd, y=rsp, K=knl, rt=0))
+        rpt <- CL(rpt, DF(mtd='mnq.avg', key=names(.), val=.))
 
-        rpt <- CL(rpt, DF(mtd='nlk.rop', vpd(rsp, knl, agg$rop[, 'nlk'], ...)))
-        rpt <- CL(rpt, DF(mtd='ssz.rop', vpd(rsp, knl, agg$rop[, 'ssz'], ...)))
-        rpt <- sapply(rop, function(.) vpd(rsp, knl, .$fit$par, rt=0)) %>%
-            rowMeans %>% {DF(mtd='avg.rop', key=names(.), val=.)} %>% {CL(rpt, .)}
+        ## MLE
+        . <- lapply(dvp$par$rop, vpd, y=rsp, K=knl, ...)
+        . <- mapply(function(n, r) DF(mtd=paste0('mle.', n), r), names(.), ., SIMPLIFY=FALSE)
+        rpt <- c(rpt, .)
+        . <- mean(lapply(rop %$% 'par', vpd, y=rsp, K=knl, rt=0))
+        rpt <- CL(rpt, DF(mtd='mle.avg', key=names(.), val=.))
 
-        ## rpt <- CL(rpt, DF(mtd='nlk.gct', vpd(rsp, knl, agg$gct[, 'nlk'], ...)))
-        ## rpt <- CL(rpt, DF(mtd='ssz.gct', vpd(rsp, knl, agg$gct[, 'ssz'], ...)))
-        ## rpt <- sapply(gct, function(.) vpd(rsp, knl, .$fit$par, rt=0)) %>%
-        ##     rowMeans %>% {DF(mtd='avg.gct', key=names(.), val=.)} %>% {CL(rpt, .)}
-
-        ## rpt <- CL(rpt, DF(mtd='nlk.kmq', vpd(rsp, knl, agg$kmq[, 'nlk'], ...)))
-        ## rpt <- CL(rpt, DF(mtd='ssz.kmq', vpd(rsp, knl, agg$kmq[, 'ssz'], ...)))
-        ## rpt <- sapply(kmq, function(.) vpd(rsp, knl, .$fit$par, rt=0)) %>%
-        ##      rowMeans %>% {DF(mtd='avg.kmq', key=names(.), val=.)} %>% {CL(rpt, .)}
+        ## GCTA-REML
+        ## . <- lapply(dvp$par$gct, vpd, y=rsp, K=knl, ...)
+        ## . <- mapply(function(n, r) DF(mtd=paste0('gct.', n), r), names(.), ., SIMPLIFY=FALSE)
+        ## rpt <- c(rpt, .)
+        ## . <- mean(lapply(gct %$% 'par', vpd, y=rsp, K=knl, rt=0))
+        ## rpt <- CL(rpt, DF(mtd='gct.avg', key=names(.), val=.))
         
-        ## performance: model of whole training data
-        rpt <- CL(rpt, DF(mtd='whl.mnq', vpd(rsp, knl, dvp$par$mnq, ...)))
-        rpt <- CL(rpt, DF(mtd='whl.rop', vpd(rsp, knl, dvp$par$rop, ...)))
-        ## rpt <- CL(rpt, DF(mtd='whl.gct', vpd(rsp, knl, dvp$par$gct, ...)))
-        ## rpt <- CL(rpt, DF(mtd='whl.kmq', vpd(rsp, knl, dvp$par$kmq, ...)))
-
         ## NULL & GOLD
         rpt <- CL(rpt, DF(mtd='nul', nul(rsp)))
-        ## rpt <- CL(rpt, evl[[1]]$rpt)
         
         ## report
         rpt=cbind(dat='evl', do.call(rbind, rpt))
@@ -145,5 +139,5 @@ main <- function(N, P, Q=5, R=1, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
 
 test <- function()
 {
-    r <- main(N=200, P=2000, Q=5, R=1, frq=.1, eps=.1, oks=ga, yks=p2, het=0.2)
+    r <- main(N=250, P=2000, Q=4, R=2, frq=.1, eps=.1, oks=ga, yks=p2, het=0.2)
 }

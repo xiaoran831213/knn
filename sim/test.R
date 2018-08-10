@@ -56,3 +56,10 @@ test.out3 <- function(N=500, P=1000, t=20)
     
     list(r1, r2)
 }
+
+test.kpl1 <- function(N=500, P=2000)
+{
+    g <- readRDS('data/p35_c05.rds')$gmx
+    x <- g[sample.int(nrow(g), N), sample.int(ncol(g), P)]
+    x
+}

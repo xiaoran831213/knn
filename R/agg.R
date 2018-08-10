@@ -1,5 +1,6 @@
 ## model aggregation
 
+#' Cross Cohort Validation
 ccv <- function(rpt, ...)
 {
     Q <- length(rpt)
@@ -9,8 +10,8 @@ ccv <- function(rpt, ...)
     err <- c()
     for(i in seq.int(Q))
     {
-        ki <- rpt[[i]]$knl              # data[i]
-        ri <- rpt[[i]]$rsp              # data[i]
+        ki <- rpt[[i]]$knl              # data[i]'s kernsl
+        ri <- rpt[[i]]$rsp              # data[i]'s response
         for(j in seq.int(Q))
         {
             pj <- rpt[[j]]$par          # model[j]
@@ -33,25 +34,30 @@ ccv <- function(rpt, ...)
 
 cwt <- function(rpt, type='nlk', ...)
 {
+    sc1 <- function(.) . / sum(sc1)
     ## relative generlization in training sets
     if(type == 'nlk')
     {
-        tmp <- -sweep(rpt, 2L, diag(rpt))
-        wmt <- exp(colSums(tmp))
+        ## tmp <- -sweep(rpt, 2L, diag(rpt))
+        ## wmt <- exp(colSums(tmp))
         ## wmt <- exp(colSums(diag(rpt) - rpt))
+        wmt <- 1 / colSums(rpt)
     }
     if(type == 'cyh')
     {
-        wmt <- exp(colSums(rpt - diag(rpt)))
+        ## wmt <- exp(colSums(rpt - diag(rpt)))
+        wmt <- 1 / colSums(1 - rpt)
     }
     if(type %in% c('mse', 'loo'))
     {
-        tmp <- -sweep(rpt, 2L, diag(rpt))
-        wmt <- exp(colSums(tmp))
+        ## tmp <- -sweep(rpt, 2L, diag(rpt))
+        ## wmt <- exp(colSums(tmp))
+        wmt <- 1 / colSums(rpt)
     }
     if(type == 'ssz')
     {
-        wmt <- exp(colSums(diag(rpt) - rpt))
+        ## wmt <- exp(colSums(diag(rpt) - rpt))
+        wmt <- colSums(rpt)
     }
     wmt <- wmt / sum(wmt)
     wmt

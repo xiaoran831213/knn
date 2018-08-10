@@ -46,61 +46,7 @@ get.vcs <- function(n, mtd=c('softmax', 'rchisq'), sc=1)
     e
 }
 
-get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc=NULL)
-{
-    if(!is.list(G))
-        G <- list(G)
-
-    P <- NCOL(G[[1]])
-    N <- NROW(G[[1]])
-    k <- length(V)
-    
-    ## functional SNP mask
-    fmk <- sample(c(rep(1, P * frq), rep(0, P - P * frq)))
-    
-    ## true variance components linking x to y, in log scale
-    nvc <- length(V)
-    if(is.null(vc))
-        vcs <- c(eps=eps, vc=get.vcs(nvc, 'r', 2))
-    else
-        vcs <- c(eps=eps, vc=vc)
-    cvs <- c(id, V)
-
-    ## jittering
-    het <- rep(het, l=length(G))
-    
-    ## effects
-    ## eft <- rnorm(P)
-
-    ret <- mapply(function(gmx, a)
-    {
-        .vc <- vcs * (1 - a) + c(eps, get.vcs(nvc, 'r', 2)) * a
-
-        ## generate
-        ## fmx <- sweep(gmx, 2L, eft, `*`)
-        fmx <- sweep(gmx, 2L, fmk, `*`)
-        ## fmx <- gmx[, as.logical(fmk)]
-        fnl <- krn(fmx, cvs)
-        knl <- krn(gmx, cvs)
-        fcv <- cmb(fnl, .vc)[[1]]
-        kcv <- cmb(knl, .vc)[[1]]
-        rsp <- mvn(1, fcv) %>% drop %>% lnk
-
-        ## oracle fit and null fit:
-        rpt <- list()
-        rpt <- CL(rpt, DF(mtd='fmx', lmm(rsp, fcv, eps)))
-        rpt <- CL(rpt, DF(mtd='gmx', lmm(rsp, kcv, eps)))
-        rpt <- CL(rpt, DF(mtd='nul', nul(rsp)))
-        rpt <- do.call(rbind, rpt)
-
-        ## return
-        list(gmx=gmx, rpt=rpt, rsp=rsp, vcs=.vc)
-    },
-    G, het, SIMPLIFY=FALSE)
-    ret
-}
-
-get2 <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc1=NULL)
+get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc1=NULL)
 {
     ## 1) het population
     if(!is.list(G))
@@ -125,22 +71,24 @@ get2 <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc1=NULL)
     
     jit <- lapply(G, function(gmx)
     {
-        .vc <- c(eps, get.vcs(nvc, 'r', 2))
+        ## .vc <- c(eps, get.vcs(nvc, 'r', 2))
+        .vc <- get.vcs(nvc + 1, 'r', 2)
+        .mu <- 
 
         ## generate
         eft <- rnorm(P)
-
         fmx <- sweep(gmx, 2L, eft, `*`)
         ## fmx <- sweep(gmx, 2L, fmk, `*`)
         fmx <- gmx[, as.logical(fmk)]
         fnl <- krn(fmx, cvs)
         fcv <- cmb(fnl, .vc)[[1]]
 
-        mvn(1, fcv) %>% drop %>% lnk
+        rnorm(1) + mvn(1, fcv) %>% drop %>% lnk
     })
     whl <- with(list(),
     {
         gmx <- do.call(rbind, G)
+        ## fmx <- sweep(gmx, 2L, fmk, `*`)
         fmx <- gmx[, as.logical(fmk)]
         fnl <- krn(fmx, cvs)
         fcv <- cmb(fnl, vcs)[[1]]
