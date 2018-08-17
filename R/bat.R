@@ -14,6 +14,7 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
     
     ## list of history
     hst <- list()
+    acc <- list()
 
     ## dots
     dot <- list(...)
@@ -63,7 +64,6 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
         eph <- CL(eph, bat)
         if(length(eph) == nbt)
         {
-            ## par <- mean(EL2(eph, 'par'))
             par <- mat(eph)
             phi <- par[1, 'ssz']
             rpt <- vpd(rsp, knl, par, rt=0, ...)
@@ -73,6 +73,7 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
             cat(ln.msg(tks), "\n", sep="")
             hst <- CL(hst, c(ep=ep, rtm=rtm, rpt, list(par=par)))
         }
+        acc <- CL(acc, bat)
         
         ## append message track on each new epoch
         if(bt == 0 && ep %% 40 == 1)
@@ -84,10 +85,12 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
     }
     ## rearrange history
     tck <- EL1(hst, c('ep', 'rtm', 'mse', 'loo', 'nlk', 'cyh'), 'd')
-    par <- EL2(hst, 'par')
+
     
     ## mean solution
-    par <- mean(par)
+    ## par <- EL2(hst, 'par')
+    ## par <- mean(par)
+    par <- mat(acc)
     par <- sapply(colnames(par), function(i) par[, i], simplify=FALSE)
     rpt <- lapply(par, vpd, y=rsp, K=knl)
 
