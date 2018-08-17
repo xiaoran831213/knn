@@ -73,8 +73,8 @@ m0.jsm <- function()
         mutate(agg=sub('^.*[.]', '', mtd), alg=sub('[.].*$', '', mtd)) %>%
         select(-mtd)
     r <- r %>% group_by(alg, het) %>% mutate(ref=val/nth(val, 6)) %>% filter(ref<1.0)
+
     ## r %>% filter(sim=='I(p2+ga)~p2+ga') %>% as.data.frame
-    ##
     d <- subset(d, sim=='I(p2+ga)~p2+ga' & key != 'rtm')
     d <- subset(d, het %in% c(0.0, 0.5, 1.0))
 

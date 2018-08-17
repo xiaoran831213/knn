@@ -1,3 +1,4 @@
+## kernels combinations
 source('R/kpl.R')
 id <- c(id=function(x) diag(1, NROW(x)))
 p1 <- c(o1=function(x) ply(x, degree=1))
@@ -9,9 +10,8 @@ p3 <- c(o1=function(x) ply(x, degree=1),
 ga <- c(ga=function(x) gau(x))
 lp <- c(lp=function(x) lap(x))
 ib <- c(ib=function(x) ibs(x))
-sn <- function(x) sin(2 * pi * x)
-sg <- function(x) 1/(1 + exp(-x))
 
+## link functions
 source('R/utl.R')
 st <- function(x) ndc(x, qt, df=10)
 bn <- function(x) ndc(x, qbinom, size=1, prob=.5)
@@ -19,3 +19,8 @@ ps <- function(x) ndc(x, qpois, lambda=1)
 ex <- function(x) ndc(x, qexp, rate=1)
 ca <- function(x) ndc(x, qcauchy, scale=.1)
 ch <- function(x) ndc(x, qchisq, df=1)
+i1 <- function(x) x
+i2 <- function(x) scale((x + 1)^2)
+i3 <- function(x) scale((x + 1)^3)
+sn <- function(x) sin(2 * pi * x)
+sg <- function(x) 1/(1 + exp(-x))

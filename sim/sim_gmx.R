@@ -50,19 +50,19 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
         mnq <- knl.mnq(rsp, knl)
         mle <- rop.lmm(rsp, knl)
 
-        ## kmq <- GBT(knl.mnq, rsp, knl, ...)
-        ## kmq.par <- kmq$par
-        ## kmq.rtm <- kmq$rtm
-        ## kmq <- do.call(rbind, lapply(kmq.par, vpd, y=rsp, K=knl))
-        ## kmq.rpt <- DF(mtd=paste0('mnq.', sub("[.][^.]*$", "", rownames(kmq))), kmq)
-        ## kmq.rpt <- rbind(kmq.rpt, DF(mtd='mnq.bat', key='rtm', val=kmq.rtm))
+        kmq <- GBT(knl.mnq, rsp, knl, ...)
+        kmq.par <- kmq$par
+        kmq.rtm <- kmq$rtm
+        kmq <- do.call(rbind, lapply(kmq.par, vpd, y=rsp, K=knl))
+        kmq.rpt <- DF(mtd=paste0('mnq.', sub("[.][^.]*$", "", rownames(kmq))), kmq)
+        kmq.rpt <- rbind(kmq.rpt, DF(mtd='mnq.bat', key='rtm', val=kmq.rtm))
 
-        ## kml <- GBT(rop.lmm, rsp, knl, ...)
-        ## kml.par <- kml$par
-        ## kml.rtm <- kml$rtm
-        ## kml <- do.call(rbind, lapply(kml.par, vpd, y=rsp, K=knl))
-        ## kml.rpt <- DF(mtd=paste0('mle.', sub("[.][^.]*$", "", rownames(kml))), kml)
-        ## kml.rpt <- rbind(kml.rpt, DF(mtd='mle.bat', key='rtm', val=kml.rtm))
+        kml <- GBT(rop.lmm, rsp, knl, ...)
+        kml.par <- kml$par
+        kml.rtm <- kml$rtm
+        kml <- do.call(rbind, lapply(kml.par, vpd, y=rsp, K=knl))
+        kml.rpt <- DF(mtd=paste0('mle.', sub("[.][^.]*$", "", rownames(kml))), kml)
+        kml.rpt <- rbind(kml.rpt, DF(mtd='mle.bat', key='rtm', val=kml.rtm))
     })
     evl <- within(list(),
     {
@@ -74,11 +74,11 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
         mnq <- DF(mtd='mnq.whl', vpd(rsp, knl, dvp$mnq$par))
         mle <- DF(mtd='mle.whl', vpd(rsp, knl, dvp$mle$par))
 
-        ## kmq <- do.call(rbind, lapply(dvp$kmq.par, vpd, y=rsp, K=knl))
-        ## kmq <- DF(mtd=paste0('mnq.', sub("[.][^.]*$", "", rownames(kmq))), kmq)
+        kmq <- do.call(rbind, lapply(dvp$kmq.par, vpd, y=rsp, K=knl))
+        kmq <- DF(mtd=paste0('mnq.', sub("[.][^.]*$", "", rownames(kmq))), kmq)
         
-        ## kml <- do.call(rbind, lapply(dvp$kml.par, vpd, y=rsp, K=knl))
-        ## kml <- DF(mtd=paste0('mle.', sub("[.][^.]*$", "", rownames(kml))), kml)
+        kml <- do.call(rbind, lapply(dvp$kml.par, vpd, y=rsp, K=knl))
+        kml <- DF(mtd=paste0('mle.', sub("[.][^.]*$", "", rownames(kml))), kml)
     })
     
     ## ----------------------- KDN Model Fitting ----------------------- ##
@@ -93,24 +93,25 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
     rpt <- CL(rpt, DF(dat='evl', evl$gct))
     rpt <- CL(rpt, DF(dat='evl', mtd='nul', nul(evl$rsp)))
 
-    ## rpt <- CL(rpt, DF(dat='dvp', dvp$kml.rpt))
-    ## rpt <- CL(rpt, DF(dat='dvp', dvp$kmq.rpt))
-    ## rpt <- CL(rpt, DF(dat='evl', evl$kmq))
-    ## rpt <- CL(rpt, DF(dat='evl', evl$kml))
+    rpt <- CL(rpt, DF(dat='dvp', dvp$kmq.rpt))
+    rpt <- CL(rpt, DF(dat='evl', evl$kmq))
+
+    rpt <- CL(rpt, DF(dat='dvp', dvp$kml.rpt))
+    rpt <- CL(rpt, DF(dat='evl', evl$kml))
     
     ## report and return
     rpt <- Reduce(function(a, b) merge(a, b, all=TRUE), rpt)
     rpt <- within(rpt, val <- round(val, 4L))
     ret <- cbind(arg, rpt)
 
-    ## print(list(kmq=dvp$kmq$par, mnq=dvp$mnq$par, gct=dvp$gct$par, mle=dvp$mle$par))
-    print(list(mnq=dvp$mnq$par, gct=dvp$gct$par, mle=dvp$mle$par))
+    print(list(kmq=dvp$kmq$par, mnq=dvp$mnq$par, gct=dvp$gct$par, mle=dvp$mle$par))
+    ## print(list(mnq=dvp$mnq$par, gct=dvp$gct$par, mle=dvp$mle$par))
     invisible(ret)
 }
 
 test <- function()
 {
-    r <- main(N=100, P=4000, Q=10, R=5, frq=.1, eps=.1, oks=ga, yks=p2, bsz=50, het=.5)
+    r <- main(N=100, P=4000, Q=10, R=5, frq=.1, eps=.1, lnk=i2, oks=p1, yks=p2, bsz=50, het=.5)
 }
 
 
