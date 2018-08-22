@@ -64,18 +64,18 @@ get.gmx <- function(gmx, N=NULL, P=NULL, Q=4, R=1)
 #' @param m drawn the components from rchisq or softmax
 #' softmax ensure that the compoents adds up to one.
 #' @param s scale the components by this much.
-get.vcs <- function(n, m=c('rchisq', 'softmax'), sc=2, ...)
+get.vcs <- function(n, m=c('rchisq', 'softmax'), svc=2, ...)
 {
     m <- match.arg(m, c('softmax', 'rchisq'))
     if(m == 'softmax')
     {
         e <- rnorm(n)
         e <- exp(e)
-        e <- e / sum(e) * sc
+        e <- e / sum(e) * svc
     }
     else
     {
-        e <- rchisq(n, sc)
+        e <- rchisq(n, svc)
     }
     e
 }
@@ -93,7 +93,7 @@ get.vcs <- function(n, m=c('rchisq', 'softmax'), sc=2, ...)
 #'
 #' @return a list of lists, where the inner lists contains original genotypes and
 #' corresponding, generted response.
-get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc1=NULL, sc=1)
+get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc1=NULL, svc=1)
 {
     ## 1) het population
     if(!is.list(G))
@@ -109,7 +109,7 @@ get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc1=NULL, sc=1)
     ## true variance components linking x to y, in log scale
     nvc <- length(V)
     if(is.null(vc1))
-        vc1 <- get.vcs(nvc, 'r', sc)
+        vc1 <- get.vcs(nvc, 'r', svc)
     vcs <- c(eps=eps, vc=vc1)
     cvs <- c(id, V)
 
@@ -120,7 +120,7 @@ get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc1=NULL, sc=1)
         jit <- lapply(G, function(gmx)
         {
             ## .vc <- c(eps, get.vcs(nvc, 'r', 2))
-            .vc <- get.vcs(nvc + 1, 'r', sc)
+            .vc <- get.vcs(nvc + 1, 'r', svc)
 
             ## generate
             eft <- rnorm(P)
