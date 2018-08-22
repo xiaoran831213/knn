@@ -1,5 +1,5 @@
-## LMM or pure variance component
-lmm.dv1 <- function(W, K, Y, ...)
+## variance component model (VCM)
+vcm.dv1 <- function(W, K, Y, ...)
 {
     M <- NCOL(Y)                        # dim of Y, upper units
     L <- NROW(W)                        # dim of K, lower kernels
@@ -33,7 +33,7 @@ cpp.dv1 <- function(W, K, Y, ...)
 }
 
 
-lmm.dv2 <- function(W, K, Y, ...)
+vcm.dv2 <- function(W, K, Y, ...)
 {
     M <- NCOL(Y)                        # dim of Y, upper units
     L <- NROW(W)                        # dim of K, lower kernels
@@ -71,7 +71,7 @@ lmm.dv2 <- function(W, K, Y, ...)
     dv2
 }
 
-lmm.fsi <- function(W, K, Y, ...)
+vcm.fsi <- function(W, K, Y, ...)
 {
     Y <- as.matrix(Y)
     M <- NCOL(Y)                        # dim of Y, upper units
@@ -142,7 +142,7 @@ knl.prd <- function(y, K, W, rt=1, ...)
 }
 vpd <- knl.prd
 
-rop.lmm <- function(y, K, W=NULL, ...)
+rop.vcm <- function(y, K, W=NULL, cpp=TRUE, ...)
 {
     N <- NROW(y)
     Q <- NCOL(y)
@@ -152,9 +152,12 @@ rop.lmm <- function(y, K, W=NULL, ...)
         W <- matrix(rnorm(L * Q), L, Q)
 
     obj <- function(x) nlk(y, cmb(C, exp(x))[[1]])
-    grd <- function(x) cpp.dv1(x, C, y)[, 1]
-    hsn <- function(x) lmm.dv2(x, C, y)[[1]]
-    fsi <- function(x) lmm.fsi(x, C, y)[[1]]
+    if(cpp)
+        grd <- function(x) cpp.dv1(x, C, y)[, 1]
+    else
+        grd <- function(x) vcm.dv1(x, C, y)[, 1]
+    hsn <- function(x) vcm.dv2(x, C, y)[[1]]
+    fsi <- function(x) vcm.fsi(x, C, y)[[1]]
 
     ## using R's optimizer
     ## library(numDeriv)
@@ -178,7 +181,7 @@ rop.lmm <- function(y, K, W=NULL, ...)
     ret
 }
 
-nwt.lmm <- function(y, K, W=NULL, ...)
+nwt.vcm <- function(y, K, W=NULL, ...)
 {
     . <- list(...)
     wep <- .$wep %||% 100
@@ -192,7 +195,7 @@ nwt.lmm <- function(y, K, W=NULL, ...)
     if(is.null(W))
         W <- matrix(rnorm(L * Q), L, Q)
 
-    PF("NWT.LMM.DV1.BEGIN = \n")
+    PF("NWT.VCM.DV1.BEGIN = \n")
     time0 <- proc.time()
     for(i in seq.int(wep))
     {
@@ -200,7 +203,7 @@ nwt.lmm <- function(y, K, W=NULL, ...)
         if(max(abs(g)) < 1e-6)
             break
 
-        H <- lmm.fsi(W, C, y)[[1]]
+        H <- vcm.fsi(W, C, y)[[1]]
         ## print(list(itr=i, dv2=H, dv1=g, par=exp(W)))
 
         ## update: u = -g H^{-1} => H u = -g
@@ -212,7 +215,7 @@ nwt.lmm <- function(y, K, W=NULL, ...)
         W <- W + u
     }
     time1 <- proc.time()
-    PF("NWT.LMM.DV2.END =\n")
+    PF("NWT.VCM.DV2.END =\n")
     
     ## make predictions
     prd <- vpd(y, K, exp(W))
@@ -223,7 +226,7 @@ nwt.lmm <- function(y, K, W=NULL, ...)
     list(rpt=rbind(rtm, prd), par=exp(W))
 }
 
-lmm <- function(y, v, e)
+vcm <- function(y, v, e)
 {
     N <- nrow(v)
     f <- v - diag(e, N)

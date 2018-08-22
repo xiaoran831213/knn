@@ -1,35 +1,39 @@
 library(magrittr)
 library(Matrix)
+
 source('R/hlp.R')
 source('R/kpl.R')
-source('R/gct/grm.R')
-source('R/gct/gct.R')
 source('R/utl.R')
-source('R/lmm.R')
-source("R/mnq.R")
-source("R/kmq.R")
+source('R/vcm.R')
+source('R/mnq.R')
 source('R/msg.R')
+source('R/bat.R')
 source('R/agg.R')
-source("sim/sim_kpl.R")
+source('sim/grm.R')
+source('sim/gct.R')
 source('sim/utl.R')
 
-library(devtools)
-devtools::load_all()
+## devtools::load_all()
+## library(devtools)
 
 #' simulation of kernel deep neural network;
-#' @param gno gnomic map, subject id, and genomic matrix in dosage format;
-#' @param N draw this many samples for training and test, for each cohort;
-#' @param P draw this many features (i.e., SNPs);
-#' @param frq numeric percentage of functional features (i.e., casual SNPs);
-#' @param eps numeric size of white noise adds to the noise free outcome;
-#' @param bsz numeric batch size for mini-batch based training, when NULL or
+#' @param N size of a sub-population
+#' @param P number of variants
+#' @param Q number of developing population
+#' @param R number of evaluation population
+#' @param frq fraction of functional variants
+#' @param lnk link function to transform the raw response
+#' @param eps size of white noise
+#' @param oks kernels for simulated data
+#' @param yks kernels for the model to be tested.
+#' @param bsz size of mini-batches
 main <- function(N, P, Q=5, R=1, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
     set.seed(dot$seed)
-    het <- dot$het %||% .2
-    arg <- match.call() %>% tail(-1) %>% as.list # %>% as.data.frame
+    het <- dot$het %||% .0
+    arg <- match.call() %>% tail(-1) %>% as.list
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
     arg <- do.call(data.frame, arg)
@@ -51,7 +55,7 @@ main <- function(N, P, Q=5, R=1, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
     dvp <- lapply(dvp, function(.) within(., knl <- krn(gmx, yks)))
     ## ******** TODO: change "fit" to director concatenation ********
     sep$mnq <- lapply(dvp, function(.) {r <- with(., knl.mnq(rsp, knl, ...)); c(., r)})
-    sep$rop <- lapply(dvp, function(.) {r <- with(., rop.lmm(rsp, knl, ...)); c(., r)})
+    sep$rop <- lapply(dvp, function(.) {r <- with(., rop.vcm(rsp, knl, ...)); c(., r)})
     ## sep$gct <- lapply(dvp, function(.) {r <- with(., gcta.reml(rsp, knl)); c(., r)})
     
     dvp <- with(sep,
@@ -73,7 +77,7 @@ main <- function(N, P, Q=5, R=1, frq=.1, lnk=I, eps=.2, oks=p1, yks=p1, ...)
         ## MLE
         . <- mean(rop %$% 'rpt' %[% 'val')
         rpt <- CL(rpt, DF(mtd='mle.avg', key=rownames(.), .))
-        . <- rop.lmm(rsp, knl, ...)
+        . <- rop.vcm(rsp, knl, ...)
         rpt <- CL(rpt, DF(mtd='mle.whl', .$rpt))
         par$rop <- DF(mat(rop), whl=.$par)
 

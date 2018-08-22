@@ -46,19 +46,32 @@ readRpt <- function(...)
         if(inherits(r, 'try-error'))
             next
         
-        ## use null model as a measuring stick
+        ## MSE: null model as a measuring stick
         evl <- subset(r, dat == 'evl', -dat)
         mse <- subset(evl, key == 'mse' & mtd != 'nul')
         nul <- subset(evl, key == 'mse' & mtd == 'nul', val)
         mse <- within(mse, val <- val / unlist(nul))
 
+        ## NLK: null model as a measuring stick
         nlk <- subset(evl, key == 'nlk' & mtd != 'nul')
         nul <- subset(evl, key == 'nlk' & mtd == 'nul', val)
-        nlk <- within(nlk, val <- val / unlist(nul))
+        nlk <- within(nlk, val <- exp(2 * (val - unlist(nul))))
 
-        rpt <- c(rpt, list(rbind(mse, nlk)))
+        ## NLK: null model as a measuring stick
+        loo <- subset(evl, key == 'loo' & mtd != 'nul')
+        nul <- subset(evl, key == 'loo' & mtd == 'nul', val)
+        loo <- within(loo, val <- val / unlist(nul))
+        
+        ## CYH: null model is meaning less
+        cyh <- subset(evl, key == 'cyh' & mtd != 'nul')
+
+        rpt <- c(rpt, list(rbind(mse, nlk, cyh, loo)))
     }
     rpt <- do.call(rbind, rpt)
+    rpt <- subset(rpt, !is.infinite(val))
+    
+    ## corr(y, y_hat) for null model is meaning less
+    rpt <- subset(rpt, !(key == 'cyh' & mtd == 'nul'))
     
     rpt <- within(rpt,
     {
@@ -96,7 +109,7 @@ bxp <- function(dat, axi=val~mtd, ...)
     ttl <- get0('itt', inherits=FALSE, ifnotfound=get.unique(dat)$ttl)
 
     ## box plot
-    boxplot(axi, dat, xlab=xlb, ylab=ylb, ylim=ylm, ...)
+    boxplot(axi, dat, xlab=xlb, ylab=ylb, ylim=ylm, lex.order=FALSE, ...)
     abline(1, 0, col='red')
     title(ttl)
 }

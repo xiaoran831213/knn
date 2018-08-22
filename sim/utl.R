@@ -1,16 +1,44 @@
-#' get a consecutive section from the genomic matrix
-#' for training and testing dataset.
+## kernels combinations
+source('R/kpl.R')
+id <- c(id=function(x) diag(1, NROW(x)))
+p1 <- c(o1=function(x) ply(x, degree=1))
+p2 <- c(o1=function(x) ply(x, degree=1),
+        o2=function(x) ply(x, degree=2))
+p3 <- c(o1=function(x) ply(x, degree=1),
+        o2=function(x) ply(x, degree=2),
+        o3=function(x) ply(x, degree=3))
+ga <- c(ga=function(x) gau(x))
+lp <- c(lp=function(x) lap(x))
+ib <- c(ib=function(x) ibs(x))
+
+## link functions
+source('R/utl.R')
+st <- function(x) ndc(x, qt, df=10)
+bn <- function(x) ndc(x, qbinom, size=1, prob=.5)
+ps <- function(x) ndc(x, qpois, lambda=1)
+ex <- function(x) ndc(x, qexp, rate=1)
+ca <- function(x) ndc(x, qcauchy, scale=.1)
+ch <- function(x) ndc(x, qchisq, df=1)
+i1 <- function(x) x
+i2 <- function(x) scale((x + 1)^2)
+i3 <- function(x) scale((x + 1)^3)
+sn <- function(x) sin(2 * pi * x)
+sg <- function(x) 1/(1 + exp(-x))
+
+#' get and divide a segment from the genome
 #' 
-#' @param gmx the gnomic matrix
-#' @param N the size of development data
+#' @param gmx the genomic matrix
+#' @param N the size of each cohort
 #' @param P the number of variants
+#' @param Q the number of training cohorts
+#' @param R the number of testing cohort
 get.gmx <- function(gmx, N=NULL, P=NULL, Q=4, R=1)
 {
     N <- N %||% as.integer(nrow(gmx) * .2)
     P <- min(P, ncol(gmx))
     
     ## indices
-    idx <- sample.int(nrow(gmx))[seq.int(N * Q * 2)]
+    idx <- sample.int(nrow(gmx))[seq.int(N * Q + N * R)]
     jdx <- seq(sample.int(ncol(gmx) - P, 1), l=P)
     gmx <- gmx[idx, jdx]
     
@@ -30,10 +58,16 @@ get.gmx <- function(gmx, N=NULL, P=NULL, Q=4, R=1)
     list(dvp=dvp, evl=evl)
 }
 
-get.vcs <- function(n, mtd=c('softmax', 'rchisq'), sc=1)
+#' get variance components randomly
+#'
+#' @param n the number of components
+#' @param m drawn the components from rchisq or softmax
+#' softmax ensure that the compoents adds up to one.
+#' @param s scale the components by this much.
+get.vcs <- function(n, m=c('rchisq', 'softmax'), sc=2, ...)
 {
-    mtd <- match.arg(mtd, c('softmax', 'rchisq'))
-    if(mtd == 'softmax')
+    m <- match.arg(m, c('softmax', 'rchisq'))
+    if(m == 'softmax')
     {
         e <- rnorm(n)
         e <- exp(e)
@@ -46,7 +80,20 @@ get.vcs <- function(n, mtd=c('softmax', 'rchisq'), sc=1)
     e
 }
 
-get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc1=NULL)
+#' get simulated response
+#'
+#' @param G the a list of genotype data for different cohorts
+#' @param frq frequency of functional variants
+#' @param lnk link function to tranform the simulated signal;
+#' @param eps size of noise
+#' @param V the list of data generating kernels
+#' @param het inter cohort heterogeneity
+#' @param vc1 instead of randomly draw, use these variance compoent for the shared effect,
+#' the heterogeneity effect is still randomly generated.
+#'
+#' @return a list of lists, where the inner lists contains original genotypes and
+#' corresponding, generted response.
+get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc1=NULL, sc=1)
 {
     ## 1) het population
     if(!is.list(G))
@@ -62,29 +109,35 @@ get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc1=NULL)
     ## true variance components linking x to y, in log scale
     nvc <- length(V)
     if(is.null(vc1))
-        vc1 <- get.vcs(nvc, 'r', 2)
+        vc1 <- get.vcs(nvc, 'r', sc)
     vcs <- c(eps=eps, vc=vc1)
     cvs <- c(id, V)
 
     ## jittering
-    het <- rep(het, l=length(G))
-    
-    jit <- lapply(G, function(gmx)
+    if(any(het > 0))
     {
-        ## .vc <- c(eps, get.vcs(nvc, 'r', 2))
-        .vc <- get.vcs(nvc + 1, 'r', 2)
-        .mu <- 
+        het <- rep(het, l=length(G))
+        jit <- lapply(G, function(gmx)
+        {
+            ## .vc <- c(eps, get.vcs(nvc, 'r', 2))
+            .vc <- get.vcs(nvc + 1, 'r', sc)
 
-        ## generate
-        eft <- rnorm(P)
-        fmx <- sweep(gmx, 2L, eft, `*`)
-        ## fmx <- sweep(gmx, 2L, fmk, `*`)
-        fmx <- gmx[, as.logical(fmk)]
-        fnl <- krn(fmx, cvs)
-        fcv <- cmb(fnl, .vc)[[1]]
+            ## generate
+            eft <- rnorm(P)
+            fmx <- sweep(gmx, 2L, eft, `*`)
+            ## fmx <- sweep(gmx, 2L, fmk, `*`)
+            fmx <- gmx[, as.logical(fmk)]
+            fnl <- krn(fmx, cvs)
+            fcv <- cmb(fnl, .vc)[[1]]
 
-        rnorm(1) + mvn(1, fcv) %>% drop %>% lnk
-    })
+            rnorm(1) + mvn(1, fcv) %>% drop %>% lnk
+        })
+    }
+    else
+    {
+        jit <- NULL
+    }
+
     whl <- with(list(),
     {
         gmx <- do.call(rbind, G)
@@ -106,10 +159,10 @@ get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, vc1=NULL)
     mix <- list()
     for(i in seq.int(1, l=Q))
     {
-        rsp <- whl[[i]] * (1-het[i]) + jit[[i]] * het[i]
+        rsp <- whl[[i]]
+        if(!is.null(jit))
+            rsp <- rsp * (1 - het[i]) + jit[[i]] * het[i]
         mix[[i]] <- list(rsp=rsp, gmx=G[[i]])
     }
-
     mix
 }
-
