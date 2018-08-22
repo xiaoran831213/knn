@@ -17,24 +17,29 @@ library(devtools)                       # enable the C++ functions
 devtools::load_all()
 
 #' simulation of kernel deep neural network;
-#' @param N size of a sub-population
+#' @param N size of population groups
 #' @param P number of variants
-#' @param Q number of developing population
-#' @param R number of evaluation population
+#' @param Q number of groups that constitute training data
+#' @param R number of groups that constitute testing data
 #' @param frq fraction of functional variants
-#' @param lnk link function to transform the raw response
 #' @param eps size of white noise
-#' @param oks kernels for simulated data
-#' @param yks kernels for the model to be tested.
-#' @param bsz size of mini-batches
-#' @param sc effect scaler
+#' 
+#' @param oks true kernels to generate y - the responses;
+#' @param svc variance of true variance components;
+#' @param lnk link function to transform the generated response;
+#'
+#' @param yks used kernels for modeling;
+#' 
+#' @param bsz batch size for batched training
+#'
+#' see "sim/utl.R" to understand {oks}, {lnk}, and {yks}.
 main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
     set.seed(dot$seed)
     het <- dot$het %||% .0
-    sc <- dot$sc %||% 1
+    svc <- dot$svc %||% 1
     arg <- match.call() %>% tail(-1) %>% as.list
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
@@ -42,11 +47,10 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
     gmx <- dot$gds %||% 'data/1kg_c05.rds'
 
     ## ------------------------- data genration ------------------------- ##
-    ## choose N samples and P features for Q development
-    ## cohorts and and R evaluation cohorts
+    ## for each of the Q groups, choose N samples and P features -> Training
     gmx <- get.gmx(readRDS(gmx), N, P, Q, R)
     dat <- with(gmx, c(dvp, evl))
-    dat <- get.sim(dat, frq, lnk, eps, oks, het=c(rep(het, Q), rep(het, R)), vc1=NULL, sc=sc)
+    dat <- get.sim(dat, frq, lnk, eps, oks, het=c(rep(het, Q), rep(het, R)), vc1=NULL, svc=svc)
     dvp <- dat[+(1:Q)]
     evl <- dat[-(1:Q)]
     dvp <- within(list(),
@@ -59,6 +63,7 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
         mle <- rop.vcm(rsp, knl, cpp=TRUE)     # whold sample MLE
 
     })
+    ## for each of the R groups, choose N samples and P features -> Testing
     evl <- within(list(),
     {
         gmx <- do.call(rbind, EL2(evl, 'gmx')) # stacked genomics
@@ -93,6 +98,7 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
 
 test <- function()
 {
-    r <- main(N=100, P=4000, Q=8, R=15, frq=.01, eps=.1, lnk=i2, oks=p1, yks=p2, sc=5)
-    r <- subset(r, dat=='evl' & key=='nlk')
+    r <- main(N=100, P=4000, Q=10, R=15, frq=.01, eps=.1, lnk=i2, oks=p1, yks=p2, svc=5)
+    subset(r, dat=='evl' & key=='nlk')
+    subset(r, dat=='dvp' & key=='rtm')
 }

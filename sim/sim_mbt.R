@@ -17,24 +17,29 @@ library(devtools)                       # enable the C++ functions
 devtools::load_all()
 
 #' simulation of kernel deep neural network;
-#' @param N size of a sub-population
+#' @param N size of population groups
 #' @param P number of variants
-#' @param Q number of developing population
-#' @param R number of evaluation population
+#' @param Q number of groups that constitute training data
+#' @param R number of groups that constitute testing data
 #' @param frq fraction of functional variants
-#' @param lnk link function to transform the raw response
 #' @param eps size of white noise
-#' @param oks kernels for simulated data
-#' @param yks kernels for the model to be tested.
-#' @param bsz size of mini-batches
-#' @param sc effect scaler
+#' 
+#' @param oks true kernels to generate y - the responses;
+#' @param svc variance of true variance components;
+#' @param lnk link function to transform the generated response;
+#'
+#' @param yks used kernels for modeling;
+#' 
+#' @param bsz batch size for batched training
+#'
+#' see "sim/utl.R" to understand {oks}, {lnk}, and {yks}.
 main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
     set.seed(dot$seed)
     het <- dot$het %||% .0
-    sc <- dot$sc %||% 1
+    svc <- dot$svc %||% 1
     arg <- match.call() %>% tail(-1) %>% as.list
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
@@ -42,13 +47,14 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
     gmx <- dot$gds %||% 'data/1kg_c05.rds'
 
     ## ------------------------- data genration ------------------------- ##
-    ## choose N samples and P features for Q development
-    ## cohorts and and R evaluation cohorts
+    ## for each of the Q groups, choose N samples and P features -> Training
     gmx <- get.gmx(readRDS(gmx), N, P, Q, R)
     dat <- with(gmx, c(dvp, evl))
-    dat <- get.sim(dat, frq, lnk, eps, oks, het=c(rep(het, Q), rep(het, R)), vc1=NULL, sc=sc)
-    dvp <- dat[+(1:Q)]
-    evl <- dat[-(1:Q)]
+    dat <- get.sim(dat, frq, lnk, eps, oks, het=c(rep(het, Q), rep(het, R)), vc1=NULL, svc=svc)
+    dvp <- dat[+(1:Q)]                  # training
+    evl <- dat[-(1:Q)]                  # testing
+
+    ## ------------------------- model building ------------------------- ##
     dvp <- within(list(),
     {
         gmx <- do.call(rbind, EL2(dvp, 'gmx')) # stacked genomics
@@ -74,6 +80,8 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
         kml.rpt <- DF(mtd=paste0('mle.', sub("[.][^.]*$", "", rownames(kml))), kml)
         kml.rpt <- rbind(kml.rpt, DF(mtd='mle.bat', key='rtm', val=kml.rtm))
     })
+
+    ## ------------------------- model evaluation ------------------------- ##
     evl <- within(list(),
     {
         gmx <- do.call(rbind, EL2(evl, 'gmx')) # stacked genomics
@@ -84,14 +92,16 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
         mnq <- DF(mtd='mnq.whl', vpd(rsp, knl, dvp$mnq$par))      # evaluate MINQUE
         mle <- DF(mtd='mle.whl', vpd(rsp, knl, dvp$mle$par))      # evaluate MLE
 
+        ## batched MINQUE
         kmq <- do.call(rbind, lapply(dvp$kmq.par, vpd, y=rsp, K=knl))
         kmq <- DF(mtd=paste0('mnq.', sub("[.][^.]*$", "", rownames(kmq))), kmq)
-        
+
+        ## batched MLE
         kml <- do.call(rbind, lapply(dvp$kml.par, vpd, y=rsp, K=knl))
         kml <- DF(mtd=paste0('mle.', sub("[.][^.]*$", "", rownames(kml))), kml)
     })
     
-    ## ----------------------- generate reports ----------------------- ##
+    ## --------------------------- make reports --------------------------- ##
     rpt <- list()
     rpt <- CL(rpt, DF(dat='dvp', mtd='mnq.whl', dvp$mnq$rpt))
     rpt <- CL(rpt, DF(dat='dvp', mtd='mle.whl', dvp$mle$rpt))
@@ -103,10 +113,10 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
     rpt <- CL(rpt, DF(dat='evl', evl$gct))
     rpt <- CL(rpt, DF(dat='evl', mtd='nul', nul(evl$rsp)))
 
-    rpt <- CL(rpt, DF(dat='dvp', dvp$kmq.rpt))
+    rpt <- CL(rpt, DF(dat='dvp', dvp$kmq.rpt)) # batched
     rpt <- CL(rpt, DF(dat='evl', evl$kmq))
 
-    rpt <- CL(rpt, DF(dat='dvp', dvp$kml.rpt))
+    rpt <- CL(rpt, DF(dat='dvp', dvp$kml.rpt)) # batched
     rpt <- CL(rpt, DF(dat='evl', evl$kml))
     
     ## report and return
@@ -121,26 +131,7 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=I, eps=.1, oks=p1, yks=p1, ...)
 
 test <- function()
 {
-    r <- main(N=100, P=4000, Q=8, R=15, frq=.01, eps=.1, lnk=i2, oks=p1, yks=c(ga, p2), bsz=200, sc=5)
-}
-
-
-test.vcm <- function(N=100, P=10, t=20)
-{
-    library(microbenchmark)
-    x <- matrix(rnorm(N * P), N, P)
-    K <- krn(x, c(id, p2, ga))
-    L <- length(K)
-    Q <- 2
-    W <- matrix(rchisq(L * Q, 1), L, Q)
-    Y <- matrix(rnorm(N * Q), N, Q)
-
-    m <- microbenchmark(
-        r1 <- vcm.dv1(W, K, Y),
-        r2 <- cpp.dv1(W, K, Y),
-        times=t)
-    print(m)
-    print(all.equal(r1, r2))
-    
-    list(r1=r1, r2=r2)
+    r <- main(N=100, P=4000, Q=10, R=15, frq=.01, eps=.1, lnk=i2, svc=5, oks=p1, yks=p2, bsz=200)
+    subset(r, dat=='evl' & key=='nlk')
+    subset(r, dat=='dvp' & key=='rtm')
 }
