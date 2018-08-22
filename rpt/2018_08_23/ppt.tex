@@ -110,12 +110,12 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 \end{frame}
 % -------------------------------------------------------------------
 \newcommand{\fit}[1]{{\color{magenta}{#1}}}
-\newcommand{\blue}[1]{{\color{blue}{#1}}}
-\newcommand{\red}[1]{{\color{red}{#1}}}
+\newcommand{\CB}[1]{{\color{blue}{#1}}}
+\newcommand{\CR}[1]{{\color{red}{#1}}}
 \newcommand{\green}[1]{{\color{green}{#1}}}
 \begin{frame}
-  \frametitle{Motivation: \blue{v}ariance \blue{c}omponent
-    \blue{m}odel (\blue{\textbf{VCM}})} %
+  \frametitle{Motivation: \CB{v}ariance \CB{c}omponent
+    \CB{m}odel (\CB{\textbf{VCM}})} %
   \textbf{VCM} depicts the influence of ultra high dimensional $\xx$
   on $\vy$,
   \begin{align}\label{eq:vcm}
@@ -132,142 +132,64 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
     $\vtheta = \{\fit{\sigma^2_0}, \fit{\sigma^2_1} \dots
     \fit{\sigma^2_L}\}$ comprises a \textbf{VCM}.
   \end{itemize}
+
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}
+  \frametitle{Motivation: computation issues of \CB{\textbf{VCM}}} %
   \textbf{A VCM requires}
   \begin{itemize}
   \item multiple kernels ($L>1$) to achieve high capacity;
   \item large sample $N$ to stabilize;
-  \item $O(L N^3)$ to compute.
+  \item $O(N^3)$ to invert the combined kernel matrix.
   \end{itemize}
-\end{frame}
-% -------------------------------------------------------------------
-\begin{frame}
-  \frametitle{Motivation: \blue{v}ariance \blue{c}omponent
-    \blue{m}odel (\blue{\textbf{VCM}})} %
-  A \textbf{VCM} requires large sample to stabilize; large sample
-  slows down the computation; we consider:
-  \begin{itemize}
-  \item fitting the \textbf{VCM} non-iteratively.
-  \item fitting the \textbf{VCM} by batch.
-  \end{itemize}
+  \textbf{Re-introduce the curse of dimensionality by large cohorts.}
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame}\frametitle{Motivation: \textbf{consider
-      \blue{meta}-VCM:}} %
+      \CB{meta}-VCM:}} %
   \begin{figure}\includegraphics[width=.90\textwidth]{img/meta0}\end{figure}
-  \textbf{\red{decentralized!}}  \textbf{limited choice in model and
+  \textbf{\CR{decentralized!}}  \textbf{limited choice in model and
     algorithm;}
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame}\frametitle{Motivation: \textbf{consider
-      \blue{mega}-VCM:}} %
+      \CB{mega}-VCM:}} %
   \begin{figure}\includegraphics[width=.90\textwidth]{img/mega0}\end{figure}
-  \textbf{\red{full information!} insecured data, renewed curse of
+  \textbf{\CR{full information!} insecured data, renewed curse of
     dimension.}
 \end{frame}
 % -------------------------------------------------------------------
-\section{Batched-VCM}
+\section{Improved VCM}
 % -------------------------------------------------------------------
 \begin{frame}
   \large{\textbf{Proposal}}: \\
-  \large{\textbf{\red{Batched Deep} \blue{v}ariance \blue{c}omponent \blue{m}odel}}
+  \large{\textbf{\CR{Batched, Deep, MINQUE} \CB{v}ariance \CB{c}omponent \CB{m}odel}} \\
+  \textbf{Increase capacity}
   \begin{itemize}
-  \item expand the kernels to deep kernels;
-  \item using non-iterative methods to solve variance components;
-  \item train the VCM by batch.
+  \item depen the VCM via kernel enrichment;
   \end{itemize}
-  \textbf{Improve the capacity of VCMs and reduce the computation.}
-\end{frame}
-% -------------------------------------------------------------------
-\begin{frame}\frametitle{Batched Training}
+  \textbf{Reduce computation}
   \begin{itemize}
-  \item partition the cohort into Q batches $b_i = (\vy_i, \mM_i, \mX_i)$;
-  \item calculate  kernels and residuals for all batches
-    \begin{itemize}
-    \item $K_{i, 1 \dots L}$ and residual $\vr_i=h(\vy_i)$;
-    \end{itemize}
-  \item $\xk = \mathcal{K}_{1 \dots L}(\xx)$ and residual $\vz=h(\vy)$;
-  \item server models each $(\vz, \xk)$ with a \textbf{VCM}.
+  \item solve VCs in close form by MINQUE;
+  \item built VCM by batch.
   \end{itemize}
-\end{frame}
-% -------------------------------------------------------------------
-\begin{frame}\frametitle{KM-VCM: Diagram}
-  \begin{figure}
-    \centering \includegraphics[width=\textwidth]{img/meta1}
-    \caption{proposed meta-VCM}
-    \label{fig:mata1}
-  \end{figure}
-  \textbf{meta-VCM does not cover cross-cohort sample pairs!}
-\end{frame}
-% -------------------------------------------------------------------
-\begin{frame}\frametitle{\textbf{KM-VCM}: overview}
-  \textbf{Advantages:}
-  \begin{itemize}
-  \item secured -- $\mathcal{K}(\xx)$ encrypts $\xx$, $h(\vy)$
-    encrypts $\vy$;
-  \item avoid the curse of $O(N^3)$ matrix inversion.
-  \item \blue{flexibility of models and algorithms};
-  \item \blue{validity guided weighting};
-  \end{itemize}
-  \textbf{Concerns:}
-  \begin{itemize}
-  \item incomplete information used;
-  \item inter-cohort heterogeneity.
-  \end{itemize}
-\end{frame}
-% -------------------------------------------------------------------
-\begin{frame}<presentation:1> %
-  \frametitle{KM-VCM: weight by precision (classics)} %
-  Let $i = 1 \dots Q$ index the Q uploads, $j = 0 \dots L$ index the
-  variance components.\\
-  \textbf{weight by confidence:}
-  \begin{align}
-    w_{i,j} &= \frac{\left[\se{\theta_{i,j}} \right ]^2}
-              {\sum_\ti \left[\se{\theta_{\ti,j}} \right ]^2} \\
-    w_{i,j} &= \frac{n_i}{\sum_\ti n_\ti}
-  \end{align}
-  {\color{blue}\textbf{no extra analysis required}}
-\end{frame}
-% -------------------------------------------------------------------
-\begin{frame}<presentation:1> %
-  \frametitle{KM-VCM: weight by validity (proposal)} %
-  For each upload $\bs{c_i}=(\vz_i, \xk_i)$, get losses for all $Q$ models
-  \begin{table}[]
-    \small
-    \begin{tabular}{c|cccc}
-      .           & $\vtheta_1$            & $\vtheta_2$            & $\dots$  & $\vtheta_Q$            \\ \hline
-      $\vc_1$     & o($\vc_1$,$\vtheta_1$) & o($\vc_1$,$\vtheta_2$) & $\dots$  & o($\vc_1$,$\vtheta_Q$) \\
-      $\vc_2$     & o($\vc_2$,$\vtheta_1$) & o($\vc_2$,$\vtheta_2$) & $\dots$  & o($\vc_2$,$\vtheta_Q$) \\
-      $\vdots$    & $\vdots$               & $\vdots$               & $\ddots$ & $\vdots$               \\
-      $\vc_Q$     & o($\vc_Q$,$\vtheta_1$) & o($\vc_Q$,$\vtheta_2$) & $\dots$  & o($\vc_Q$,$\vtheta_Q$) \\
-    \end{tabular}
-  \end{table}
-  The invert loss \red{$[\ef(\vc_i, \vtheta_j)]^{-1}$} tells the
-  \red{\textbf{validity}} of model $r$ on cohort $j$,
-  \begin{itemize}
-  \item internal validity $\leftarrow$ diagonal
-  \item external validity $\leftarrow$ off-diagonal
-  \end{itemize}
-  The sum of $j$ th. column weights the $j$ model by overall validity:
-  \begin{align}
-    w_r = \sum_i{\left[\ef( \vc_i; \vtheta_r)\right]^{-1}}
-  \end{align}
-  
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame}%
-  \frametitle{KM-VCM: flexible models}
+  \frametitle{Kernel Enrichment}
   \textbf{``polynomial expansion'' by kernel:}
   \begin{align*}
     \xk^{(1)} & = \bigcup_{i}^L \kn_i(\xx) = \{\xk_1, \dots, \xk_L\} \\
     \xk^{(2)} & = \bigcup_{i,j}^{L \times L} \kn_i(\xx) \circ \kn_j(\xx) = \{\xk_1\xk_1, \xk_1\xk_2, \dots, \xk_L\xk_L\} \\
     \xk^{(3)} & = \bigcup_{i,j,k}^{L^{(3)}}  \kn_i(\xx) \circ \kn_j(\xx) \circ \kn_k(\xx)
   \end{align*}
-  {\color{blue}\textbf{improve model capacity, clients only upload $\xk^{(1)}$.}}
+  \CB{\textbf{improve model capacity.}}
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame} %
-  \frametitle{KM-VCM: flexible algorithms} %
-  \textbf{use \blue{MINQUE} for estimation}
+  \frametitle{MINQUE} %
+  \textbf{use \CB{MINQUE} for estimation}
   \begin{itemize}
   \item faster by solving $\vtheta=\{\sigma_0^2, \sigma_1^2, \dots \}$
     in close form;
@@ -275,50 +197,50 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \item no assumption on $\vz$'s distribution.
   \end{itemize}
   MINQUE -- minimum norm quadratic unbiased estimation, was developed
-  by (\textbf{Rao et. al.}).
+  by (\textbf{Rao et. al.}, 1971).
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame}<presentation:0>
-  \frametitle{access model validity}
-  A VCM
-  $\hat{\vtheta}=\{\hat{\sigma}^2_0, \hat{\sigma}^2_1 \dots
-  \hat{\sigma}^2_L\}$ so developed must strive to generalize better on
-  new data $(\vy, \xx)$, gauged by the following criteria:
-  \begin{block}{\textbf{MNL}: mean negative log likelihood}
-    $\mathtt{MNL}(\vy, \xx; \hat{\vtheta}) = \frac{1}{n}
-    [\frac{1}{2}\vy\xvh^{-1}\vy + \frac{1}{2}\log{|\xvh|} +
-    \frac{n}{2}\log{2\pi}]$
-  \end{block}
-  \begin{block}{\textbf{MSE}: mean squre error}
-    $\mathtt{MSE}(\vy, \xx; \hat{\vtheta}) = \frac{\sigma_0^4}{n}
-    \vy^T\hat{\xv}^{-1} \hat{\xv}^{-1}\vy$
-  \end{block}
-  where,
-  $\xvh = \xvh_e + \xvh_\vx = \hat{\sigma}^2_0\id +
-  \sum_{i=1}^L\hat{\sigma}_i^2 \mathcal{K}_i(\xx)$ are covariance
-  composed from the new data by the meta-VCM $\hat{\vtheta}$; $n$ is
-  the size of new data.
+\begin{frame}\frametitle{Batched Training}
+  \begin{enumerate}
+  \item randomly partition the cohort into Q batches $b_i = (\vy_i, \mM_i, \mX_i)$;
+  \item for $i = 1 \dots Q$:
+    \begin{itemize}
+    \item calculate $(\vr_i, \tK_i) = (h(\vy_i), \mathcal{K}_{1 \dots L}(\mX_i))$
+    \item solve the $i$ th. VCM, $\vtheta_i^{(j)}$
+    \end{itemize}
+  \item repeat \textbf{1} and \textbf{2} for $j=1 \dots R$ epochs
+  \item let $\hat{\vtheta} = \frac
+    {\sum_{i=1}^Q\sum_{j=1}^R w_i^{(j)}\vtheta_i^{(j)}}
+    {\sum_{\tilde{i}=1}^Q \sum_{\tilde{j}=1}^R w_{\tilde{i}}^{(\tilde{j})}}$
+  \end{enumerate}
+  When the sample size $N$ is huge, and the batch size $\frac{N}{Q}$ large enough to
+  stabilize each VCM, a single run-through ($R=1$) is sufficient.
 \end{frame}
 % -------------------------------------------------------------------
 \section{Simulation}
 \begin{frame}
-  \frametitle{KM-VCM: simulation} %
+  \frametitle{Simulation: MINQUE versus REML} %
   \centering
   \Large{\textbf{Simulation Studies}}
   \normalsize
   \begin{itemize}
-  \item Meta-Analysis
-  \item Per-cohort analysis
+  \item whole sample model, MINQUE deep VCM versus GCTA-REML;
+  \item batched training.
   \end{itemize}
 \end{frame}
+% -------------------------------------------------------------------
 \begin{frame}\frametitle{simulation: meta-analysis}
-  \textbf{a meta-VCM of $8$ cohorts tested on 4 others;} \\
-  \textbf{residual z follows $t_{10}$;} \\
+  \textbf{A deep VCM solved by MINQUE from 1K samples, tested on another 1K samples;} \\
   {\color{blue}\textbf{outer plots: the benchmarks, from left to right:}}
   \begin{itemize}
   \item \textbf{MSE:} mean square error;
   \item \textbf{NLK:} mean negative log likelihood;
   \item \textbf{RTM:} running time;
+  \end{itemize}
+  \CB{\textbf{the data generating models, from top to bottom:}}
+  \begin{itemize}
+  \item \textbf{order 1:} $h(\vy)=\va, \qquad \va \sim \mathcal{N}(\bm{0}, \sigma_0^2\id + \sigma_1\mX\mX^T)$;
+  \item \textbf{order 2:} $h(\vy)=\va^2+\va$
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
