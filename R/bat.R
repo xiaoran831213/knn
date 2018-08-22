@@ -19,7 +19,7 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
     ## dots
     dot <- list(...)
     wtm <- dot$wtm %||% 36              # wall time  (def=36 sec)
-    wep <- dot$wep %||% ceiling(nbt)    # wall epoch (def=nbt)
+    wep <- dot$wep %||% 1               # wall epoch (def=1)
     wit <- dot$wit %||% 1000
 
     ## message tracks
