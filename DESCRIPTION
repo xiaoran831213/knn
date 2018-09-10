@@ -12,4 +12,6 @@ Imports: magrittr,
     Rcpp,
     MASS
 LinkingTo: Rcpp,
-    RcppArmadillo
+    RcppArmadillo,
+    RcppEigen
+ByteCompile: true

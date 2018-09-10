@@ -47,13 +47,15 @@ gcta.reml <- function(y, K, qcvr=NULL, dcvr=NULL, maxit=100)
     phe <- paste('--pheno', phe.path)
     out <- paste('--out', file.path(tpd, 'out'))
 
-    opt <- paste('--reml-pred-rand', '--reml-no-lrt')
+    opt <- paste('--reml-pred-rand', '--reml-no-lrt', '--thread-num 1')
     if(!is.null(maxit))
         opt <- paste(opt, '--reml-maxit', maxit)
     cmd <- paste(exe, fun, mgm, phe, out, opt)
 
     ## execute command
+    t0 <- Sys.time()
     ext <- system(cmd, show.output.on.console=FALSE)
+    td <- Sys.time() - t0; units(td) <- 'secs'; td <- as.numeric(td)
     if(ext != 0)
         stop(cmd, ' GCTA existed with non-zero.')
 
@@ -77,7 +79,7 @@ gcta.reml <- function(y, K, qcvr=NULL, dcvr=NULL, maxit=100)
 
     rpt <- DF(
         key=c('mse', 'nlk', 'cyh', 'loo', 'rtm', 'ssz'),
-        val=c(mse, nlk, cyh, loo, out$rtm, N))
+        val=c(mse, nlk, cyh, loo, td, N))
     rownames(rpt) <- rpt$key
 
     ## remove temporary directory
@@ -114,10 +116,10 @@ gcta.parse <- function(tpd)
     ## --- parse *.log for time elapsed
     log.path <- file.path(tpd, 'out.log')
     log <- readLines(log.path)
-    rtm <- grep("^Computational time", log, value=TRUE)
-    rtm <- as.numeric(sub("^.*: ([0-9.]*) .*$", "\\1", rtm))
+    ## rtm <- grep("^Computational time", log, value=TRUE)
+    ## rtm <- as.numeric(sub("^.*: ([0-9.]*) .*$", "\\1", rtm))
 
     ## return
     par <- vcs$var
-    list(vcs=vcs, hsq=hsq, blp=blp, par=par, log=log, rtm=rtm)
+    list(vcs=vcs, hsq=hsq, blp=blp, par=par, log=log)
 }
