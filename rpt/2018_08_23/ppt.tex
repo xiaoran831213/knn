@@ -65,7 +65,7 @@
 % TITLE PAGE
 % ----------------------------------------------------------------------------------------
 
-\title[Meta-VCM]{Meta analysis by Variance Component Model}
+\title[Fast-VCM]{Improved Variance Component Model \\ Simulation Studies}
 
 \author{Xiaoran Tong} % Your name
 \institute[EPI Biosta,
@@ -87,9 +87,11 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \tableofcontents
 \end{frame}
 % ----------------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------------
 % PRESENTATION SLIDES
 % -------------------------------------------------------------------
 \section{Motivation}
+% -------------------------------------------------------------------
 \begin{frame}\frametitle{Motivation: Issues}
   Analyzing ultra-high dimensional profiles are increasingly popular,
   e.g.,
@@ -132,7 +134,6 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
     $\vtheta = \{\fit{\sigma^2_0}, \fit{\sigma^2_1} \dots
     \fit{\sigma^2_L}\}$ comprises a \textbf{VCM}.
   \end{itemize}
-
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame}
@@ -146,18 +147,8 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \textbf{Re-introduce the curse of dimensionality by large cohorts.}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame}\frametitle{Motivation: \textbf{consider
-      \CB{meta}-VCM:}} %
-  \begin{figure}\includegraphics[width=.90\textwidth]{img/meta0}\end{figure}
-  \textbf{\CR{decentralized!}}  \textbf{limited choice in model and
-    algorithm;}
-\end{frame}
-% -------------------------------------------------------------------
-\begin{frame}\frametitle{Motivation: \textbf{consider
-      \CB{mega}-VCM:}} %
-  \begin{figure}\includegraphics[width=.90\textwidth]{img/mega0}\end{figure}
-  \textbf{\CR{full information!} insecured data, renewed curse of
-    dimension.}
+\begin{frame}\frametitle{Motivation: \textbf{VCM:}} %
+  \begin{figure}\includegraphics[width=1\textwidth]{img/vcm_org}\end{figure}
 \end{frame}
 % -------------------------------------------------------------------
 \section{Improved VCM}
@@ -167,7 +158,7 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \large{\textbf{\CR{Batched, Deep, MINQUE} \CB{v}ariance \CB{c}omponent \CB{m}odel}} \\
   \textbf{Increase capacity}
   \begin{itemize}
-  \item depen the VCM via kernel enrichment;
+  \item depen the kernels;
   \end{itemize}
   \textbf{Reduce computation}
   \begin{itemize}
@@ -177,7 +168,7 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 \end{frame}
 % -------------------------------------------------------------------
 \begin{frame}%
-  \frametitle{Kernel Enrichment}
+  \frametitle{Deepen the Kernels}
   \textbf{``polynomial expansion'' by kernel:}
   \begin{align*}
     \xk^{(1)} & = \bigcup_{i}^L \kn_i(\xx) = \{\xk_1, \dots, \xk_L\} \\
@@ -196,7 +187,7 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   \item numerically more stable via generalized inverse;
   \item no assumption on $\vz$'s distribution.
   \end{itemize}
-  MINQUE -- minimum norm quadratic unbiased estimation, was developed
+  MINQUE -- minimum norm quadratic unbiased estimation, developed
   by (\textbf{Rao et. al.}, 1971).
 \end{frame}
 % -------------------------------------------------------------------
@@ -217,107 +208,132 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
   stabilize each VCM, a single run-through ($R=1$) is sufficient.
 \end{frame}
 % -------------------------------------------------------------------
+\begin{frame}\frametitle{Whole Sample VCM versus Batched VCM:} %
+  \begin{figure}\includegraphics[width=1\textwidth]{img/vcm_whl}\end{figure}
+\end{frame}
+\begin{frame}\frametitle{Whole Sample VCM versus Batched VCM:} %
+  \begin{figure}\includegraphics[width=1\textwidth]{img/vcm_bat}\end{figure}
+\end{frame}
+% -------------------------------------------------------------------
 \section{Simulation}
 \begin{frame}
-  \frametitle{Simulation: MINQUE versus REML} %
+  \frametitle{Simulation: Scenarios} %
   \centering
   \Large{\textbf{Simulation Studies}}
   \normalsize
   \begin{itemize}
-  \item whole sample model, MINQUE deep VCM versus GCTA-REML;
-  \item batched training.
+  \item performance of improved VCM versus GCTA-REML;
+  \item performance batched training VCM versus whole sample training;
+  \item running time.
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame}\frametitle{simulation: meta-analysis}
-  \textbf{A deep VCM solved by MINQUE from 1K samples, tested on another 1K samples;} \\
-  {\color{blue}\textbf{outer plots: the benchmarks, from left to right:}}
+\subsection{simulation 1: Improved VCM versus REML}
+\begin{frame}\frametitle{simulation 1: Improved VCM versus REML}
+  \textbf{Train on 1200 samples, test on another 1300;} \\
+  {\color{blue}\textbf{performance measurement:}}
   \begin{itemize}
   \item \textbf{MSE:} mean square error;
   \item \textbf{NLK:} mean negative log likelihood;
   \item \textbf{RTM:} running time;
   \end{itemize}
-  \CB{\textbf{the data generating models, from top to bottom:}}
+  \CB{\textbf{data generation:}}
   \begin{itemize}
-  \item \textbf{order 1:} $h(\vy)=\va, \qquad \va \sim \mathcal{N}(\bm{0}, \sigma_0^2\id + \sigma_1\mX\mX^T)$;
-  \item \textbf{order 2:} $h(\vy)=\va^2+\va$
+  \item \textbf{signals:} $\va \sim \mathcal{N}(\bm{0}, \sigma_0^2\id + \sigma_1^2\mZ\mZ^T)$,
+    $\mZ$ is the fraction ($5\%$) of functional variants.
+  \item \textbf{order 1:} $h(\vy)=\va$;
+  \item \textbf{order 2:} $h(\vy)=\text{zscore}[(\va + \one)^2]$.
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame} \frametitle{simulation: meta-analysis}
-  \textbf{the cohorts are \color{blue}{homogeneous}:} \\
-  % \begin{figure}
-  %   \centering \includegraphics[width=.95\linewidth]{img/met_hom_stt_mnq_ssz}
-  % \end{figure}
-  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
-  \begin{itemize}
-  \item \textbf{avg:} the test error of 8 VCMs, averaged.
-  \item \textbf{mega/meta:} mega/meta-VCM
-  \end{itemize}
-\end{frame}
-% -------------------------------------------------------------------
-\begin{frame}%
-  \frametitle{simulation: meta-analysis} %
-  \textbf{the cohorts are \color{red}{heterogeneous}:} \\
-  % \begin{figure}
-  %   \centering \includegraphics[width=.95\linewidth]{img/met_het_stt_mnq_ssz}
-  % \end{figure}
-  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
-  \begin{itemize}
-  \item \textbf{avg:} the test error of 8 VCMs, averaged.
-  \item \textbf{mega/meta:} mega/meta-VCM
-  \end{itemize}
-\end{frame}
-% -------------------------------------------------------------------
-\begin{frame}%
-  \frametitle{simulation: weight-by validity vs. precision, MSE} %
+\begin{frame}\frametitle{simulation 1: Improved VCM versus REML-VCM}
+  \textbf{data: $h(\vy)=\va$} \\
   \begin{figure}
-    \centering \includegraphics[width=1.0\linewidth]{img/met_mnq_cyh_mse}
+    \centering \includegraphics[width=.95\linewidth]{img/1kg_whl_p01}
   \end{figure}
   \textbf{\color{blue}{inner plot: strategies, from left to right:}}
   \begin{itemize}
-  \item \textbf{avg:} average testing error of all VCMs;
-  \item \textbf{cyh:} meta-analysis weight by validity;
-  \item \textbf{ssz:} meta-analysis weight by precision;
-  \item \textbf{whl:} mega-analysis.
+  \item \textbf{gct:} VCM by GCTA-REML (\textbf{Yang et. al., 2011})
+  \item \textbf{mnq:} Improved VCM by MINQUE
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame}%
-  \frametitle{simulation: weight-by validity vs. precision, NLK} %
+\begin{frame}\frametitle{simulation 1: improved VCM versus REML-VCM}
+  \textbf{data: $h(\vy)=\text{zscore}[(\va + \one)^2]$} \\
   \begin{figure}
-    \centering \includegraphics[width=1.0\linewidth]{img/met_mnq_cyh_nlk}
+    \centering \includegraphics[width=.95\linewidth]{img/1kg_whl_p02}
   \end{figure}
   \textbf{\color{blue}{inner plot: strategies, from left to right:}}
   \begin{itemize}
-  \item \textbf{avg:} average testing error of all VCMs;
-  \item \textbf{cyh:} meta-analysis weight by validity;
-  \item \textbf{ssz:} meta-analysis weight by precision;
-  \item \textbf{whl:} mega-analysis.
+  \item \textbf{gct:} VCM by GCTA-REML (\textbf{Yang et. al., 2011})
+  \item \textbf{mnq:} Improved VCM by MINQUE
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame}\frametitle{simulation: per cohort analysis}
-  \textbf{a client VCM tested on a new cohort;} \\
-  \textbf{residual z follows $t_{10}$ instead of normal;} \\
-  {\color{blue}\textbf{outer plots: the benchmark, from left to right:}}
+\subsection{simulation 2: batched versus whole sample VCM}
+\begin{frame}\frametitle{simulation 1: Improved VCM versus REML}
+  \textbf{Train on 1200 samples, test on another 1300;} \\
+  \textbf{Batch size varied from 100 to 400;} \\
+  {\color{blue}\textbf{performance measurement:}}
   \begin{itemize}
   \item \textbf{MSE:} mean square error;
   \item \textbf{NLK:} mean negative log likelihood;
   \item \textbf{RTM:} running time;
   \end{itemize}
+  \CB{\textbf{data generation:}}
+  \begin{itemize}
+  \item \textbf{signals:} $\va \sim \mathcal{N}(\bm{0}, \sigma_0^2\id + \sigma_1^2\mZ\mZ^T)$
+  \item \textbf{order 1:} $h(\vy)=\va$;
+  \item \textbf{order 2:} $h(\vy)=\text{zscore}[(\va + \one)^2]$.
+  \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
-\begin{frame} \frametitle{simulation: per cohort analysis}
+\begin{frame}\frametitle{simulation 2: batched VCM versus whole sample}
+  \textbf{data: $h(\vy)=\va$} \\
   \begin{figure}
-    \centering \includegraphics[width=.95\linewidth]{img/vcm_ply_mnq}
+    \centering \includegraphics[width=1\linewidth]{img/1kg_bat_p01}
   \end{figure}
-  {\color{blue}\textbf{inner plots, model and algorithms:}}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
   \begin{itemize}
-  \item \textbf{GCTA:} GCTA's REML, developed by (\textbf{Yang et. al.});
-  \item \textbf{MNQ1:} MINQUE ;
-  \item \textbf{MNQ2:} MINQUE with kernel enrichment
+  \item \textbf{gct:} GCTA-REML on the entire sample;
+  \item \textbf{100 - 400, whl:} batched and whole sample VCM by MINQUE
   \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{simulation 2: batched VCM versus whole sample}
+  \textbf{data: $h(\vy)=\text{zscore}[(\va + \one)^2]$} \\
+  \begin{figure}
+    \centering \includegraphics[width=1\linewidth]{img/1kg_bat_p02}
+  \end{figure}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
+  \begin{itemize}
+  \item \textbf{gct:} GCTA-REML on the entire sample;
+  \item \textbf{100 - 400, whl:} batched and whole sample VCM by MINQUE
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\subsection{simulation 3: performance by sample sizes}
+\begin{frame}\frametitle{simulation 1: Improved VCM versus REML}
+  \textbf{Train on 100 to 1000 samples, test on another 1000;} \\
+  {\color{blue}\textbf{performance measurement:}}
+  \begin{itemize}
+  \item \textbf{MSE:} mean square error;
+  \item \textbf{NLK:} mean negative log likelihood;
+  \item \textbf{RTM:} running time;
+  \end{itemize}
+  \CB{\textbf{data generation:}}
+  \begin{itemize}
+  \item \textbf{signals:} $\va \sim \mathcal{N}(\bm{0}, \sigma_0^2\id + \sigma_1^2\mX\mX^T)$
+  \item \textbf{order 2:} $h(\vy)=\text{zscore}[(\va + \one)^2]$.
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{simulation 3: performance by sample sizes}
+  \textbf{data: $h(\vy)=\text{zscore}[(\va + \one)^2]$} \\
+  \begin{figure}
+    \centering \includegraphics[width=.95\linewidth]{img/1kg_whl_t02}
+  \end{figure}
+  \textbf{\color{blue}{inner plot: sample sizes}}
 \end{frame}
 % -------------------------------------------------------------------
 % \section{Theoratical Ground}
@@ -362,25 +378,22 @@ MSU] % Your institution as it will appear on the bottom of every slide, may be s
 \section{Summary}
 \begin{frame} %
   \frametitle{Summary} %
-  \textbf{Kernel-Meta-VCM} manages to combine the strength of
-  meta-analysis, kernel, and variance component model.
+  \textbf{The combination of}
   \begin{itemize}
-  \item \textbf{``Meta''}
-    \begin{itemize}
-    \item inherits the economical advantage of distributed research;
-    \end{itemize}
-  \item \textbf{``VCM''}
-    \begin{itemize}
-    \item overcome the curse of dimensionality;
-    \end{itemize}
-  \item \textbf{``Meta'' + ``VCM''}
-    \begin{itemize}
-    \item robust against inter-cohort heterogeneity.
-    \end{itemize}
-  \item \textbf{``Kernel'' and ``residual'' uploads}
-    \begin{itemize}
-    \item balance flexibility, security, and work load;
-    \end{itemize}
+  \item Batched training,
+  \item kernel deepening,
+  \item and MINQUE solver
+  \end{itemize}
+  achieved better balance of capacity and cost of for VCM. \\
+  \textbf{Factors that diminish the advantages of deep kernel:}
+  \begin{itemize}
+  \item a growing number of variants;
+  \item enlarged true white noise;
+  \item reduced size of true variance components.
+  \end{itemize}
+  \textbf{About UK Biobank's genomic data}
+  \begin{itemize}
+  \item MINQUE solution maybe fail in terms of log likelihood.
   \end{itemize}
 \end{frame}
 % -------------------------------------------------------------------
