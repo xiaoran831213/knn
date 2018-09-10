@@ -1,13 +1,3 @@
-#' Normal Distribution Convertor
-#'
-#' covert an assumed empirical nromal distribution to another distribution.
-#'
-#' x: the data that descript the empirical normal
-#' q: the quantile function of the target distribution
-#' .: additional paramters required by the target quantile (e.g., degree
-#' of freedom for t and chisq, min and min for unif, etc.)
-ndc <- function(x, q=qnorm, ...) q(pnorm(x, mean(x), sd(x)), ...)
-
 ## fast (squared) Euclidean distance
 euc2 <- function(x, y=NULL)
 {
@@ -79,4 +69,3 @@ test.solve <- function(N=1000)
 
     sum((r1 - r2)^2)
 }
-

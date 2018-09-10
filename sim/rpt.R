@@ -1,5 +1,11 @@
 library(dplyr)
 
+sel <- dplyr::select
+gba <-  function(x, ...)
+{
+    group_by_at(.tbl=x, .vars=vars(...))
+}
+
 ## clean up parentheses
 .cp <- function(x)
 {
@@ -9,7 +15,7 @@ library(dplyr)
     x
 }
 
-readRtm <- function(...)
+readRtm <- function(..., ref=TRUE)
 {
     rpt <- list()
     dot <- c(...)
@@ -19,23 +25,32 @@ readRtm <- function(...)
         r <- try(readRDS(f))
         if(inherits(r, 'try-error'))
             next
-        r <- subset(r, dat=='dvp' & key=='rtm', -dat)
+        r <- subset(r, mtd!='mle' & dat=='dvp' & key=='rtm', -dat)
         rpt <- c(rpt, list(r))
     }
     rpt <- do.call(rbind, rpt)
-
+    
+    if(!('lnk' %in% names(rpt)))
+        rpt$lnk <- 'I'
+    if(!('mdl' %in% names(rpt)))
+        rpt$mdl <- 'a'
+    if(!('oks' %in% names(rpt)))
+        rpt$oks <- 'p'
     rpt <- within(rpt,
     {
-        sim <- sprintf("%s(%s)~%s", lnk, .cp(oks), .cp(yks))
+        sim <- sprintf("%s(%s)~%s, x~%s", lnk, .cp(oks), .cp(yks), mdl)
     })
 
     ## the longest time span as measuring stick
-    rpt <- as_tibble(rpt) %>% group_by(seed) %>% mutate(val=val/max(val)) %>% ungroup
-    rpt <- rpt %>% select(-c(seed, oks, lnk, yks))
+    if(ref)
+    {
+        rpt <- as_tibble(rpt) %>% group_by(seed) %>% mutate(val=val/max(val)) %>% ungroup
+    }
+    rpt <- rpt %>% sel(-c(seed, oks, lnk, yks, mdl))
     as.data.frame(rpt)
 }
     
-readRpt <- function(...)
+readRpt <- function(..., ref=TRUE)
 {
     rpt <- list()
     dot <- c(...)
@@ -45,27 +60,34 @@ readRpt <- function(...)
         r <- try(readRDS(f))
         if(inherits(r, 'try-error'))
             next
-        
-        ## MSE: null model as a measuring stick
-        evl <- subset(r, dat == 'evl', -dat)
-        mse <- subset(evl, key == 'mse' & mtd != 'nul')
-        nul <- subset(evl, key == 'mse' & mtd == 'nul', val)
-        mse <- within(mse, val <- val / unlist(nul))
 
-        ## NLK: null model as a measuring stick
-        nlk <- subset(evl, key == 'nlk' & mtd != 'nul')
-        nul <- subset(evl, key == 'nlk' & mtd == 'nul', val)
-        nlk <- within(nlk, val <- exp(2 * (val - unlist(nul))))
+        evl <- subset(r, mtd!='mle' & dat == 'evl', -dat)
+        if(ref)
+        {
+            ## MSE: null model as a measuring stick
+            mse <- subset(evl, key == 'mse' & mtd != 'nul')
+            nul <- subset(evl, key == 'mse' & mtd == 'nul', val)
+            mse <- within(mse, val <- val / unlist(nul))
 
-        ## NLK: null model as a measuring stick
-        loo <- subset(evl, key == 'loo' & mtd != 'nul')
-        nul <- subset(evl, key == 'loo' & mtd == 'nul', val)
-        loo <- within(loo, val <- val / unlist(nul))
-        
-        ## CYH: null model is meaning less
-        cyh <- subset(evl, key == 'cyh' & mtd != 'nul')
+            ## NLK: null model as a measuring stick
+            nlk <- subset(evl, key == 'nlk' & mtd != 'nul')
+            nul <- subset(evl, key == 'nlk' & mtd == 'nul', val)
+            nlk <- within(nlk, val <- exp(2 * (val - unlist(nul))))
 
-        rpt <- c(rpt, list(rbind(mse, nlk, cyh, loo)))
+            ## NLK: null model as a measuring stick
+            loo <- subset(evl, key == 'loo' & mtd != 'nul')
+            nul <- subset(evl, key == 'loo' & mtd == 'nul', val)
+            loo <- within(loo, val <- val / unlist(nul))
+            
+            ## CYH: null model is meaning less
+            cyh <- subset(evl, key == 'cyh' & mtd != 'nul')
+
+            rpt <- c(rpt, list(rbind(mse, nlk, cyh, loo)))
+        }
+        else
+        {
+            rpt <- c(rpt, list(evl))
+        }
     }
     rpt <- do.call(rbind, rpt)
     rpt <- subset(rpt, !is.infinite(val))
@@ -73,11 +95,17 @@ readRpt <- function(...)
     ## corr(y, y_hat) for null model is meaning less
     rpt <- subset(rpt, !(key == 'cyh' & mtd == 'nul'))
     
+    if(!('lnk' %in% names(rpt)))
+        rpt$lnk <- 'I'
+    if(!('mdl' %in% names(rpt)))
+        rpt$mdl <- 'a'
+    if(!('oks' %in% names(rpt)))
+        rpt$oks <- 'p'
     rpt <- within(rpt,
     {
-        sim <- sprintf("%s(%s)~%s", lnk, .cp(oks), .cp(yks))
+        sim <- sprintf("%s(%s)~%s, x~%s", lnk, .cp(oks), .cp(yks), mdl)
     })
-    rpt <- subset(rpt, se=-c(seed, oks, lnk, yks))
+    rpt <- subset(rpt, se=-c(seed, oks, lnk, yks, mdl))
     rpt
 }
 
@@ -90,6 +118,14 @@ get.unique <- function(d)
     list(unq=u, ttl=t, dat=d)
 }
 
+## infer title from repeatative columns.
+ttl <- function(d)
+{
+    i <- sapply(d, function(x) length(unique(x)) == 1)
+    u <- as.list(d[1, i, drop=FALSE])
+    paste0(names(u), '=', u, collapse=', ')
+}
+
 bxp <- function(dat, axi=val~mtd, ...)
 {
     ..s <- list(...)
@@ -97,22 +133,21 @@ bxp <- function(dat, axi=val~mtd, ...)
 
     ## labels
     vas <- all.vars(axi)
-    ylb <- get0('ilx', inherits=FALSE, ifnotfound=vas[1])
-    xlb <- get0('ily', inherits=FALSE, ifnotfound=vas[2])
+    ylab.bxp <- get0('ylab.bxp', inherits=FALSE, ifnotfound=vas[1])
+    xlab.bxp <- get0('xlab.bxp', inherits=FALSE, ifnotfound=vas[2])
 
     ## limites
-    vmx <- with(dat, max(val))
-    vmi <- with(dat, min(val))
-    ylm <- get0('ylim', inherits=FALSE, ifnotfound=c(0, 1.0))
+    ylim.bxp <- get0('ylim.bxp', inherits=FALSE, ifnotfound=c(0, 1))
 
     ## title
-    ttl <- get0('itt', inherits=FALSE, ifnotfound=get.unique(dat)$ttl)
+    title.bxp <- get0('title.bxp', inherits=FALSE, ifnotfound=get.unique(dat)$ttl)
 
     ## box plot
-    boxplot(axi, dat, xlab=xlb, ylab=ylb, ylim=ylm, lex.order=FALSE, ...)
+    boxplot(axi, dat, xlab=xlab.bxp, ylab=ylab.bxp, ylim=ylim.bxp, lex.order=FALSE, ...)
     abline(1, 0, col='red')
-    title(ttl)
+    title(title.bxp)
 }
+
 
 plt <- function(dat, oxy, ipt=NULL, out=NULL, ...)
 {
@@ -148,10 +183,11 @@ plt <- function(dat, oxy, ipt=NULL, out=NULL, ...)
     gf <- list(x=xk, y=yk)
     gf <- gf[!sapply(gf, is.null)]
     gp <- split(dat, gf)
-
+    
     ## plot
+    ut <- 9 / max(nc, nr)
     if(!is.null(out))
-        png(out, width=nc * 3, height=nr * 3, units='in', res=300)
+        png(out, width=nc * ut, height=nr * ut, units='in', res=300)
 
     ## 
     par(mfrow=c(nr, nc), mar=c(2.25, 2.35, 1.2, 0), mgp=c(1.3, .5, 0))
