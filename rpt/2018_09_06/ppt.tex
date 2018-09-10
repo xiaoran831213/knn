@@ -1,0 +1,371 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Beamer Presentation LaTeX Template Version 1.0 (10/11/12)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% License: CC BY-NC-SA 3.0
+% (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ----------------------------------------------------------------------------------------
+% PACKAGES AND THEMES
+% ----------------------------------------------------------------------------------------
+
+\documentclass{beamer}
+
+\mode<presentation> {
+
+  % The Beamer class comes with a number of default slide themes which
+  % change the colors and layouts of slides. Below this is a list of
+  % all the themes, uncomment each in turn to see what they look like.
+
+  % \usetheme{default} \usetheme{AnnArbor} \usetheme{Antibes}
+  % \usetheme{Bergen} \usetheme{Berkeley} \usetheme{Berlin}
+  % \usetheme{Boadilla} \usetheme{CambridgeUS} \usetheme{Copenhagen}
+  % \usetheme{Darmstadt} \usetheme{Dresden} \usetheme{Frankfurt}
+  % \usetheme{Goettingen} \usetheme{Hannover} \usetheme{Ilmenau}
+  % \usetheme{JuanLesPins} \usetheme{Luebeck}
+  \usetheme{Madrid}
+  % \usetheme{Malmoe} \usetheme{Marburg} \usetheme{Montpellier}
+  % \usetheme{PaloAlto} \usetheme{Pittsburgh} \usetheme{Rochester}
+  % \usetheme{Singapore} \usetheme{Szeged} \usetheme{Warsaw}
+
+  % As well as themes, the Beamer class has a number of color themes
+  % for any slide theme. Uncomment each of these in turn to see how it
+  % changes the colors of your current slide theme.
+
+  % \usecolortheme{albatross}
+  \usecolortheme{beaver}
+  % \usecolortheme{beetle} \usecolortheme{crane}
+  % \usecolortheme{dolphin} \usecolortheme{dove} \usecolortheme{fly}
+  % \usecolortheme{lily} \usecolortheme{orchid} \usecolortheme{rose}
+  % \usecolortheme{seagull} \usecolortheme{seahorse}
+  % \usecolortheme{whale} \usecolortheme{wolverine}
+
+  % \setbeamertemplate{footline} % To remove the footer line in all slides uncomment this line
+  % \setbeamertemplate{footline}[page
+  % number] % To replace the footer line in all slides with a simple slide count uncomment this line
+
+  % \setbeamertemplate{navigation
+  % symbols}{} % To remove the navigation symbols from the bottom of all slides uncomment this line
+}
+\include{xtong}
+\include{math_commands}
+\newcommand{\se}[1]{\hat{\mathtt{se}}\left(#1\right)} % standard error
+\newcommand{\ti}{{\tilde{i}}} % tilde i
+\newcommand{\ef}{{\mathtt{o}}} % error function
+\newcommand{\kn}{\mathcal{K}} % kernel
+\usepackage{graphicx} % Allows including images
+\usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
+\usepackage{bm}
+
+% ----------------------------------------------------------------------------------------
+% TITLE PAGE
+% ----------------------------------------------------------------------------------------
+
+\title[Fast-VCM]{Improved Variance Component Model \\ Simulation Studies (\textbf{UKB})}
+
+\author{Xiaoran Tong} % Your name
+\institute[EPI Biosta,
+MSU] % Your institution as it will appear on the bottom of every slide, may be shorthand to save space
+{ Michigan State University \\ % Your institution for the title page
+  \medskip \textit{tongxia1@msu.edu} \\% Your email address
+  \textit{qlu@epi.msu.edu} % Your email address
+} \date{September 6, 2018} % Date, can be changed to a custom date
+
+\begin{document}
+
+\begin{frame}
+  \titlepage % Print the title page as the first slide
+\end{frame}
+
+\begin{frame}
+  \frametitle{Table of
+    Content} % Table of contents slide, comment this block out to remove it
+  \tableofcontents
+\end{frame}
+% ----------------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------------
+% PRESENTATION SLIDES
+% -------------------------------------------------------------------
+\section{Motivation}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{Motivation: Issues}
+  Analyzing ultra-high dimensional profiles are increasingly popular,
+  e.g.,
+  \begin{itemize}
+  \item deeply sequenced genome
+  \item neural imaginings (i.e., MRI, fMRI, DTI)
+  \end{itemize}
+  \textbf{Variance Component Model (VCM)} is a sensible choice to
+  \begin{itemize}
+  \item aggregate weak effect of massive number of correlated variants
+  \item partially solve the curse of dimension: $N \times P \to N^2$
+  \end{itemize}
+  \textbf{VCM} is also known as
+  \begin{itemize}
+  \item kernel machine, kernel method
+  \item random effect model
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\newcommand{\fit}[1]{{\color{magenta}{#1}}}
+\newcommand{\CB}[1]{{\color{blue}{#1}}}
+\newcommand{\CR}[1]{{\color{red}{#1}}}
+\newcommand{\green}[1]{{\color{green}{#1}}}
+\begin{frame}
+  \frametitle{Motivation: \CB{v}ariance \CB{c}omponent
+    \CB{m}odel (\CB{\textbf{VCM}})} %
+  \textbf{VCM} depicts the influence of ultra high dimensional $\xx$
+  on $\vy$,
+  \begin{align}\label{eq:vcm}
+    h(\vy) = \vz \sim \mathcal{N}(0, \xv), \quad
+    \xv = \fit{\sigma^2_0} \id + \fit{\sigma^2_1} \mck_1(\xx) + \dots + \fit{\sigma^2_L} \mck_L(\xx)
+  \end{align}
+  \begin{itemize}
+  \item as the residual of $\vy$, $\vz$ follows MVN of covariance
+    $\xv$;
+  \item $\xv$ is the sum of $L$ kernels plus a white noise
+    $\mck_0 = \id$;
+  \item kernels are built from $\xx$
+  \item The to be fitted
+    $\vtheta = \{\fit{\sigma^2_0}, \fit{\sigma^2_1} \dots
+    \fit{\sigma^2_L}\}$ comprises a \textbf{VCM}.
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}
+  \frametitle{Motivation: computation issues of \CB{\textbf{VCM}}} %
+  \textbf{A VCM requires}
+  \begin{itemize}
+  \item multiple kernels ($L>1$) to achieve high capacity;
+  \item large sample $N$ to stabilize;
+  \item $O(N^3)$ to invert the combined kernel matrix.
+  \end{itemize}
+  \textbf{Re-introduce the curse of dimensionality by large cohorts.}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{Motivation: \textbf{VCM:}} %
+  \begin{figure}\includegraphics[width=1\textwidth]{img/vcm_org}\end{figure}
+\end{frame}
+% -------------------------------------------------------------------
+\section{Improved VCM}
+% -------------------------------------------------------------------
+\begin{frame}
+  \large{\textbf{Proposal}}: \\
+  \large{\textbf{\CR{Batched, Deep, MINQUE} \CB{v}ariance \CB{c}omponent \CB{m}odel}} \\
+  \textbf{Increase capacity}
+  \begin{itemize}
+  \item depen the kernels;
+  \end{itemize}
+  \textbf{Reduce computation}
+  \begin{itemize}
+  \item solve VCs in close form by MINQUE;
+  \item built VCM by batch.
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}%
+  \frametitle{Deepen the Kernels}
+  \textbf{``polynomial expansion'' by kernel:}
+  \begin{align*}
+    \xk^{(1)} & = \bigcup_{i}^L \kn_i(\xx) = \{\xk_1, \dots, \xk_L\} \\
+    \xk^{(2)} & = \bigcup_{i,j}^{L \times L} \kn_i(\xx) \circ \kn_j(\xx) = \{\xk_1\xk_1, \xk_1\xk_2, \dots, \xk_L\xk_L\} \\
+    \xk^{(3)} & = \bigcup_{i,j,k}^{L^{(3)}}  \kn_i(\xx) \circ \kn_j(\xx) \circ \kn_k(\xx)
+  \end{align*}
+  \CB{\textbf{improve model capacity.}}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame} %
+  \frametitle{MINQUE} %
+  \textbf{use \CB{MINQUE} for estimation}
+  \begin{itemize}
+  \item faster by solving $\vtheta=\{\sigma_0^2, \sigma_1^2, \dots \}$
+    in close form;
+  \item numerically more stable via generalized inverse;
+  \item no assumption on $\vz$'s distribution.
+  \end{itemize}
+  MINQUE -- minimum norm quadratic unbiased estimation, developed
+  by (\textbf{Rao et. al.}, 1971).
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{Batched Training}
+  \begin{enumerate}
+  \item randomly partition the cohort into Q batches $b_i = (\vy_i, \mM_i, \mX_i)$;
+  \item for $i = 1 \dots Q$:
+    \begin{itemize}
+    \item calculate $(\vr_i, \tK_i) = (h(\vy_i), \mathcal{K}_{1 \dots L}(\mX_i))$
+    \item solve the $i$ th. VCM, $\vtheta_i^{(j)}$
+    \end{itemize}
+  \item repeat \textbf{1} and \textbf{2} for $j=1 \dots R$ epochs
+  \item let $\hat{\vtheta} = \frac
+    {\sum_{i=1}^Q\sum_{j=1}^R w_i^{(j)}\vtheta_i^{(j)}}
+    {\sum_{\tilde{i}=1}^Q \sum_{\tilde{j}=1}^R w_{\tilde{i}}^{(\tilde{j})}}$
+  \end{enumerate}
+  When the sample size $N$ is huge, and the batch size $\frac{N}{Q}$ large enough to
+  stabilize each VCM, a single run-through ($R=1$) is sufficient.
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{Whole Sample VCM versus Batched VCM:} %
+  \begin{figure}\includegraphics[width=1\textwidth]{img/vcm_whl}\end{figure}
+\end{frame}
+\begin{frame}\frametitle{Whole Sample VCM versus Batched VCM:} %
+  \begin{figure}\includegraphics[width=1\textwidth]{img/vcm_bat}\end{figure}
+\end{frame}
+% -------------------------------------------------------------------
+\section{Simulation}
+\begin{frame}
+  \frametitle{Simulation: Scenarios} %
+  \centering
+  \Large{\textbf{Simulation Studies}}
+  \normalsize
+  \begin{itemize}
+  \item performance of improved VCM versus GCTA-REML;
+  \item performance batched training VCM versus whole sample training;
+  \item running time.
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\subsection{simulation 1: DMQ-VCM versus REML-VCM}
+\begin{frame}\frametitle{simulation 1: DMQ-VCM versus REML-VCM}
+  \textbf{Train on 4000 samples, test on another 4000;} \\
+  {\color{blue}\textbf{performance measurement:}}
+  \begin{itemize}
+  \item \textbf{MSE:} mean square error;
+  \item \textbf{NLK:} mean negative log likelihood;
+  \item \textbf{RTM:} running time;
+  \end{itemize}
+  \CB{\textbf{data generation:}}
+  \begin{itemize}
+  \item $h(\vy)=\va, \quad \va \sim \mathcal{N}(\bm{0}, \sigma_0^2\id + \sigma_1^2\mZ\mZ^T)$
+  \item $\vz = \vg$, \textbf{(linear)};
+  \item $\vz = \vg + \vg\mathbf{:}\vg$, \textbf{(two-way interaction)};
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{simulation 1: DMQ-VCM versus REML-VCM}
+  \textbf{linear: $\vx = \vg$} \\
+  \centerline{\includegraphics[width=.9\linewidth]{img/ukb_whl_p01}}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
+  \begin{itemize}
+  \item \textbf{gct:} REML-VCM, by GCTA-REML (\textbf{Yang et. al., 2011})
+  \item \textbf{mnq:} DMQ-VCM, by MINQUE and deepened kernel
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{simulation 1: DMQ-VCM versus REML-VCM}
+  \textbf{2-way interaction: $\vx = \vg^2 + \vg\mathbf{:}\vg$} \\
+  \centerline{\includegraphics[width=.9\linewidth]{img/ukb_whl_p02}}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
+  \begin{itemize}
+  \item \textbf{gct:} REML-VCM, by GCTA-REML (\textbf{Yang et. al., 2011})
+  \item \textbf{mnq:} DMQ-VCM, by MINQUE and deepened kernel
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\subsection{simulation 2: BDMQ-VCM}
+\begin{frame}\frametitle{simulation 2: BDMQ-VCM}
+  \textbf{Train on 2400 samples, test on another 2400;} \\
+  \textbf{Batch size varied from 100 to 400;} \\
+  {\color{blue}\textbf{performance measurement:}}
+  \begin{itemize}
+  \item \textbf{MSE:} mean square error;
+  \item \textbf{NLK:} mean negative log likelihood;
+  \item \textbf{RTM:} running time;
+  \end{itemize}
+  \CB{\textbf{data generation:}}
+  \begin{itemize}
+  \item $h(\vy)=\va, \qquad \va \sim \mathcal{N}(\bm{0}, \sigma_0^2\id + \sigma_1^2\mZ\mZ^T)$
+  \item $\vz = \vg$, \textbf{(linear)};
+  \item $\vz = \vg + \vg\mathbf{:}\vg$, \textbf{(two-way interaction)};
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{simulation 2: BDMQ-VCM}
+  \textbf{linear: $\vz = \vg$} \\
+  \centerline{\includegraphics[width=.9\linewidth]{img/ukb_bat_p01}}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
+  \begin{itemize}
+  \item \textbf{gct:} REML-VCM, by GCTA-REML (\textbf{Yang et. al., 2011})
+  \item \textbf{100 - 400, whl:} batched and whole sample VCM by MINQUE
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{simulation 2: BDMQ-VCM}
+  \textbf{2 way interaction: $\vz = \vg + \vg\mathbf{:}\vg$} \\
+  \centerline{\includegraphics[width=.9\linewidth]{img/ukb_bat_p02}}
+  \textbf{\color{blue}{inner plot: strategies, from left to right:}}
+  \begin{itemize}
+  \item \textbf{gct:} GCTA-REML on the entire sample;
+  \item \textbf{100 - 400, whl:} batched and whole sample VCM by MINQUE
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\subsection{simulation 3: CPU time}
+\begin{frame}\frametitle{simulation 3: CPU time}
+  \textbf{Train on 1000 to 8000 samples} \\
+  {\color{blue}\textbf{performance measurement:}}
+  \begin{itemize}
+  \item \textbf{RTM:} running time;
+  \end{itemize}
+  \CB{\textbf{data generation:}}
+  \begin{itemize}
+  \item $h(\vy)=\va, \qquad \va \sim \mathcal{N}(\bm{0}, \sigma_0^2\id + \sigma_1^2\mZ\mZ^T)$
+  \item $\vz = \vg$, \textbf{(only linear)};
+  \end{itemize}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame}\frametitle{simulation 3: CPU time}
+  \centerline{\includegraphics[width=.8\linewidth]{img/ukb_rtm}}
+  \textbf{\color{blue}{N: sample sizes}, val: time elapsed (s)}
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame} <presentation:0>%
+  \frametitle{Theoretical Ground}%
+  \textbf{when inter-cohort heterogeneity increases:}
+  \begin{itemize}
+  \item VCMs become less correlated, $\E(e_i e_j) = c$ goes to 0;
+  \item $\E\left[ \left(\frac{1}{k}\sum_i e_i\right)^2 \right]$
+    shrinks to $\frac{v}{k}$ -- averaging VCMs benefits;
+  \item heterogeneity act as noise for the full, mega-VCM;
+  \end{itemize}
+  \textbf{when cohort become more homogeneous:}
+  \begin{itemize}
+  \item VCMs become more correlated, $\E(e_i e_j) = c$ goes to 1;
+  \item $\E\left[ \left(\frac{1}{k}\sum_i e_i\right)^2 \right]$
+    remains to be $v$ -- averaging VCMs has no effect;
+  \item the whole data is less noisy to the full, mega-VCM;
+  \end{itemize}
+  The model averaging (\ref{eq:beg}) is called ``bootstrap aggregating
+  (bagging)'', developed by (Breiman, 1994, et. al.).
+\end{frame}
+% -------------------------------------------------------------------
+\section{Summary}
+\begin{frame} %
+  \frametitle{Summary} %
+  The combination of \textbf{batched training}, \textbf{deepened
+    kernels}, and \textbf{MINQUE} can achieve better generalization
+  performance while
+  reducing the computation. \\
+  \textbf{more variants}, \textbf{larger noise}, and \textbf{reduced
+    true effect}, can deminish the advantage of deenped kernels. \\
+  \textbf{GCTA} is well optimized! MINQUE build in\textbf{\CR{float}}
+  instead of \textbf{\CR{double}} can barely beat \textbf{GCTA} in
+  computation time. The \textbf{Rcpp} library may not  be as inefficient
+  as algebra libraries like BLAS and LAPACK. \\
+  MINQUE's bottle neck is matrix multiplication, not inversion.
+\end{frame}
+% -------------------------------------------------------------------
+\begin{frame} %
+  \frametitle{Contact} %
+  Xiaoran Tong \\
+  Department of Epidemiology \& Biostatistics \\
+  Michigan State University
+  \begin{itemize}
+  \item email: tongxia1@msu.edu
+  \item phone: (1)517-220-1229
+  \end{itemize}
+\end{frame}
+\end{document}
