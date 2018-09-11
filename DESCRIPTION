@@ -14,4 +14,4 @@ Imports: magrittr,
 LinkingTo: Rcpp,
     RcppArmadillo,
     RcppEigen
-ByteCompile: true
+ByteCompile: True

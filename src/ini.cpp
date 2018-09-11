@@ -5,7 +5,7 @@ using namespace Rcpp;
 
 // knl_mnq
 RcppExport SEXP knl_mnq(SEXP, SEXP);
-SEXP egn_mnq(SEXP, SEXP);
+RcppExport SEXP egn_mnq(SEXP, SEXP);
 RcppExport SEXP vcm_dv1(SEXP, SEXP, SEXP);
 
 static const R_CallMethodDef CallEntries[] =

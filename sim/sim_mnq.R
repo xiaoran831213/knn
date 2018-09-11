@@ -6,6 +6,7 @@ devtools::load_all()
 source('R/hlp.R')
 source('R/kpl.R')
 source("R/mnq.R")
+source("sim/utl.R")
 
 ## test for cpp minque versus R minque
 ts1 <- function(N=1000, P=2000, r=10)
@@ -39,4 +40,23 @@ ts1 <- function(N=1000, P=2000, r=10)
     ## print(all.equal(r1$s2, drop(r2$s2)))
 
     ## list(r1=r1, r2=r2)
+}
+
+ts2 <- function(N=10, P=5)
+{
+    X <- matrix(rnorm(N * P), N, P)
+    knl <- list(
+        e=diag(N),
+        l=ply(X, degree=1),
+        q=ply(X, degree=2),
+        g=gau(X))
+
+    ## allowed kernels
+    V <- knl[c('e', 'l')]
+
+    ## true covariance
+    S <- with(knl, .1 * e + 1. * g)
+    y <- mvrnorm(1, rep(0, N), S)
+
+    .Call('egn_mnq', as.matrix(y), V)
 }
