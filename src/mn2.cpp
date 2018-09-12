@@ -1,20 +1,10 @@
-#include <Rcpp.h>
 #include <RcppEigen.h>
-using Rcpp::as;
-using Rcpp::List;
-using Eigen::MatrixXf;
-using Eigen::ArrayXXf;
-using Eigen::VectorXf;
-using Eigen::Map;
-using Eigen::LLT;
-using Eigen::BDCSVD;
-using Eigen::JacobiSVD;
-using Eigen::DecompositionOptions::ComputeThinU;
-using Eigen::DecompositionOptions::ComputeThinV;
-using Eigen::DecompositionOptions::ComputeFullU;
-using Eigen::DecompositionOptions::ComputeFullV;
-using std::cout;
+#include <RcppEigen.h>
 
+// [[Rcpp::depends(RcppEigen)]]
+using namespace Rcpp;
+using namespace Eigen;
+using std::cout;
 //' Eigen3 MINQUE
 //'
 //' Only explicit kernels without fixed effect, no implicit product kernels
@@ -68,10 +58,7 @@ RcppExport SEXP egn_mnq(SEXP _y, SEXP _V)
        each VC, the contrast matrix must be I(k), so Lambda = S^{-1} */
     MatrixXf s = S.llt().solve(MatrixXf::Identity(K, K));
     VectorXf W(K);
-    MatrixXf A[K];
-    // fvec d(N);	              // eigen values of A
-    // fmat v(N, N);		      // eigen vectors of A
-    // fmat u(N, N);		      // eigen vectors of A
+    // MatrixXf A[K];
     for(int i = 0; i < K; i++)
     {
 	// A_i = sum_{j=1}^k lamda[i, j] (R V[i] R)
@@ -81,40 +68,24 @@ RcppExport SEXP egn_mnq(SEXP _y, SEXP _V)
 
 	// estimate the i th. variance component
 	float w = y.dot(a.matrix() * y);
-	if(w < 0.0f) 		// modified MINQUE required
-	{
-	    // project A to its nearest in the PSD space
-	    // eig_sym(d, v, (a + a.t())/2.0f);
-	    JacobiSVD<MatrixXf> svd(((a + a.transpose()) / 2.0f).matrix(), ComputeFullU|ComputeFullV);
-	    ArrayXXf            d(svd.singularValues());
-	    cout << "d=" << d << std::endl;
-	    d = d * (d > d(0) * svd.threshold()).cast<float>();
-	    // cout << "U=" << svd.matrixU() << std::endl;
-	    cout << "d=" << d << std::endl;
-	    // cout << "V=" << svd.matrixV() << std::endl;
-	    a = svd.matrixU() * d.matrix().asDiagonal() * svd.matrixV().transpose();
-	    w = y.dot(a.matrix() * y);
-	    // for (int l = 0; l < N; l++)
-	    // {
-	    // 	if(d(l) < thd)
-	    // 	    d(l) = 0.0f;
-	    // }
-	    // for(int j = v.n_rows - 1; j >= 0; j--)
-	    // {
-	    //     if(d[j] > 0.0f)
-	    // 	       u.col(j) = v.col(j) * d[j];
-	    // 	   else
-	    // 	       u.col(j).zeros();
-	    // }
-	    // a = u * v.t();
-	    // w = as_scalar(y.t() * a * y);
-	}
-	A[i] = a.matrix();
+	// if(w < 0.0f) 		// modified MINQUE required
+	// {
+	//     // project A to its nearest in the PSD space
+	//     SelfAdjointEigenSolver<MatrixXf> egn(((a + a.transpose()) / 2.0f).matrix());
+	//     ArrayXXf            d(egn.eigenvalues());
+	//     MatrixXf            v(egn.eigenvectors());
+	//     cout << "d.egn=" << d << std::endl;
+	//     d = d * (d > d.maxCoeff() * 1.49e-08f).cast<float>();
+	//     for(int i = 0; i < K; i++)
+	// 	v.col(i) *= d(i);
+	//     a = v * egn.eigenvectors().transpose();
+	//     w = y.dot(a.matrix() * y);
+	// }
+	// A[i] = a.matrix();
 	W(i) = w;
     }
   
     List ret;
-    ret["S"] = S;
     ret["vcs"] = W;
     return ret;
 }

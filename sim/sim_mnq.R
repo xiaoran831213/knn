@@ -42,7 +42,7 @@ ts1 <- function(N=1000, P=2000, r=10)
     ## list(r1=r1, r2=r2)
 }
 
-ts2 <- function(N=6, P=3)
+ts2 <- function(N=6, P=3, r=10)
 {
     X <- matrix(rnorm(N * P), N, P)
     knl <- list(
@@ -58,9 +58,13 @@ ts2 <- function(N=6, P=3)
     S <- with(knl, .01 * e + 1. * g)
     y <- mvrnorm(1, rep(0, N), S)
 
-    a <- knl.mnq.R(y, V, X=NULL)
-    b <- .Call('knl_mnq', as.matrix(y), V)
-    c <- .Call('egn_mnq', as.matrix(y), V)
+    mb <- microbenchmark(
+        ## a <- knl.mnq.R(y, V, X=NULL),
+        b <- .Call('knl_mnq', as.matrix(y), V),
+        c <- .Call('egn_mnq', as.matrix(y), V))
+    print(mb)
 
-    list(a=a, b=b, c=c)
+    list(
+        #3 rln=a,
+        am1=b, am2=c)
 }

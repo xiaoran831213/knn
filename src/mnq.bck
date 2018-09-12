@@ -1,17 +1,4 @@
-#include "RcppArmadillo.h"
-using namespace Rcpp;
-using namespace arma;
-
-// [[Rcpp::depends(RcppArmadillo)]]
-
-//' Kernel MINQUE
-//'
-//' Only explicit kernels without fixed effect, no implicit product kernels
-//' from random effect either.
-//' 
-//' @param V a list of k kernel matrices matched to k variance components.
-//' @param P a m-k matrix, each row is a contrast of k variance components.
-RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
+RcppExport SEXP knl_mn2(SEXP _y, SEXP _V)
 {
     // // [[Rcpp::export]]
     fmat y = as<fmat>(_y);
@@ -31,12 +18,16 @@ RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
 
     /* R = Z^{-1} (I - P_v), (Rao. 1971) */
     /* in case of no fixed effect X, project P_v = 0, R = Z^{-1} */
-    fmat R = inv_sympd(Z);
+    // fmat R = inv_sympd(Z);
 
     /* W_i = R V_i R, (Rao. 1971) */
     fmat B[k];
+    fmat D[k];
     for(int i = 0; i < k; i++)
-	B[i] = R * V[i] * R;
+    {
+	D[i] = solve(Z, V[i], solve_opts::fast);	// R V_i
+	B[i] = solve(Z, D[i], solve_opts::fast);	// R V_i R
+    }
 
     /* The k-k matrix S, S_ij = Tr(B_i V_j) */
     fmat S(k, k);
@@ -44,10 +35,10 @@ RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
     {
 	for(int j = i + 1; j < k; j++)
 	{
-	    S(i, j) = accu(B[i] % V[j]);
+	    S(i, j) = accu(D[i] % D[j]);
 	    S(j, i) = S(i, j);
 	}
-	S(i, i) = accu(B[i] % V[i]);
+	S(i, i) = accu(D[i] % D[i]);
     }
 
     /* Lambda_i = P_i' S^{-1} (Rao. 1917), i = 1 .. nrow(P).
@@ -99,12 +90,7 @@ RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
     //  	e[i] = 2.0f * accu(square(A[i] * C));
 
     List ret;
-    // ret["S"] = S;		// S_ij = Tr[B_i V_j]
-    // ret["L"] = L;		// lambda for each contrast
-    // ret["A"] = A;		// A matrices
-    // ret["C"] = C;
     ret["vcs"] = W;		// variance components
     ret["se2"] = 1;		// standard errors
     return(Rcpp::wrap(ret));
 }
-

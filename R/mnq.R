@@ -77,7 +77,7 @@ knl.mnq.R <- function(y, V, X=NULL)
         e[i] <- 2 * sum((A[[i]] %*% C)^2)
 
     ## pack up
-    list(vcs=W, se2=e, A=A, C=C, S=S, L=L)
+    list(vcs=W, se2=e)
 }
 
 #' Kernel Polynomial Expansion
