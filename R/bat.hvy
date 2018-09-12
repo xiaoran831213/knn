@@ -61,7 +61,7 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
         rtm <- rtm + bat$rpt['rtm', 'val'] + td
 
         ## processing at the end of an epoch
-        eph <- CL(eph, bat[c('par', 'se2', 'rpt')])
+        eph <- CL(eph, bat)
         if(length(eph) == nbt)
         {
             par <- mat(eph)
