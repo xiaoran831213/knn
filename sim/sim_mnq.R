@@ -42,7 +42,7 @@ ts1 <- function(N=1000, P=2000, r=10)
     ## list(r1=r1, r2=r2)
 }
 
-ts2 <- function(N=10, P=5)
+ts2 <- function(N=6, P=3)
 {
     X <- matrix(rnorm(N * P), N, P)
     knl <- list(
@@ -55,8 +55,12 @@ ts2 <- function(N=10, P=5)
     V <- knl[c('e', 'l')]
 
     ## true covariance
-    S <- with(knl, .1 * e + 1. * g)
+    S <- with(knl, .01 * e + 1. * g)
     y <- mvrnorm(1, rep(0, N), S)
 
-    .Call('egn_mnq', as.matrix(y), V)
+    a <- knl.mnq.R(y, V, X=NULL)
+    b <- .Call('knl_mnq', as.matrix(y), V)
+    c <- .Call('egn_mnq', as.matrix(y), V)
+
+    list(a=a, b=b, c=c)
 }
