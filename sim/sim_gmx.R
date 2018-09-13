@@ -11,7 +11,7 @@ source('R/bat.R')                       # batched VCM trainer
 source('R/agg.R')                       # model aggregation
 source('sim/grm.R')                     # genomic relatedness matrix (plink, GCTA)
 source('sim/gct.R')                     # GCTA wrapper
-source('sim/utl1.R')                    # simulation utilites
+source('sim/utl.R')                    # simulation utilites
 source('sim/gsm.R')                     # simulation utilites
 
 library(devtools)                       # enable the C++ functions
@@ -65,7 +65,7 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, ctr=1, eps=.1, oks=p1, yks=p1, 
         knl <- krn(gmx, yks)                   # kernels from the entire data
         gct <- gcta.reml(rsp, krn(gmx, p1))    # whole sample GCTA-REML
         mnq <- knl.mnq(rsp, knl, cpp=TRUE)     # whole sample MINQUE
-        mle <- rop.vcm(rsp, knl, cpp=TRUE)     # whold sample MLE
+        ## mle <- rop.vcm(rsp, knl, cpp=TRUE)     # whold sample MLE
     })
     ## for each of the R groups, choose N samples and P features -> Testing
     evl <- within(list(),
@@ -76,18 +76,18 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, ctr=1, eps=.1, oks=p1, yks=p1, 
 
         gct <- DF(mtd='gct', vpd(rsp, krn(gmx, p1), dvp$gct$par)) # evaluate GCTA-REML
         mnq <- DF(mtd='mnq', vpd(rsp, knl, dvp$mnq$par))      # evaluate MINQUE
-        mle <- DF(mtd='mle', vpd(rsp, knl, dvp$mle$par))      # evaluate MLE
+        ## mle <- DF(mtd='mle', vpd(rsp, knl, dvp$mle$par))      # evaluate MLE
     })
     
     ## ----------------------- generate reports ----------------------- ##
     rpt <- list()
     rpt <- CL(rpt, DF(dat='dvp', mtd='mnq', dvp$mnq$rpt))
-    rpt <- CL(rpt, DF(dat='dvp', mtd='mle', dvp$mle$rpt))
+    ## rpt <- CL(rpt, DF(dat='dvp', mtd='mle', dvp$mle$rpt))
     rpt <- CL(rpt, DF(dat='dvp', mtd='gct', dvp$gct$rpt))
     rpt <- CL(rpt, DF(dat='dvp', mtd='nul', nul(dvp$rsp)))
 
     rpt <- CL(rpt, DF(dat='evl', evl$mnq))
-    rpt <- CL(rpt, DF(dat='evl', evl$mle))
+    ## rpt <- CL(rpt, DF(dat='evl', evl$mle))
     rpt <- CL(rpt, DF(dat='evl', evl$gct))
     rpt <- CL(rpt, DF(dat='evl', mtd='nul', nul(evl$rsp)))
 
@@ -96,7 +96,7 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, ctr=1, eps=.1, oks=p1, yks=p1, 
     rpt <- within(rpt, val <- round(val, 4L))
     ret <- cbind(arg, rpt)
 
-    print(list(mnq=dvp$mnq$par, gct=dvp$gct$par, mle=dvp$mle$par))
+    print(list(mnq=dvp$mnq$par, gct=dvp$gct$par)) ## , mle=dvp$mle$par))
     print(list(time=subset(ret, dat=='dvp' & key=='rtm')))
     ret
 }

@@ -149,8 +149,8 @@ prob <- function(name='u12')
 {
     library(ggplot2)
     library(dplyr)
-    d <- as_tibble(d0(name, FALSE))
-    d <- filter(d, key %in% c('cyh', 'mse', 'rtm'))
+    d <- as_tibble(d0(name, TRUE))
+    d <- filter(d, key %in% c('cyh', 'mse', 'rtm', 'nlk'))
 
     g <- ggplot(d, aes(x=mtd, y=val))
     g <- g + geom_boxplot()
@@ -159,11 +159,44 @@ prob <- function(name='u12')
     g <- g + ggtitle(ttl(d))
 
     ## write to PNG
-    f <- paste0(file.path('~', name), '.png')
-    dir.create(basename(f), FALSE, TRUE)
+    f <- paste0(file.path('~/img', name), '.png')
+    print(f)
+    ggsave(f, g, width=10, height=11)
+
+    ## return the plot
+    invisible(g)
+}
+
+pbat <- function(name='b01')
+{
+    library(ggplot2)
+    library(dplyr)
+    d <- as_tibble(d0(name, TRUE))
+    d <- filter(d, key %in% c('cyh', 'mse', 'rtm', 'nlk'))
+
+    ## gcta
+    gct <- filter(d, mtd == 'gct')
+
+    ## batched minque
+    bat <- filter(d, mtd == 'mnq.ssz' | mtd == 'mnq.bat') %>% mutate(mtd = as.character(bsz))
+
+    ## whole sample minque
+    mnq <- filter(d, mtd == 'mnq.whl') %>% mutate(mtd = 'mnq')
+
+    d <- bind_rows(bat, mnq, gct) %>% select_at(vars(-bsz))
+    ## naive aggregation only
+
+    g <- ggplot(d, aes(x=mtd, y=val))
+    g <- g + geom_boxplot()
+    g <- g + ylim(0, 1.3)
+    g <- g + facet_grid(sim~key)
+    g <- g + ggtitle(ttl(d))
+
+    ## write to PNG
+    f <- paste0(file.path('~/img', name), '.png')
     print(f)
     ggsave(f, g, width=10, height=10)
 
     ## return the plot
-    g
+    invisible(g)
 }

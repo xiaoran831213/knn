@@ -38,11 +38,11 @@ dc <- function(x, d=NULL, ...)
 
     z <- switch(
         d,
-        st={     qt(p, (2 * v) / max(v - 1, 0))},
+        st={     qt(p, (2 * v) * 2/ max(v - 1, 0))},
         bn={ qbinom(p, ceiling(4 * v), .5)},
         ps={  qpois(p, v)},
         ex={   qexp(p, 1 / s)},
-        ca={qcauchy(p) -> .; v * . / sd(.)},
+        ca={qcauchy(p) -> .; v * . * 8/ sd(.)},
         ch={ qchisq(p, v / 2)})
 
     cdc <- as.logical(get0('cdc', ifnotfound=FALSE))
