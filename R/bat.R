@@ -42,7 +42,7 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
                 sq <- sample.int(N)               # permutation
                 eph <- list()
             }
-            . <- sq[seq.int(bt * bsz + 1L, l=bsz) %% N]
+            . <- sq[seq.int(bt * bsz + 1L, l=bsz) %% (N + 1)]
             bat <- list(knl=lapply(knl, `[`, ., .), rsp=rsp[.])
         }
         else
@@ -52,49 +52,52 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
             knl.bat <- knl
             rsp.bat <- rsp
         }
+        bt <- bt + 1
         if(ep > wep) {cat('BMQ: reach max_epoc:', wep, 'e\n'); break}
         t1 <- Sys.time()
         td <- t1 - t0; units(td) <- 'secs'; td <- as.numeric(td)
         
         ## MINQUE on each batch
+        ssz <- nrow(bat)
         bat <- c(bat, with(bat, FUN(rsp, knl, ...)))
         rtm <- rtm + bat$rpt['rtm', 'val'] + td
 
-        ## processing at the end of an epoch
-        eph <- CL(eph, bat[c('par', 'se2', 'rpt')])
+        ## gather information
+        msg <- c(ep=ep, bt=bt, rtm=rtm, bat[c('par', 'se2')], bsz=bat$rpt['ssz', 'val'])
+        
+        ## accumulate an epoch, calculate training statistics
+        eph <- CL(eph, bat[c('par', 'se2')])
         if(length(eph) == nbt)
         {
-            par <- mat(eph)
-            phi <- par[1, 'ssz']
+            par <- mean(eph %$% 'par')
+            phi <- par[1]
             rpt <- vpd(rsp, knl, par, rt=0, ...)
             mse <- rpt['mse']
             nlk <- rpt['nlk']
             loo <- rpt['loo']
+            msg <- c(msg, rpt)
+            ## append message to STDOUT
             cat(ln.msg(tks), "\n", sep="")
-            hst <- CL(hst, c(ep=ep, rtm=rtm, rpt, list(par=par)))
         }
-        acc <- CL(acc, bat)
-        
-        ## append message track on each new epoch
-        if(bt == 0 && ep %% 40 == 1)
-            cat(hd.msg(tks), "\n", sep="")
 
+        ## append message to the history
+        hst <- CL(hst, msg)
+        
         if(itr > wit) {cat('BMQ: reach max_iter:', wit, 'b\n'); break}
         if(rtm > wtm) {cat('BMQ: reach walltime:', wtm, 's\n'); break}
         itr <- itr + 1L
     }
-    ## rearrange history
-    tck <- EL1(hst, c('ep', 'rtm', 'mse', 'loo', 'nlk', 'cyh'), 'd')
-
     
     ## mean solution
-    ## par <- EL2(hst, 'par')
-    ## par <- mean(par)
-    par <- mat(acc)
-    par <- sapply(colnames(par), function(i) par[, i], simplify=FALSE)
-    rpt <- lapply(par, vpd, y=rsp, K=knl)
+    par <- mean(hst %$% 'par')
+
+    ## assessment
+    t0 <- Sys.time(); rpt <- vpd(y=rsp, K=knl, W=par); t1 <- Sys.time()
+    td <- t1 - t0; units(td) <- 'secs'; td <- as.numeric(td)
+    rtm <- rtm + td
+    rpt <- rbind(rpt, rtm=DF(key='rtm', val=rtm))
 
     ## return
-    ret <- list(par=par, rpt=rpt, rtm=rtm, hst=tck)
+    ret <- list(par=par, rpt=rpt) #, hst=hst)
     ret
 }
