@@ -67,14 +67,7 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, oks=p1, yks=p1, ...)
         knl <- krn(gmx, yks)                   # kernels from the entire data
         gct <- gcta.reml(rsp, krn(gmx, p1))    # whole sample GCTA-REML
         mnq <- knl.mnq(rsp, knl, cpp=TRUE)     # whole sample MINQUE
-
-        ## batched MINQUE
-        kmq <- GBT(knl.mnq, rsp, knl, cpp=TRUE, ...)
-        kmq.par <- kmq$par
-        kmq.rtm <- kmq$rtm
-        kmq <- do.call(rbind, lapply(kmq.par, vpd, y=rsp, K=knl))
-        kmq.rpt <- DF(mtd=paste0('mnq.', sub("[.][^.]*$", "", rownames(kmq))), kmq)
-        kmq.rpt <- rbind(kmq.rpt, DF(mtd='mnq.bat', key='rtm', val=kmq.rtm))
+        bmq <- GBT(knl.mnq, rsp, knl, cpp=TRUE, ...) # batched
     })
 
     ## ------------------------- model evaluation ------------------------- ##
@@ -84,35 +77,30 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, oks=p1, yks=p1, ...)
         rsp <- unlist(EL2(evl, 'rsp'))         # stacked response
         knl <- krn(gmx, yks)                   # kernels from the entire data
 
-        gct <- DF(mtd='gct', vpd(rsp, krn(gmx, p1), dvp$gct$par)) # evaluate GCTA-REML
-        mnq <- DF(mtd='mnq.whl', vpd(rsp, knl, dvp$mnq$par))      # evaluate MINQUE
-
-        ## batched MINQUE
-        kmq <- do.call(rbind, lapply(dvp$kmq.par, vpd, y=rsp, K=knl))
-        kmq <- DF(mtd=paste0('mnq.', sub("[.][^.]*$", "", rownames(kmq))), kmq)
+        gct <- DF(mtd='gct', vpd(rsp, krn(gmx, p1), dvp$gct$par))
+        mnq <- DF(mtd='mnq', vpd(rsp, knl, dvp$mnq$par))
+        bmq <- DF(mtd='mnq.bat', vpd(rsp, knl, dvp$bmq$par))
     })
     
     ## --------------------------- make reports --------------------------- ##
     rpt <- list()
-    rpt <- CL(rpt, DF(dat='dvp', mtd='mnq.whl', dvp$mnq$rpt))
-    ## rpt <- CL(rpt, DF(dat='dvp', mtd='mle.whl', dvp$mle$rpt))
+    rpt <- CL(rpt, DF(dat='dvp', mtd='mnq', dvp$mnq$rpt))
     rpt <- CL(rpt, DF(dat='dvp', mtd='gct', dvp$gct$rpt))
+    rpt <- CL(rpt, DF(dat='dvp', mtd='mnq.bat', dvp$bmq$rpt))
     rpt <- CL(rpt, DF(dat='dvp', mtd='nul', nul(dvp$rsp)))
 
     rpt <- CL(rpt, DF(dat='evl', evl$mnq))
-    ## rpt <- CL(rpt, DF(dat='evl', evl$mle))
     rpt <- CL(rpt, DF(dat='evl', evl$gct))
     rpt <- CL(rpt, DF(dat='evl', mtd='nul', nul(evl$rsp)))
 
-    rpt <- CL(rpt, DF(dat='dvp', dvp$kmq.rpt)) # batched
-    rpt <- CL(rpt, DF(dat='evl', evl$kmq))
-
+    rpt <- CL(rpt, DF(dat='evl', evl$bmq))
+    
     ## report and return
     rpt <- Reduce(function(a, b) merge(a, b, all=TRUE), rpt)
     rpt <- within(rpt, val <- round(val, 4L))
     ret <- cbind(arg, rpt)
 
-    print(list(kmq=dvp$kmq$par, mnq=dvp$mnq$par, gct=dvp$gct$par))
+    print(list(bmq=dvp$bmq$par, mnq=dvp$mnq$par, gct=dvp$gct$par))
     invisible(ret)
 }
 
