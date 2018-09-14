@@ -18,33 +18,33 @@ ib <- c(ib=function(x) ibs(x))
 #' covert an assumed empirical nromal distribution to another distribution.
 #'
 #' x: the data that descript the empirical normal
-#' q: the quantile function of the target distribution
+#' d: the target distribution
 #' .: additional paramters required by the target quantile (e.g., degree
 #' of freedom for t and chisq, min and min for unif, etc.)
-dc <- function(x, d=NULL, ...)
+dc <- function(x, d=NULL, curb=0.01, ...)
 {
     v <- var(x)                         # variance
     s <- sd(x)                          # sd
     m <- mean(x)                        # mean
-    p <- pnorm(x, m, s)                 # percentile
+    n <- length(x)                      # numbers
+    p <- pnorm(x, m, s)                 # quantile
 
-    y <- switch(
-        d,
-        bn={2 * v},
-        ps={v},
-        ex={1 / s},
-        ch={v},
-        0)
+    p <- curb / 2 + p * (1 - curb)
+    
+    y <- switch(d, bn={2 * v}, ps={v}, ex={1 / s}, ch={v}, 0)
 
     z <- switch(
         d,
-        st={     qt(p, (2 * v) / max(v - 1, 0))},
+        ## st={     qt(p, (2 * v) / max(v - 1, 0))},
+        st={     qt(p, 1 / s)},
         bn={ qbinom(p, ceiling(4 * v), .5)},
         ps={  qpois(p, v)},
         ex={   qexp(p, 1 / s)},
-        ca={qcauchy(p) -> .; v * . / sd(.)},
+        ## ca={qcauchy(p) -> .; s * . / sd(.)},
+        ca={qcauchy(p, 0, s)},
         ch={ qchisq(p, v / 2)})
 
+    ## centered?
     cdc <- as.logical(get0('cdc', ifnotfound=FALSE))
     print(list(cdc=cdc))
     if(cdc)
@@ -52,11 +52,31 @@ dc <- function(x, d=NULL, ...)
     z
 }
 
-st <- function(x) dc(x, 'st')
+dc.test <- function()
+{
+    x <- rnorm(50000, 0, 1.5)
+    x.st <- dc(x, 'st', 0.10)
+    x.ca <- dc(x, 'ca', 0.05)
+    print(list(nm=summary(x), st=summary(x.st), ca=summary(x.ca)))
+
+    d <- rbind(
+        DF(dst='nm', val=x),
+        DF(dst='st', val=x.st),
+        DF(dst='ca', val=x.ca))
+
+    library(ggplot2)
+    g <- ggplot(d, aes(val))
+    g <- g + geom_freqpoly(aes(color=dst), binwidth = 0.1)
+    g <- g + xlim(-15, 15)
+    ## g <- g + ylim(c(1, NA))
+    g
+}
+
+st <- function(x) dc(x, 'st', 0.05)
 bn <- function(x) dc(x, 'bn')
 ps <- function(x) dc(x, 'ps')
 ex <- function(x) dc(x, 'ex')
-ca <- function(x) dc(x, 'ca')
+ca <- function(x) dc(x, 'ca', 0.05)
 ch <- function(x) dc(x, 'ch')
 i1 <- function(x) x
 i2 <- function(x) scale((x + 1)^2, scale=FALSE)
@@ -65,6 +85,7 @@ i2 <- function(x) scale((x + 1)^2, scale=FALSE)
 i3 <- function(x) scale((x + 1)^3, scale=FALSE)
 sn <- function(x) sin(2 * pi * x)
 sg <- function(x) 1/(1 + exp(-x))
+
 
 ## genomic models
 a1 <- ~ a
