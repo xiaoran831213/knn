@@ -61,6 +61,8 @@ _region_.tex
 							
 # simulation runs
 sim/run
+sim/dat
 
 # gcta temporary files
 gcta
+
