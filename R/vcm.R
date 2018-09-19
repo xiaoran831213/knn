@@ -106,8 +106,9 @@ vcm.fsi <- function(W, K, Y, ...)
 #' @param W a vector of variance components
 #' @param ln the VCs are logged? if true, exp(W) is used instead of W
 #' @param rt return a table? if false, a named vector is returned
-knl.prd <- function(y, K, W, rt=1, ...)
+vpd <- function(y, K, W, rt=1, ...)
 {
+    y <- unname(y)
     ## is W logged
     N <- NROW(y)
 
@@ -115,32 +116,34 @@ knl.prd <- function(y, K, W, rt=1, ...)
     C <- c(list(eps=diag(N)), cv=K)
     
     ## make predictions
-    v <- cmb(C, W)[[1]]
-    a <- solve(v)
+    v <- unname(cmb(C, W)[[1]])
+    ## a <- solve(v)
+    alpha <- solve(v, y)                # V^{-1}y
     f <- v - diag(W[1], length(y))      # W[1] is PHI
 
     ## prediction 1: conditional Gaussian
-    y <- unname(drop(as.vector(y)))
-    h <- unname(drop(f %*% (a %*% y)))
+    h <- f %*% alpha
 
     mse <- mean((y - h)^2)
     ## gurad against zero-standard deviation
     cyh <- tryCatch(cor(y, h), warning=function(w) 0, error=function(e) NA)
-    nlk <- nlk(y, v) / N
 
+    ## negative likelihood
+    ld <- with(.Internal(det_ge_real(v, TRUE)), sign * modulus)
+    nlk <- .5 / N * (sum(alpha * y) + ld + N * log(2*pi))
+    
     ## prediction 2: leave one out CV
-    h <- y - a %*% y / diag(a)
-    loo <- mean((y - h)^2)
+    ## h <- y - a %*% y / diag(a)
+    ## loo <- mean((y - h)^2)
 
     ## return
-    rpt <- c(mse=mse, loo=loo, nlk=nlk, cyh=cyh, ssz=N)
+    rpt <- c(mse=mse, nlk=nlk, cyh=cyh, ssz=N)
     if(rt == 1)
         rpt <- DF(key=names(rpt), val=rpt, row.names=names(rpt))
     if(rt == 2)
         rpt <- DF(t(rpt))
     rpt
 }
-vpd <- knl.prd
 
 rop.vcm <- function(y, K, W=NULL, cpp=TRUE, ...)
 {
@@ -151,7 +154,22 @@ rop.vcm <- function(y, K, W=NULL, cpp=TRUE, ...)
     if(is.null(W))
         W <- matrix(rnorm(L * Q), L, Q)
 
-    obj <- function(x) nlk(y, cmb(C, exp(x))[[1]])
+    obj <- function(x)
+    {
+        v <- cmb(C, exp(x))[[1]]
+        u <- try(chol(v))
+        if(inherits(u, 'try-error'))
+        {
+            alpha <- solve(v, y)                # V^{-1}y
+            v.det <- with(.Internal(det_ge_real(v, TRUE)), sign * modulus)
+        }
+        else
+        {
+            alpha <- backsolve(u, forwardsolve(u, y, upper.tri=TRUE, transpose=TRUE))
+            v.det <- 2 * sum(log(diag(u)))
+        }
+        .5 * (sum(alpha * y) + v.det + N * log(2*pi))
+    }
     if(cpp)
         grd <- function(x) cpp.dv1(x, C, y)[, 1]
     else
@@ -267,11 +285,28 @@ nul <- function(y)
     h <- (sum(y) - y) / (N - 1)
     loo <- mean((y - h)^2)
 
-    ## correlation
-    cyh <- cor(y, h)
-
     ## report
     ret <- DF(key=c('mse', 'nlk', 'loo', 'cyh'), val=c(mse, nlk, loo, cyh))
     rownames(ret) <- ret$key
     ret
+}
+
+nul.vcm <- function(y, eps=NULL, ...)
+{
+    N <- NROW(y)
+    mse <- sum(y^2) / N
+
+    if(is.null(eps))
+        eps <- mse
+    v <- diag(eps, N)
+    alpha <- solve(v, y)                # v^{-1}y or y/e = y / sum(y^2/N) = N * y/ sum(y^2)
+
+    ldt <- with(.Internal(det_ge_real(v, TRUE)), sign * modulus)
+    nlk <- .5 / N * (sum(alpha * y) + ldt + N * log(2*pi))
+    
+    rpt <- DF(key=c('mse', 'nlk'), val=c(mse, nlk))
+    rownames(rpt) <- rpt$key
+
+    ## return
+    list(rpt=rpt, par=c(eps=eps))
 }

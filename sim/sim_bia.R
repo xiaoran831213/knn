@@ -9,6 +9,7 @@ source('R/mnq.R')                       # MINQUE
 source('R/msg.R')                       # message board
 source('R/bat.R')                       # batched VCM trainer
 source('R/agg.R')                       # model aggregation
+source('R/bat.R')
 source('sim/grm.R')                     # genomic relatedness matrix (plink, GCTA)
 source('sim/gct.R')                     # GCTA wrapper
 source('sim/utl.R')                    # simulation utilites
@@ -34,13 +35,14 @@ devtools::load_all()
 #' @param bsz batch size for batched training
 #'
 #' see "sim/utl.R" to understand {oks}, {lnk}, and {yks}.
-main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, ctr=1, eps=.1, oks=p1, yks=p1, ...)
+main <- function(N, P, Q=1, R=0, frq=.05, lnk=I, eps=.1, oks=p1, yks=p1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
     set.seed(dot$seed)
     het <- dot$het %||% 0.0
     svc <- dot$svc %||% 1.0
+    vcs <- dot$vcs %||% get.vcs(length(oks), 'r', svc)
     arg <- match.call() %>% tail(-1) %>% as.list
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
@@ -55,54 +57,49 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, ctr=1, eps=.1, oks=p1, yks=p1, 
     ## for each of the Q groups, choose N samples and P features -> Training
     gmx <- get.gmx(readRDS(gds), N, P, Q, R)
     dat <- with(gmx, c(dvp, evl))
-    dat <- get.sim(dat, frq, lnk, eps, oks, het=c(rep(het, Q), rep(het, R)), ...)
+    dat <- get.sim(dat, frq, lnk, eps, vcs, oks, ...)
     dvp <- dat[+(1:Q)]
-    evl <- dat[-(1:Q)]
+    gmx <- do.call(rbind, dvp %$% 'gmx') # stacked genomics
+    rsp <- unlist(dvp %$% 'rsp')         # stacked response
+    knl <- krn(gmx, yks)                # kernels from the entire data
+
+    ## ------------------------- model fit ------------------------- ##
     dvp <- within(list(),
     {
-        gmx <- do.call(rbind, EL2(dvp, 'gmx')) # stacked genomics
-        rsp <- unlist(EL2(dvp, 'rsp'))         # stacked response
-        knl <- krn(gmx, yks)                   # kernels from the entire data
-        gct <- gcta.reml(rsp, krn(gmx, p1))    # whole sample GCTA-REML
-        mnq <- knl.mnq(rsp, knl, cpp=TRUE)     # whole sample MINQUE
-        ## mle <- rop.vcm(rsp, knl, cpp=TRUE)     # whold sample MLE
+        gct <- gcta.reml(rsp, knl)
+        mle <- rop.vcm(rsp, knl)
+        bml <- GBT(rop.vcm, rsp, knl, ...)
+        mnq <- knl.mnq(rsp, knl, prd=FALSE, psd=FALSE)
+        bmq <- GBT(knl.mnq, rsp, knl, prd=FALSE, psd=FALSE, ...)
     })
-    ## for each of the R groups, choose N samples and P features -> Testing
-    evl <- within(list(),
-    {
-        gmx <- do.call(rbind, EL2(evl, 'gmx')) # stacked genomics
-        rsp <- unlist(EL2(evl, 'rsp'))         # stacked response
-        knl <- krn(gmx, yks)                   # kernels from the entire data
 
-        gct <- DF(mtd='gct', vpd(rsp, krn(gmx, p1), dvp$gct$par)) # evaluate GCTA-REML
-        mnq <- DF(mtd='mnq', vpd(rsp, knl, dvp$mnq$par))      # evaluate MINQUE
-        ## mle <- DF(mtd='mle', vpd(rsp, knl, dvp$mle$par))      # evaluate MLE
-    })
+    ## bias assesment
+    par <- dvp %$% 'par'                # estimates
+    ref <- c(eps, vcs)                  # reference
+    len <- max(length(ref), do.call(pmax, par %$% length))
+    key <- paste0('bia.', c('eps', paste0('vc', 1:(len-1))))
+
+    ## zero padding, and biases
+    par <- lapply(par, function(.) c(., rep(0, len - length(.))))
+    ref <- c(ref, rep(0, len - length(ref)))
+    bia <- lapply(names(par), function(.) DF(mtd=., key=key, val=par[[.]] - ref))
+    bia <- DF(dat='dvp', do.call(rbind, bia))
     
     ## ----------------------- generate reports ----------------------- ##
     rpt <- list()
-    rpt <- CL(rpt, DF(dat='dvp', mtd='mnq', dvp$mnq$rpt))
-    ## rpt <- CL(rpt, DF(dat='dvp', mtd='mle', dvp$mle$rpt))
-    rpt <- CL(rpt, DF(dat='dvp', mtd='gct', dvp$gct$rpt))
-    rpt <- CL(rpt, DF(dat='dvp', mtd='nul', nul(dvp$rsp)))
-
-    rpt <- CL(rpt, DF(dat='evl', evl$mnq))
-    ## rpt <- CL(rpt, DF(dat='evl', evl$mle))
-    rpt <- CL(rpt, DF(dat='evl', evl$gct))
-    rpt <- CL(rpt, DF(dat='evl', mtd='nul', nul(evl$rsp)))
+    rpt <- CL(rpt, bia)
 
     ## report and return
     rpt <- Reduce(function(a, b) merge(a, b, all=TRUE), rpt)
     rpt <- within(rpt, val <- round(val, 4L))
     ret <- cbind(arg, rpt)
 
-    print(list(mnq=dvp$mnq$par, gct=dvp$gct$par)) ## , mle=dvp$mle$par))
-    print(list(time=subset(ret, dat=='dvp' & key=='rtm')))
+    print(c(par, list(ref=ref)))
     ret
 }
 
 test <- function()
 {
-    r <- main(N=3000, P=2000, Q=1, R=1, eps=.1, oks=p1, yks=p2, svc=1, mdl=a2)
+    r <- main(N=500, P=1000, Q=2, R=0, frq=.1, eps=1, oks=p2, yks=p2, svc=1)
     subset(r, dat=='evl' & key=='nlk' | dat=='dvp' & key=='rtm')
 }

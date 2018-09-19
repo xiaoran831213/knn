@@ -143,6 +143,10 @@ knl.ply <- function(V, order=1)
 #'   - cor(y, y.hat)
 knl.mnq <- function(y, V, order=1, cpp=TRUE, ...)
 {
+    dot <- list(...)
+    prd <- dot$prd %||% FALSE           # make self prediction
+    psd <- dot$psd %||% 1L              # make PSD projection?
+    
     N <- NROW(y)                        # sample size
 
     ## print('begin MINQUE')
@@ -153,14 +157,17 @@ knl.mnq <- function(y, V, order=1, cpp=TRUE, ...)
     ## call the kernel MINQUE core function
     ## fixed contrast matrix
     if(cpp)
-        r <- .Call('knl_mnq', PACKAGE = 'knn', as.matrix(y), C)
+        r <- .Call('knl_mnq', PACKAGE = 'knn', as.matrix(y), C, psd)
     else
         r <- knl.mnq.R(y, C)
     td <- Sys.time() - t0; units(td) <- 'secs'; td <- as.numeric(td)
     ## print('end MINQUE')
 
     ## make predictions
-    prd <- vpd(y, V, r$vcs, ln=0, rt=1)
+    if(prd)
+        prd <- vpd(y, V, r$vcs, ln=0, rt=1)
+    else
+        prd <- NULL
 
     ## timing
     rtm <- DF(key='rtm', val=td)

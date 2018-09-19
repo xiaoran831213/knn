@@ -11,9 +11,11 @@ using namespace arma;
 //' 
 //' @param V a list of k kernel matrices matched to k variance components.
 //' @param P a m-k matrix, each row is a contrast of k variance components.
-RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
+RcppExport SEXP knl_mnq(SEXP _y, SEXP _V, SEXP _psd)
 {
     // // [[Rcpp::export]]
+    int psd = as<int>(_psd);
+    
     fmat y = as<fmat>(_y);
     int N = y.n_rows;		// sample size
 
@@ -31,7 +33,7 @@ RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
 
     /* R = Z^{-1} (I - P_v), (Rao. 1971) */
     /* in case of no fixed effect X, project P_v = 0, R = Z^{-1} */
-    fmat R = inv_sympd(Z);
+    fmat R = pinv(Z);
 
     /* W_i = R V_i R, (Rao. 1971) */
     fmat B[k];
@@ -55,12 +57,12 @@ RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
        Lambda = S^{-1} */
     // fmat L = pinv(S);
     fmat L = inv_sympd(S);
-    // List A(L.n_rows);		      // k A-matrices
+    // List A(L.n_rows);	// k A-matrices
     fmat A[L.n_rows];
-    fvec W(L.n_rows);		      // k contrasts -> k VC(s)
-    fvec d(N);			      // eigen values of A
-    fmat v(N, N);		      // eigen vectors of A
-    fmat u(N, N);		      // eigen vectors of A
+    fvec W(L.n_rows);		// k contrasts -> k VC(s)
+    fvec d(N);			// eigen values of A
+    fmat v(N, N);		// eigen vectors of A
+    fmat u(N, N);		// eigen vectors of A
     for(int i = 0; i < k; i++)
     {
         // A_i = sum_{j=1}^k lamda[i, j] (R V[i] R)
@@ -70,7 +72,7 @@ RcppExport SEXP knl_mnq(SEXP _y, SEXP _V)
 
 	// estimate the i th. variance component
 	float w = as_scalar(y.t() * a * y);
-	if(w < 0.0f) 		// modified MINQUE required
+	if(w < 0.0f && psd)	// modified MINQUE required
 	{
 	    // project A to its nearest in the PSD space
 	    eig_sym(d, v, (a + a.t())/2.0f);

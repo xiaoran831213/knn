@@ -2,14 +2,14 @@
 
 ## genetic effect model
 gsm <- function(mdl=~ a + d + r, G,   # model, and raw data.
-                max.gvr=NULL,         # maximum number of variants
-                max.tms=NULL,         # naximum number of terms
+                max.gvr=Inf,         # maximum number of variants
+                max.tms=Inf,         # naximum number of terms
                 rm.nic=TRUE,          # remove non-informative columns
                 rm.dup=TRUE,          # remove duplicated columns
                 ...)
 {
     ## pick genomic variables
-    if(!is.null(max.gvr) && ncol(G) > max.gvr)
+    if(ncol(G) > max.gvr)
         G <- G[, sort(sample.int(ncol(G), max.gvr))]
 
     ## pick out informative variants

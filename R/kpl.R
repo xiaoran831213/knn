@@ -54,7 +54,7 @@ idn <- function(x, y=NULL, ...)
 #' @return an N-N identity matrix
 gau <- function(x, y=NULL, sigma=1, gamma=1/NCOL(x), ...)
 {
-    exp(-euc2(x) * (.5 * gamma / sigma^2))
+    exp(-euc2(x, y) * (.5 * gamma / sigma^2))
 }
 
 lap <- function(x, y=NULL, sigma=1, gamma=1/NCOL(x), ...)
@@ -104,4 +104,33 @@ cmb <- function(k, w)
     M <- ncol(w)
     L <- nrow(w)
     lapply(1:M, function(m) Reduce(`+`, mapply(`*`, k, w[, m], SIMPLIFY=FALSE)))
+}
+
+## kinship matrix
+kin <- function(x, y=NULL)
+{
+    N <- NROW(x)                       # sample size
+    ## -1 for AA, 0 for Aa, 1 for aa
+    x <- x - 1
+    if(!is.null(y))
+        y <- y - 1
+    k <- tcrossprod(x, y)
+    k / sum(diag(k)) * N
+}
+
+## exponential sin
+## k_ij = exp{-2 (sin(pi / periodicity * d_ij) / length_scale) ^ 2}
+esn <- function(x, y=NULL, p=1)
+{
+    psd(sin(tcrossprod(x, y) / p))
+}
+
+psd <- function(K)
+{
+    with(eigen((K + t(K)) / 2), vectors %*% (pmax(values, 0) * t(vectors)))
+}
+
+std <- function(K)
+{
+    K / sum(diag(K)) * NROW(K)
 }

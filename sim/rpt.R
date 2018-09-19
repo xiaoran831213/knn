@@ -25,7 +25,7 @@ readRtm <- function(..., ref=TRUE)
         r <- try(readRDS(f))
         if(inherits(r, 'try-error'))
             next
-        r <- subset(r, mtd!='mle' & dat=='dvp' & key=='rtm', -dat)
+        r <- subset(r, dat=='dvp' & key=='rtm', -dat)
         rpt <- c(rpt, list(r))
     }
     rpt <- do.call(rbind, rpt)
@@ -61,7 +61,7 @@ readRpt <- function(..., ref=TRUE)
         if(inherits(r, 'try-error'))
             next
 
-        evl <- subset(r, mtd!='mle' & dat == 'evl', -dat)
+        evl <- subset(r, dat == 'evl', -dat)
         if(ref)
         {
             ## MSE: null model as a measuring stick
@@ -94,6 +94,37 @@ readRpt <- function(..., ref=TRUE)
     
     ## corr(y, y_hat) for null model is meaning less
     rpt <- subset(rpt, !(key == 'cyh' & mtd == 'nul'))
+    
+    if(!('lnk' %in% names(rpt)))
+        rpt$lnk <- 'I'
+    if(!('mdl' %in% names(rpt)))
+        rpt$mdl <- 'a'
+    if(!('oks' %in% names(rpt)))
+        rpt$oks <- 'p'
+    rpt <- within(rpt,
+    {
+        sim <- sprintf("%s(%s)~%s, x~%s", lnk, .cp(oks), .cp(yks), mdl)
+    })
+    rpt <- subset(rpt, se=-c(seed, oks, lnk, yks, mdl))
+    rpt
+}
+
+readBia <- function(..., ref=TRUE)
+{
+    rpt <- list()
+    dot <- c(...)
+    for(f in dir(dot, '.rds$', full=TRUE))
+    {
+        print(f)
+        r <- try(readRDS(f))
+        if(inherits(r, 'try-error'))
+            next
+
+        dvp <- subset(r, dat == 'dvp', -dat)
+        rpt <- c(rpt, list(dvp))
+    }
+    rpt <- do.call(rbind, rpt)
+    rpt <- subset(rpt, !is.infinite(val))
     
     if(!('lnk' %in% names(rpt)))
         rpt$lnk <- 'I'

@@ -12,6 +12,24 @@ ga <- c(ga=function(x) gau(x))
 lp <- c(lp=function(x) lap(x))
 ib <- c(ib=function(x) ibs(x))
 
+gk <- c(ga=function(x) gau(x),
+        ki=function(x) kin(x))
+kg <- c(ki=function(x) kin(x),
+        ga=function(x) gau(x))
+
+ki <- c(ki=function(x) kin(x))          # kinship
+s1 <- c(s1=function(x) esn(x, p=1.0))   # sin
+s2 <- c(s2=function(x) esn(x, p=0.5))
+s3 <- c(s3=function(x) esn(x, p=2.0))
+
+ks <- c(ki=function(x) kin(x),
+        sn=function(x) esn(x, p=1.0))
+sk <- c(sn=function(x) esn(x, p=1.0),
+        ki=function(x) kin(x))
+
+sg <- function(x) psd(1/(1 + exp(-std(tcrossprod(x)))))
+
+
 ## link functions
 #' Distribution Convertor
 #'
@@ -79,12 +97,11 @@ ex <- function(x) dc(x, 'ex')
 ca <- function(x) dc(x, 'ca', 0.05)
 ch <- function(x) dc(x, 'ch')
 i1 <- function(x) x
-i2 <- function(x) scale((x + 1)^2, scale=FALSE)
+i2 <- function(x) x^2 + x
 i3 <- function(x) scale((x + 1)^3, scale=FALSE)
 i2 <- function(x) scale((x + 1)^2, scale=FALSE)
 i3 <- function(x) scale((x + 1)^3, scale=FALSE)
 sn <- function(x) sin(2 * pi * x)
-sg <- function(x) 1/(1 + exp(-x))
 
 
 ## genomic models
@@ -104,10 +121,13 @@ get.gmx <- function(gmx, N=NULL, P=NULL, Q=4, R=1)
 {
     N <- N %||% as.integer(nrow(gmx) * .2)
     P <- min(P, ncol(gmx))
+
+    dvp.msk <- c(rep(1L:Q, each=N), rep(0L, N * R))
+    evl.msk <- c(rep(0L, N * Q), rep(1L:R, each=N))
     
     ## indices
     idx <- sample.int(nrow(gmx))[seq.int(N * Q + N * R)]
-    jdx <- seq(sample.int(ncol(gmx) - P, 1), l=P)
+    jdx <- seq(sample.int(ncol(gmx) - P, 1L), l=P)
     gmx <- gmx[idx, jdx]
 
     ## remove degeneracy
@@ -115,19 +135,7 @@ get.gmx <- function(gmx, N=NULL, P=NULL, Q=4, R=1)
     gmx <- gmx[, pmin(af, 1 - af) >= 0.05]
     
     ## divide
-    dvp <- lapply(seq(0, l=Q), function(i)
-    {
-        as.matrix(gmx[seq.int(1 + N * i, l=N), ])
-    })
-    names(dvp) <- sprintf('d%02d', seq_along(dvp))
-
-    evl <- lapply(seq(Q, l=R), function(i)
-    {
-        as.matrix(gmx[seq.int(1 + N * i, l=N), ])
-    })
-    names(evl) <- sprintf('e%02d', seq_along(evl))
-    
-    list(dvp=dvp, evl=evl)
+    list(gmx=gmx, dvp=dvp.msk, evl=evl.msk)
 }
 
 #' get variance components randomly
@@ -136,25 +144,17 @@ get.gmx <- function(gmx, N=NULL, P=NULL, Q=4, R=1)
 #' @param m drawn the components from rchisq or softmax
 #' softmax ensure that the compoents adds up to one.
 #' @param s scale the components by this much.
-get.vcs <- function(n, m=c('rchisq', 'softmax'), svc=2, ...)
+get.vcs <- function(n, s=rep(1, n), ...)
 {
-    m <- match.arg(m, c('softmax', 'rchisq'))
-    if(m == 'softmax')
-    {
-        e <- rnorm(n)
-        e <- exp(e)
-        e <- e / sum(e) * svc
-    }
-    else
-    {
-        e <- rchisq(n, svc)
-    }
+    s <- rep(s, l=n)
+    e <- rchisq(n, s)
     e
 }
 
+
 #' get simulated response
 #'
-#' @param G the a list of genotype data for different cohorts
+#' @param dat genomic matrix, with training and testing masks.
 #' @param frq frequency of functional variants
 #' @param lnk link function to tranform the simulated signal;
 #' @param eps size of noise
@@ -165,82 +165,41 @@ get.vcs <- function(n, m=c('rchisq', 'softmax'), svc=2, ...)
 #'
 #' @return a list of lists, where the inner lists contains original genotypes and
 #' corresponding, generted response.
-get.sim <- function(G, frq=1, lnk=I, eps=1, V=p1, het=.1, svc=1, ...)
+get.sim <- function(dat, frq=1, lnk=i1, eps=1, vcs=NULL, oks=p1, yks=oks, ...)
 {
     dot <- list(...)
-    mdl <- dot$mdl
-    vc1 <- dot$vc1
-    ## 1) het population
-    if(!is.list(G))
-        G <- list(G)
+    mdl <- dot$mdl %||% a1
+    svc <- dot$svc %||% 1
 
-    Q <- length(G)
-    P <- NCOL(G[[1]])
-    N <- NROW(G[[1]])
-    k <- length(V)
+    Q <- with(dat, length(unique(dvp[dvp > 0])))
+    R <- with(dat, length(unique(evl[evl > 0])))
+    P <- with(dat, NCOL(gmx))
+    N <- with(dat, NROW(gmx))
     
     ## functional SNP mask
-    fmk <- sample(c(rep(1, P * frq), rep(0, P - P * frq)))
+    fmk <- sample(c(rep(TRUE, P * frq), rep(FALSE, P - P * frq)))
     
     ## true variance components linking x to y, in log scale
-    nvc <- length(V)
-    if(is.null(vc1))
-        vc1 <- get.vcs(nvc, 'r', svc)
-    vcs <- c(eps=0, vc=vc1)
-    cvs <- c(id, V)
+    nvc <- length(oks)
+    if(is.null(vcs))
+        vcs <- get.vcs(nvc, 'r', svc)
 
-    ## jittering
-    jit <- NULL
-    if(any(het > 0))
+    do.sim <- function(gmx)
     {
-        het <- rep(het, l=length(G))
-        jit <- lapply(G, function(gmx)
+        within(list(gmx=gmx),
         {
-            .vc <- get.vcs(nvc + 1, 'r', svc)
-
-            ## generate
-            eft <- rnorm(P)
-            fmx <- sweep(gmx, 2L, eft, `*`)
-            ## fmx <- sweep(gmx, 2L, fmk, `*`)
-            fmx <- gmx[, as.logical(fmk)]
-            fnl <- krn(fmx, cvs)
-            fcv <- cmb(fnl, .vc)[[1]]
-
-            rnorm(1) + mvn(1, fcv) %>% drop %>% lnk
+            fmx <- gsm(mdl, gmx[, fmk], rm.dup=FALSE)
+            fnl <- krn(fmx, oks)
+            fcv <- cmb(fnl, vcs)[[1]]
+            eta <- drop(mvrnorm(1, rep(0, nrow(gmx)), fcv, empirical=FALSE))
+            rsp <- lnk(eta) + rnorm(nrow(gmx), 0, sqrt(eps))
+            knl <- krn(gmx, yks)
         })
     }
-
-    whl <- with(list(),
-    {
-        gmx <- do.call(rbind, G)
-        ## fmx <- sweep(gmx, 2L, fmk, `*`)
-        fmx <- gmx[, as.logical(fmk)]
-        if('mdl' %in% names(dot))
-            fmx <- gsm(G=fmx, ...)
-        fnl <- krn(fmx, cvs)
-        fcv <- cmb(fnl, vcs)[[1]]
-        ## rsp <- mvn(1, fcv) %>% drop %>% lnk
-        rsp <- mvrnorm(1, mu=rep(0, NROW(fcv)), Sigma=fcv) %>% drop %>% lnk
-        rsp <- rsp + rnorm(NROW(rsp), 0, sqrt(eps))
-
-        s1 <- cumsum(sapply(G, NROW))
-        s0 <- c(0, s1[-Q]) + 1
-        mapply(function(a, b)
-        {
-            rsp[a:b]
-        },
-        s0, s1, SIMPLIFY=FALSE)
-    })
-    
-    mix <- list()
-    for(i in seq.int(1, l=Q))
-    {
-        rsp <- whl[[i]]
-        if(!is.null(jit))
-            rsp <- rsp * (1 - het[i]) + jit[[i]] * het[i]
-        mix[[i]] <- list(rsp=rsp, gmx=G[[i]])
-    }
-    mix
+    ## core effect
+    dat <- within(dat, dvp <- do.sim(gmx[dvp > 0, ]))
+    dat <- within(dat, evl <- do.sim(gmx[evl > 0, ]))
+    dat
 }
 
 ## randomly pick a RDS file from a directory
@@ -249,3 +208,75 @@ get.rds <- function(.)
     fs <- dir(., "[.]rds$", ful=TRUE)
     sample(fs, 1)
 }
+
+bias <- function(dvp, eps, vcs)
+{
+    ## bias assesment
+    par <- dvp %$% 'par'                # estimates
+    ref <- c(eps, vcs)                  # reference
+    len <- max(length(ref), unlist(par %$% length))
+    key <- paste0('bia.', c('eps', paste0('vc', 1:(len-1))))
+
+    ## zero padding
+    par <- lapply(par, function(.) c(., rep(0, len - length(.))))
+    ref <- c(ref, rep(0, len - length(ref)))
+
+    ## bias
+    ret <- lapply(names(par), function(.)
+    {
+        DF(mtd=., key=key, val=par[[.]] - ref)
+    })
+    DF(dat='dvp', do.call(rbind, ret))
+}
+
+knl.lm <- function(knl, coef=NULL)
+{
+    N <- nrow(knl[[1]])
+    knl <- c(list(diag(N)), knl)
+
+    udx <- upper.tri(knl[[1]], TRUE)
+    kdx <- seq(3, l=(length(knl) - 2))
+
+    dat <- do.call(cbind, lapply(knl, `[`, udx))
+
+    print(cor(dat))
+    for(i in kdx)
+    {
+        m <- lm(dat[, i] ~ dat[, 1:(i-1)])
+        dat[, i] <- m$residuals
+    }
+
+    print(cor(dat))
+    for(i in kdx)
+    {
+        k <- knl[[i]]
+        k[udx] <- dat[, i]
+        k <- t(k)
+        k[udx] <- dat[, i]
+        knl[[i]] <- k
+    }
+    
+    for(i in kdx)
+    {
+        knl[[i]] <- std(knl[[i]])
+    }
+    knl[-1]
+}
+
+knl.pc <- function(knl)
+{
+    udx <- upper.tri(knl[[1]], TRUE)
+    dat <- do.call(cbind, lapply(knl, `[`, udx))
+    pcs <- with(svd(dat), u %*% diag(d))
+
+    for(i in seq_along(knl))
+    {
+        k <- knl[[i]]
+        k[udx] <- pcs[, i]
+        k <- t(k)
+        k[udx] <- pcs[, i]
+        knl[[i]] <- k
+    }
+    knl
+}
+upt <- function(x, ...) x[upper.tri(x), ...]

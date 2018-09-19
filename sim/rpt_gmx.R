@@ -1,7 +1,7 @@
 source('sim/rpt.R')
 
 ## fetch reports
-d0 <- function(name, use.cache=TRUE)
+d0 <- function(name, use.cache=TRUE, rtm=TRUE)
 {
     fdr <- file.path('sim/run', name)
     rds <- paste0(fdr, '.rds')
@@ -18,47 +18,6 @@ d0 <- function(name, use.cache=TRUE)
     dat
 }
 
-m0 <- function(name='u20')
-{
-    img <- file.path('sim/run', name, 'img')
-    dat <- d0(name, FALSE)
-    for(m in c('mnq'))           # method
-    {
-        ## errors
-        for(a in c('cyh', 'loo', 'mse', 'nlk', 'ssz')) # agg
-        {
-            . <- c('gct', paste0(m, '.', c('avg', 'whl', 'ssz', a)))
-            for(k in c('mse', 'nlk'))   # key
-            {
-                dt <- subset(dat, mtd %in% . & key == k)
-                dt <- within(dt, mtd <- sub('^.*[.]', '', mtd))
-                od <- file.path(img, k)
-
-                dir.create(od, FALSE, TRUE)
-                fn <- file.path(od, paste0('mbt_', m, '_', a, '.png'))
-                print(fn)
-                plt(dt, oxy=bsz~sim, ipt=bxp, out=fn)
-            }
-        }
-
-        ## running time
-        {
-            . <- c('gct', paste0(m, '.', c('bat', 'whl')))
-            k <- 'rtm'
-            {
-                dt <- subset(dat, mtd %in% . & key == k)
-                dt <- within(dt, mtd <- sub('^.*[.]', '', mtd))
-                dt <- within(dt, mtd <- relevel(as.factor(mtd), 'gct'))
-                od <- file.path(img, k)
-
-                dir.create(od, FALSE, TRUE)
-                fn <- file.path(od, paste0('mbt_', m, '.png'))
-                print(fn)
-                plt(dt, oxy=bsz~sim, ipt=bxp, out=fn)
-            }
-        }
-    }
-}
 
 ## whole sample single cohort, GCTA vs. MINQUE
 m1 <- function(name='u13')
@@ -145,17 +104,42 @@ t1 <- function(name='t10')
 
 
 ## quick explore of NLK
-prob <- function(name='u12')
+prob <- function(name='u12', cache=TRUE)
 {
     library(ggplot2)
     library(dplyr)
-    d <- as_tibble(d0(name, TRUE))
+    d <- d0(name, cache)
+    d <- as_tibble(d)
     d <- filter(d, key %in% c('cyh', 'mse', 'rtm', 'nlk'))
+    d <- filter(d, key != 'ocf')
 
     g <- ggplot(d, aes(x=mtd, y=val))
     g <- g + geom_boxplot()
-    g <- g + ylim(0, 1)
+    g <- g + ylim(0, 2)
     g <- g + facet_grid(sim~key)
+    g <- g + ggtitle(ttl(d))
+
+    ## write to PNG
+    f <- paste0(file.path('~/img', name), '.png')
+    print(f)
+    ggsave(f, g, width=10, height=11)
+
+    ## return the plot
+    invisible(g)
+}
+
+pbai <- function(name, cache=FALSE)
+{
+    library(ggplot2)
+    library(dplyr)
+
+    fdr <- file.path('sim/run', name)
+    d <- as_tibble(readBia(fdr)) %>% filter(grepl('^bia[.]', key))
+    d <- mutate(d, key=sub('^.*[.]', '', key))
+
+    g <- ggplot(d, aes(x=key, y=val))
+    g <- g + geom_boxplot()
+    g <- g + facet_grid(sim~mtd)
     g <- g + ggtitle(ttl(d))
 
     ## write to PNG
@@ -171,31 +155,32 @@ pbat <- function(name='b01')
 {
     library(ggplot2)
     library(dplyr)
-    d <- as_tibble(d0(name, TRUE))
+    d <- d0(name, TRUE)
+    d <- as_tibble(d)
     d <- filter(d, key %in% c('cyh', 'mse', 'rtm', 'nlk'))
 
     ## gcta
     gct <- filter(d, mtd == 'gct')
 
     ## batched minque
-    bat <- filter(d, mtd == 'mnq.ssz' | mtd == 'mnq.bat') %>% mutate(mtd = as.character(bsz))
+    bat <- filter(d, mtd == 'mnq.bat') %>% mutate(mtd = as.character(bsz))
 
     ## whole sample minque
-    mnq <- filter(d, mtd == 'mnq.whl') %>% mutate(mtd = 'mnq')
+    mnq <- filter(d, mtd == 'mnq') %>% mutate(mtd = 'mnq')
 
     d <- bind_rows(bat, mnq, gct) %>% select_at(vars(-bsz))
     ## naive aggregation only
 
     g <- ggplot(d, aes(x=mtd, y=val))
     g <- g + geom_boxplot()
-    g <- g + ylim(0, 1.3)
+    ## g <- g + ylim(0, 1)
     g <- g + facet_grid(sim~key)
     g <- g + ggtitle(ttl(d))
 
     ## write to PNG
     f <- paste0(file.path('~/img', name), '.png')
     print(f)
-    ggsave(f, g, width=10, height=10)
+    ggsave(f, g, width=10, height=15)
 
     ## return the plot
     invisible(g)

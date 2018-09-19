@@ -24,7 +24,7 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
 
     ## message tracks
     tks <- list(msg(~ep, "%04d"),
-                msg(~mse, "%7.3f"), msg(~nlk, "%7.3f"), msg(~loo, "%7.3f"),
+                msg(~mse, "%7.3f"), msg(~nlk, "%7.3f"),
                 msg(~phi, "%7.3f"), msg(~rtm, "%4.1f"))
     
     ## initial parameters
@@ -74,7 +74,6 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
             rpt <- vpd(rsp, knl, par, rt=0, ...)
             mse <- rpt['mse']
             nlk <- rpt['nlk']
-            loo <- rpt['loo']
             msg <- c(msg, rpt)
             ## append message to STDOUT
             cat(ln.msg(tks), "\n", sep="")

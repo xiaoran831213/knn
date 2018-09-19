@@ -1,12 +1,14 @@
 #' concatenate a list
 CL <- function(ret=NULL, ...)
 {
-    .. <- list(...)
+    dot <- list(...)
     ret <- ret %||% list()
-    for(i in seq_along(..))
+    for(i in seq_along(dot))
     {
-        ret <- c(ret, list(..[[i]]))
+        ret <- c(ret, list(dot[[i]]))
     }
+    idx <- seq(length(ret) - length(dot) + 1, l=length(dot))
+    names(ret)[idx] <- names(dot)
     ret
 }
 
@@ -37,14 +39,13 @@ EL2 <- function(ll, key, ret=c('list', 'data.frame'))
 
 mean.list <- function(x) Reduce(`+`, x) / length(x)
 
-
 #' short hand for data.fram
 DF <- data.frame
 
 `%||%` <- function(x, y) if(is.null(x)) y else x
 
-`%[%` <- function(ll, key) lapply(ll, `[`, key)
-`%$%` <- function(ll, key) lapply(ll, `[[`, key)
+`%[%` <- function(ll, key) if(is.function(key)) lapply(ll, key) else lapply(ll, `[`, key)
+`%$%` <- function(ll, key) if(is.function(key)) lapply(ll, key) else lapply(ll, `[[`, key)
 
 #' Dimension Change.
 .dim <- function(x, ...) {dim(x) <- c(...); x}
