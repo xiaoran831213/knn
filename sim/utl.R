@@ -3,11 +3,7 @@ library(MASS)
 source('R/kpl.R')
 id <- c(id=function(x) diag(1, NROW(x)))
 p1 <- c(o1=function(x) ply(x, degree=1))
-p2 <- c(o1=function(x) ply(x, degree=1),
-        o2=function(x) ply(x, degree=2))
-p3 <- c(o1=function(x) ply(x, degree=1),
-        o2=function(x) ply(x, degree=2),
-        o3=function(x) ply(x, degree=3))
+p2 <- c(o2=function(x) ply(x, degree=2))
 ga <- c(ga=function(x) gau(x))
 lp <- c(lp=function(x) lap(x))
 ib <- c(ib=function(x) ibs(x))
@@ -17,15 +13,11 @@ gk <- c(ga=function(x) gau(x),
 kg <- c(ki=function(x) kin(x),
         ga=function(x) gau(x))
 
-ki <- c(ki=function(x) kin(x))          # kinship
+k1 <- c(k1=function(x) kin(x))          # kinship
+k2 <- c(k2=function(x) kin(x)^2)        # kinship^2
 s1 <- c(s1=function(x) esn(x, p=1.0))   # sin
 s2 <- c(s2=function(x) esn(x, p=0.5))
 s3 <- c(s3=function(x) esn(x, p=2.0))
-
-ks <- c(ki=function(x) kin(x),
-        sn=function(x) esn(x, p=1.0))
-sk <- c(sn=function(x) esn(x, p=1.0),
-        ki=function(x) kin(x))
 
 sg <- function(x) psd(1/(1 + exp(-std(tcrossprod(x)))))
 
@@ -117,15 +109,15 @@ ax <- ~ a:a[]
 #' @param P the number of variants
 #' @param Q the number of training cohorts
 #' @param R the number of testing cohort
-get.gmx <- function(gls, N=100, P=50, Q=4, R=1, S=1)
+get.gmx <- function(gls, N=100, P=50, Q=4, R=1)
 {
     ## masks
     dvp <- c(rep(1L:Q, each=N), rep(0L, N * R))
     evl <- c(rep(0L, N * Q), rep(1L:R, each=N))
-    grp <- list()
+    gsp <- list()
 
     ## select variants and samples
-    for(i in seq_alone(gls))
+    for(i in seq_along(gls))
     {
         gmx <- gls[[i]]
 
@@ -140,13 +132,13 @@ get.gmx <- function(gls, N=100, P=50, Q=4, R=1, S=1)
     
         ## divide
         gls[[i]] <- gmx
-        grp[[i]] <- rep(i, ncol(gmx))
+        gsp[[i]] <- rep(i, ncol(gmx))
     }
 
     ## pack up and return
-    grp <- unlist(grp)
-    gmx <- do.call(cbind, gmx)
-    list(gmx=gmx, dvp=dvp, evl=evl, grp=grp)
+    gsp <- unlist(gsp)
+    gmx <- do.call(cbind, gls)
+    list(gmx=gmx, dvp=dvp, evl=evl, gsp=gsp)
 }
 
 #' get variance components randomly
@@ -154,10 +146,10 @@ get.gmx <- function(gls, N=100, P=50, Q=4, R=1, S=1)
 #' @param n the number of components
 #' @param m the number of instances
 #' @param s scale the components by this much.
-get.vcs <- function(dat, n=1, v=1)
+get.vcs <- function(n=1, v=1)
 {
-    S <- with(dat, length(unique(grp[grp > 0])))
-    matrix(rchisq(n, rep(v, l = n * S)), S, n)
+    v <- rep(v, l=n)
+    rchisq(n, v)
 }
 
 #' get simulated response
@@ -183,7 +175,6 @@ get.sim <- function(dat, frq=1, lnk=i1, eps=1, vcs=NULL, oks=p1, yks=oks, ...)
 
     Q <- with(dat, length(unique(dvp[dvp > 0])))
     R <- with(dat, length(unique(evl[evl > 0])))
-    S <- with(dat, length(unique(grp[grp > 0])))
     one <- function(gmx)
     {
         P <- with(dat, NCOL(gmx))
@@ -194,8 +185,7 @@ get.sim <- function(dat, frq=1, lnk=i1, eps=1, vcs=NULL, oks=p1, yks=oks, ...)
         {
             fmx <- gsm(mdl, gmx[, fmk], rm.dup=FALSE)
             fnl <- krn(fmx, oks)
-            fcv <- cmb(fnl, vcs)[[1]]
-            eta <- drop(mvrnorm(1, rep(0, nrow(gmx)), fcv, empirical=FALSE))
+            eta <- drop(mvrnorm(1, rep(0, nrow(gmx)), cmb(fnl, vcs)[[1]]))
             rsp <- lnk(eta) + rnorm(nrow(gmx), 0, sqrt(eps))
             knl <- krn(gmx, yks)
         })
@@ -207,7 +197,12 @@ get.sim <- function(dat, frq=1, lnk=i1, eps=1, vcs=NULL, oks=p1, yks=oks, ...)
 }
 
 ## randomly pick a RDS file from a directory
-get.rds <- function(..., n=1) sample(dir(..., "[.]rds$", TRUE, TRUE), n)
+get.rds <- function(..., n=1)
+{
+    ds <- list(...)
+    fs <- sapply(ds, dir, "[.]rds", TRUE, TRUE)
+    sample(fs, n)
+}
 
 bias <- function(dvp, eps, vcs)
 {

@@ -48,7 +48,7 @@ main <- function(N, P, Q=1, R=1, S=2, frq=.05, lnk=I, eps=.1, oks=p1, yks=p1, ..
     arg <- do.call(data.frame, arg)
     gds <- dot$gds %||% 'ukb'
     if(gds=='ukb')
-        gds <- get.rds('sim/dat', S)
+        gds <- get.rds('sim/dat')
     else
         gds <- 'data/1kg_c05.rds'
     
@@ -63,7 +63,7 @@ main <- function(N, P, Q=1, R=1, S=2, frq=.05, lnk=I, eps=.1, oks=p1, yks=p1, ..
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        ret <- CL(ret, gct=gcta.reml(rsp, knl[1]))
+        ret <- CL(ret, gct=gct.rml(rsp, knl[1]))
         ret <- CL(ret, mnq=knl.mnq(rsp, knl, psd=FALSE))
         ret <- CL(ret, mle=rop.vcm(rsp, knl))
         ret <- CL(ret, nul=nul.vcm(rsp))
