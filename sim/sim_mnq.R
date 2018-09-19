@@ -11,7 +11,7 @@ source("sim/utl.R")
 source("sim/mn1.R")
 
 ## test for cpp minque versus R minque
-ts1 <- function(N=1000, P=2000, r=10)
+ts1 <- function(N=2000, P=4000, r=5)
 {
     X <- matrix(rnorm(N * P), N, P)
     knl <- list(
@@ -30,7 +30,8 @@ ts1 <- function(N=1000, P=2000, r=10)
 
     ## minque
     mb <- microbenchmark(r1 <- knl.mnq.R(y, V, X=NULL),
-                         r2 <- .Call('knl_mnq', as.matrix(y), V), times=r)
+                         r2 <- .Call('knl_mnq', as.matrix(y), V, FALSE),
+                         r3 <- .Call('egn_mnq', as.matrix(y), V), times=r)
     print(mb)
 
     ## for(i in seq_along(length(V)))
