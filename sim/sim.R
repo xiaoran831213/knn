@@ -35,7 +35,7 @@ devtools::load_all()
 #' @param bsz batch size for batched training
 #'
 #' see "sim/utl.R" to understand {oks}, {lnk}, and {yks}.
-main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, oks=p1, yks=p1, ...)
+main <- function(N, P, Q=1, R=1, S=2, frq=.05, lnk=I, eps=.1, oks=p1, yks=p1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
@@ -48,13 +48,14 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, oks=p1, yks=p1, ...)
     arg <- do.call(data.frame, arg)
     gds <- dot$gds %||% 'ukb'
     if(gds=='ukb')
-        gds <- get.rds('sim/dat')
+        gds <- get.rds('sim/dat', S)
     else
         gds <- 'data/1kg_c05.rds'
     
     ## ------------------------- data genration ------------------------- ##
     ## for each of the Q groups, choose N samples and P features -> Training
-    dat <- get.gmx(readRDS(gds), N, P, Q, R)
+    dat <- lapply(gds, readRDS)
+    dat <- get.gmx(dat, N, P, Q, R, S)
     vcs <- get.vcs(length(oks), svc)
     dat <- get.sim(dat, frq, lnk, eps, vcs, oks, yks, ...)
 
