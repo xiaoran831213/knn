@@ -8,16 +8,17 @@ ga <- c(ga=function(x) gau(x))
 lp <- c(lp=function(x) lap(x))
 ib <- c(ib=function(x) ibs(x))
 
-gk <- c(ga=function(x) gau(x),
-        ki=function(x) kin(x))
-kg <- c(ki=function(x) kin(x),
-        ga=function(x) gau(x))
-
 k1 <- c(k1=function(x) kin(x))          # kinship
 k2 <- c(k2=function(x) kin(x)^2)        # kinship^2
-s1 <- c(s1=function(x) esn(x, p=1.0))   # sin
-s2 <- c(s2=function(x) esn(x, p=0.5))
-s3 <- c(s3=function(x) esn(x, p=2.0))
+
+nt <- c(nt=function(x) ntk(x))
+ac <- c(ac=function(x) ack(x))
+
+ad <- c(ad=function(x) ply((x     ) / 2 - 1))
+rs <- c(rs=function(x) ply((x >  1) / 2 - 1))
+dm <- c(dm=function(x) ply((x >  0) / 2 - 1))
+ht <- c(ht=function(x) ply((x == 1) / 2 - 1))
+
 
 sg <- function(x) psd(1/(1 + exp(-std(tcrossprod(x)))))
 
