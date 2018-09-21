@@ -118,11 +118,32 @@ kin <- function(x, y=NULL)
     k / sum(diag(k)) * N
 }
 
-## exponential sin
-## k_ij = exp{-2 (sin(pi / periodicity * d_ij) / length_scale) ^ 2}
-esn <- function(x, y=NULL, p=1)
+ntk <- function(x, y=NULL, s0=1, s1=1)
 {
-    psd(sin(tcrossprod(x, y) / p))
+    x <- cbind(1, x)
+    if(is.null(y))
+        y <- x
+    else
+        y <- cbind(1, y)
+    P <- ncol(x)
+    N <- nrow(x)
+    S <- diag(c(s0, rep(s1, P-1)))
+
+    xx <- x %*% S %*% t(x)
+    yy <- y %*% S %*% t(y)
+    xy <- x %*% S %*% t(y)
+
+    z <- 2 * xy / sqrt((1 + 2 * xx) * (1 + 2 * yy))
+    2 / pi * asin(z)
+}
+
+ack <- function(x, y=NULL)
+{
+    x2 <- rowSums(x^2)
+    y2 <- if(is.null(y)) x2 else rowSums(y^2)
+    xy <- tcrossprod(x, y)
+    n2 <- outer(x2, y2)
+    acos(xy/sqrt(outer(x2, y2)))
 }
 
 psd <- function(K)
