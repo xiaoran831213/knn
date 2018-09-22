@@ -35,7 +35,7 @@ devtools::load_all()
 #' @param bsz batch size for batched training
 #'
 #' see "sim/utl.R" to understand {oks}, {lnk}, and {yks}.
-main <- function(N, P, Q=1, R=1, S=2, frq=.05, lnk=I, eps=.1, oks=p1, yks=p1, ...)
+main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, oks=~p1+ga, yks=~p1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
@@ -55,9 +55,9 @@ main <- function(N, P, Q=1, R=1, S=2, frq=.05, lnk=I, eps=.1, oks=p1, yks=p1, ..
     ## ------------------------- data genration ------------------------- ##
     ## for each of the Q groups, choose N samples and P features -> Training
     dat <- lapply(gds, readRDS)
-    dat <- get.gmx(dat, N, P, Q, R, S)
-    vcs <- get.vcs(length(oks), svc)
-    dat <- get.sim(dat, frq, lnk, eps, vcs, oks, yks, ...)
+    dat <- get.gmx(dat, N, P, Q, R)
+    vcs <- get.vcs(oks, svc)
+    dat <- get.sim(dat, frq, lnk, eps, oks, yks, vcs=vcs, ...)
 
     ## training
     dvp <- with(dat$dvp,
@@ -105,6 +105,6 @@ main <- function(N, P, Q=1, R=1, S=2, frq=.05, lnk=I, eps=.1, oks=p1, yks=p1, ..
 
 test <- function()
 {
-    r <- main(N=1000, P=10000, Q=2, R=1, frq=.01, eps=1, oks=p1, yks=p2, svc=1, mdl=a1)
+    u <- main(N=1000, P=10000, Q=2, R=1, frq=1, eps=.5, svc=2, oks=~rs+dm+ga, yks=~rs+dm+ga)
     subset(r, dat=='evl' & key=='nlk' | dat=='dvp' & key=='rtm')
 }

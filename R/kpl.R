@@ -7,7 +7,35 @@
 #' @param k a kernel function or list of kernel functions
 #' @param ... additional named parameters for the kernel function(s)
 #' @return a list of N-N kernel matrices
-krn <- function(x, k=c(idn, ply), ...) lapply(k, do.call, list(x))
+krn <- function(x, f=~ply)
+{
+    N <- NROW(x)
+
+    ## get kernel functions
+    m <- terms(f)
+    attr(m, 'intercept') <- 0
+    attr(m, 'response') <- 0
+    v <- eval(attr(m, 'variables'))
+    v <- do.call(c, v)
+    
+    ## evaluate basic kernels
+    k <- lapply(v, do.call, list(x))
+
+    ## expansion
+    r <- matrix(0, N, N)
+    i <- upper.tri(r, TRUE)
+    k <- do.call(data.frame, lapply(k, `[`, i))
+    k <- as.data.frame(model.matrix(m, k))
+    
+    ## reconstruct kernel matrices
+    lapply(k, function(f)
+    {
+        r[i] <- f
+        r <- t(r)
+        r[i] <- f
+        r
+    })
+}
 
 knl2str <- function(k)
 {
