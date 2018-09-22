@@ -2,8 +2,8 @@
 library(MASS)
 source('R/kpl.R')
 id <- c(id=function(x) diag(1, NROW(x)))
-p1 <- c(o1=function(x) ply(x, degree=1))
-p2 <- c(o2=function(x) ply(x, degree=2))
+p1 <- c(p1=function(x) ply(x, degree=1))
+p2 <- c(p2=function(x) ply(x, degree=2))
 ga <- c(ga=function(x) gau(x))
 lp <- c(lp=function(x) lap(x))
 ib <- c(ib=function(x) ibs(x))
@@ -144,13 +144,14 @@ get.gmx <- function(gls, N=100, P=50, Q=4, R=1)
 
 #' get variance components randomly
 #'
-#' @param n the number of components
+#' @param m simulation model
 #' @param m the number of instances
 #' @param s scale the components by this much.
-get.vcs <- function(n=1, v=1)
+get.vcs <- function(mdl, dfs=1)
 {
-    v <- rep(v, l=n)
-    rchisq(n, v)
+    nvc <- length(all.vars(mdl))
+    dfs <- rep(dfs, l=nvc)
+    rchisq(nvc, dfs)
 }
 
 #' get simulated response
@@ -166,12 +167,12 @@ get.vcs <- function(n=1, v=1)
 #'
 #' @return a list of lists, where the inner lists contains original genotypes and
 #' generated response.
-get.sim <- function(dat, frq=1, lnk=i1, eps=1, vcs=NULL, oks=p1, yks=oks, ...)
+get.sim <- function(dat, frq=1, lnk=i1, eps=1, oks=~p1, yks=oks, ...)
 {
     dot <- list(...)
     mdl <- dot$mdl %||% a1
     svc <- dot$svc %||% 1
-    nvc <- length(oks)
+    nvc <- length(all.vars(oks))
     vcs <- dot$vcs %||% get.vcs(nvc, svc)
 
     Q <- with(dat, length(unique(dvp[dvp > 0])))
