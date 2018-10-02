@@ -1,56 +1,21 @@
+library(ggplot2)
 library(dplyr)
 
-sel <- dplyr::select
-gba <-  function(x, ...)
+S01 <- function(r, k, ...)
 {
-    group_by_at(.tbl=x, .vars=vars(...))
-}
-
-## clean up parentheses
-.cp <- function(x)
-{
-    x <- gsub("^c", "", x)
-    x <- gsub("[ ()]", "", x)
-    x <- gsub(",", "+", x)
-    x
-}
-
-readRtm <- function(..., ref=TRUE)
-{
-    rpt <- list()
-    dot <- c(...)
-    for(f in dir(dot, '.rds', full=TRUE))
+    ## r <- subset(r, key==k & mtd!='nul' & mtd!='fun')
+    r <- subset(r, key==k)
+    r <- within(r,
     {
-        print(f)
-        r <- try(readRDS(f))
-        if(inherits(r, 'try-error'))
-            next
-        r <- subset(r, dat=='dvp' & key=='rtm', -dat)
-        rpt <- c(rpt, list(r))
-    }
-    rpt <- do.call(rbind, rpt)
-    
-    if(!('lnk' %in% names(rpt)))
-        rpt$lnk <- 'I'
-    if(!('mdl' %in% names(rpt)))
-        rpt$mdl <- 'a'
-    if(!('oks' %in% names(rpt)))
-        rpt$oks <- 'p'
-    rpt <- within(rpt,
-    {
-        sim <- sprintf("%s(%s)~%s, x~%s", lnk, .cp(oks), .cp(yks), mdl)
+        val <- val - min(val)
+        val <- val / max(val)
     })
-
-    ## the longest time span as measuring stick
-    if(ref)
-    {
-        rpt <- as_tibble(rpt) %>% group_by(seed) %>% mutate(val=val/max(val)) %>% ungroup
-    }
-    rpt <- rpt %>% sel(-c(seed, oks, lnk, yks, mdl))
-    as.data.frame(rpt)
+    r
 }
-    
-readRpt <- function(..., ref=TRUE)
+
+sel <- dplyr::select
+
+readRPT <- function(..., ref=TRUE)
 {
     rpt <- list()
     dot <- c(...)
@@ -62,91 +27,39 @@ readRpt <- function(..., ref=TRUE)
             next
 
         evl <- subset(r, dat == 'evl', -dat)
+        dvp <- subset(r, dat == 'dvp', -dat)
+        bia <- subset(dvp, grepl('^bia[.]', key))
         if(ref)
         {
-            ## MSE: null model as a measuring stick
-            mse <- subset(evl, key == 'mse' & mtd != 'nul')
-            nul <- subset(evl, key == 'mse' & mtd == 'nul', val)
-            mse <- within(mse, val <- val / unlist(nul))
-
-            ## NLK: null model as a measuring stick
-            nlk <- subset(evl, key == 'nlk' & mtd != 'nul')
-            nul <- subset(evl, key == 'nlk' & mtd == 'nul', val)
-            nlk <- within(nlk, val <- exp(2 * (val - unlist(nul))))
-
-            ## NLK: null model as a measuring stick
-            loo <- subset(evl, key == 'loo' & mtd != 'nul')
-            nul <- subset(evl, key == 'loo' & mtd == 'nul', val)
-            loo <- within(loo, val <- val / unlist(nul))
-            
-            ## CYH: null model is meaning less
-            cyh <- subset(evl, key == 'cyh' & mtd != 'nul')
-
-            rpt <- c(rpt, list(rbind(mse, nlk, cyh, loo)))
+            mse <- S01(evl, 'mse')
+            nlk <- S01(evl, 'nlk')
+            ## cyh <- S01(evl, 'cyh')
+            cyh <- subset(evl, key=='cyh')
+            cyh <- within(cyh, val <- val^2)
+            rtm <- S01(dvp, 'rtm')
+            rpt <- c(rpt, list(rbind(bia, rtm, mse, nlk, cyh)))
         }
         else
         {
-            rpt <- c(rpt, list(evl))
+            rtm <- subset(dvp, key=='rtm')
+            rpt <- c(rpt, list(rbind(bia, rtm, evl)))
         }
     }
     rpt <- do.call(rbind, rpt)
     rpt <- subset(rpt, !is.infinite(val))
-    
-    ## corr(y, y_hat) for null model is meaning less
-    rpt <- subset(rpt, !(key == 'cyh' & mtd == 'nul'))
-    
-    if(!('lnk' %in% names(rpt)))
-        rpt$lnk <- 'I'
-    if(!('mdl' %in% names(rpt)))
-        rpt$mdl <- 'a'
-    if(!('oks' %in% names(rpt)))
-        rpt$oks <- 'p'
+
+    ## clean up parentheses
+    .cp <- function(x) gsub("[~ ()]", "", x)
     rpt <- within(rpt,
     {
-        sim <- sprintf("%s(%s)~%s, x~%s", lnk, .cp(oks), .cp(yks), mdl)
+        oks <- .cp(oks)
+        if(exists('lnk', inherits=FALSE))
+            oks <- sprintf("%s(%s)", lnk, sub('^~', '', oks))
+        sim <- sprintf("%s~%s", oks, .cp(yks))
     })
-    rpt <- subset(rpt, se=-c(seed, oks, lnk, yks, mdl))
+    rpt <- within(rpt, {H <- N * R; N <- N * Q})
+    rpt <- within(rpt, rm(R, Q, oks, yks, seed))
     rpt
-}
-
-readBia <- function(..., ref=TRUE)
-{
-    rpt <- list()
-    dot <- c(...)
-    for(f in dir(dot, '.rds$', full=TRUE))
-    {
-        print(f)
-        r <- try(readRDS(f))
-        if(inherits(r, 'try-error'))
-            next
-
-        dvp <- subset(r, dat == 'dvp', -dat)
-        rpt <- c(rpt, list(dvp))
-    }
-    rpt <- do.call(rbind, rpt)
-    rpt <- subset(rpt, !is.infinite(val))
-    
-    if(!('lnk' %in% names(rpt)))
-        rpt$lnk <- 'I'
-    if(!('mdl' %in% names(rpt)))
-        rpt$mdl <- 'a'
-    if(!('oks' %in% names(rpt)))
-        rpt$oks <- 'p'
-    rpt <- within(rpt,
-    {
-        sim <- sprintf("%s(%s)~%s, x~%s", lnk, .cp(oks), .cp(yks), mdl)
-    })
-    rpt <- subset(rpt, se=-c(seed, oks, lnk, yks, mdl))
-    rpt
-}
-
-get.unique <- function(d)
-{
-    i <- sapply(d, function(x) length(unique(x)) == 1)
-    u <- as.list(d[1, i, drop=FALSE])
-    t <- paste0(names(u), '=', u, collapse=', ')
-    d <- d[, -which(i)]
-    list(unq=u, ttl=t, dat=d)
 }
 
 ## infer title from repeatative columns.
@@ -157,83 +70,64 @@ ttl <- function(d)
     paste0(names(u), '=', u, collapse=', ')
 }
 
-bxp <- function(dat, axi=val~mtd, ...)
+## fetch reports
+d0 <- function(name, use.cache=TRUE)
 {
-    ..s <- list(...)
-    for(. in names(..s)) assign(., ..s[[.]])
-
-    ## labels
-    vas <- all.vars(axi)
-    ylab.bxp <- get0('ylab.bxp', inherits=FALSE, ifnotfound=vas[1])
-    xlab.bxp <- get0('xlab.bxp', inherits=FALSE, ifnotfound=vas[2])
-
-    ## limites
-    ylim.bxp <- get0('ylim.bxp', inherits=FALSE, ifnotfound=c(0, 1))
-
-    ## title
-    title.bxp <- get0('title.bxp', inherits=FALSE, ifnotfound=get.unique(dat)$ttl)
-
-    ## box plot
-    boxplot(axi, dat, xlab=xlab.bxp, ylab=ylab.bxp, ylim=ylim.bxp, lex.order=FALSE, ...)
-    abline(1, 0, col='red')
-    title(title.bxp)
+    fdr <- file.path('sim/run', name)
+    rds <- paste0(fdr, '.rds')
+    if(file.exists(rds) && use.cache)
+        dat <- readRDS(rds)
+    else
+    {
+        dat <- readRPT(fdr, ref=TRUE)
+        saveRDS(dat, rds)
+    }
+    print(rds)
+    dat
 }
 
-
-plt <- function(dat, oxy, ipt=NULL, out=NULL, ...)
+## plot reports
+prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE)
 {
-    ..s <- list(...)
+    d <- as_tibble(d0(name, cache))
+    d <- filter(d, !mtd %in% c('fun', 'nul'))
+    r <- list()
 
-    ## main title
-    .un <- get.unique(dat)
-    ttl <- .un$ttl
-    dat <- .un$dat
-
-    ## inner plot
-    if(is.null(ipt))
-        ipt <- function(...) plot(NULL, NULL, 'n')
-    if(is.function(ipt))
-        ipt <- list(ipt)
-    
-    ## labels
-    vas <- all.vars(oxy)
-    olx <- get0('olx', inherits=FALSE, ifnotfound=vas[2])
-    oly <- get0('oly', inherits=FALSE, ifnotfound=vas[1])
-
-    ## groups
-    xk <- if(olx == '.') NULL else as.factor(dat[, olx]) # x key
-    yk <- if(oly == '.') NULL else as.factor(dat[, oly]) # y key
-    xl <- if(is.null(xk)) NULL else unique(xk)
-    yl <- if(is.null(yk)) NULL else unique(yk)
-    nc <- if(is.null(xl)) 1 else length(xl)
-    nr <- if(is.null(yl)) 1 else length(yl)
-
-    ## prepair functions
-    ipt <- rep(ipt, l=nc)
-
-    gf <- list(x=xk, y=yk)
-    gf <- gf[!sapply(gf, is.null)]
-    gp <- split(dat, gf)
-    
-    ## plot
-    ut <- 9 / max(nc, nr)
-    if(!is.null(out))
-        png(out, width=nc * ut, height=nr * ut, units='in', res=300)
-
-    ## 
-    par(mfrow=c(nr, nc), mar=c(2.25, 2.35, 1.2, 0), mgp=c(1.3, .5, 0))
-    par(oma=c(0, 0, 2, 0) +.1)
-    gc <- 1
-    for(i in seq.int(l=nr))
+    ## report: errors
+    if(errs)
     {
-        for(j in seq.int(l=nc))
-        {
-            ipt[[j]](gp[[gc]], ...)
-            gc <- gc + 1
-        }
+        rpt <- filter(d, key %in% c('cyh', 'rtm', 'mse', 'nlk'))
+        g <- ggplot(rpt, aes(x=mtd, y=val))
+        g <- g + geom_boxplot()
+        g <- g + facet_grid(sim~key)
+        g <- g + ggtitle(ttl(rpt))
+        f <- paste0(file.path('~/img', name), '.rpt.png'); print(f)
+        ggsave(f, g, width=10, height=11)
+        r <- c(r, rpt=g)
     }
-    title(ttl, outer=TRUE, adj=0)
 
-    if(!is.null(out))
-        dev.off()
+    if(bias)
+    {
+        ## report: bias
+        bia <- filter(d, grepl('^bia[.]', key))
+        bia <- mutate(bia, key=sub('^.*[.]', '', key))
+        g <- ggplot(bia, aes(x=key, y=val))
+        g <- g + geom_boxplot()
+        g <- g + facet_grid(sim~mtd)
+        g <- g + ggtitle(ttl(bia))
+        f <- paste0(file.path('~/img', name), '.bia.png'); print(f)
+        ggsave(f, g, width=10, height=11)
+        r <- c(r, bia=g)
+    }
+
+    ## return
+    invisible(r)
+}
+
+rpt1 <- function()
+{
+    prpt('d00', FALSE, bias=FALSE)
+    prpt('d01', FALSE, bias=FALSE)
+    prpt('d02', FALSE, bias=FALSE)
+    prpt('d03', FALSE, bias=FALSE)
 }

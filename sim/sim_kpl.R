@@ -1,105 +1,83 @@
 source('R/kpl.R')                       # kernel players
-
 source('R/hlp.R')
 source('R/kpl.R')
 source("R/mnq.R")
 source("R/utl.R")
-source("sim/utl.R")
+source("sim/ut2.R")
 
-as.dfr <- function(knl)
+pcs.knl <- function(knl, psd=FALSE)
 {
-    if(!is.data.frame(knl))
-    {
-        i <- upper.tri(knl[[1]], TRUE)
-        knl <- do.call(data.frame, lapply(knl, `[`, i))
-    }
-    knl
-}
+    N <- nrow(knl[[1]])
+    r <- matrix(0, N, N)
+    i <- upper.tri(r)
 
-as.kmx <- function(dfr)
-{
-    n <- nrow(dfr)
-    n <- (-1 + sqrt(1 + 8 * n))/2
-    r <- matrix(0, n, n)
-    i <- upper.tri(r, TRUE)
-    lapply(dfr, function(f)
+    ## pca
+    knl <- do.call(data.frame, lapply(knl, `[`, i))
+    knl <- scale(knl)
+    pcs <- with(svd(knl), u %*% diag(d))
+
+    ## reconstruct kernel matrices
+    pcs <- lapply(pcs, function(f)
     {
-        r[i] <- f
-        r <- t(r)
-        r[i] <- f
-        r
+        r[i] <- f; r <- t(r); r[i] <- f; r
     })
-}
 
-as.mdl <- function(knl, mdl=NULL)
-{
-    if(is.null(mdl))
-        mdl <- paste('~', paste(names(knl), collapse='+'))
-    if(is.character(mdl))
-        mdl <- as.formula(mdl)
-    mdl
-}
-
-evl.knl <- function(knl, mdl=NULL)
-{
-    knl <- as.dfr(knl)
-    mdl <- as.mdl(knl)
-
-    ## terms and varialbes
-    tmr <- terms(mdl)
-    attr(tmr, 'intercept') <- 0
-    attr(tmr, 'response') <- 0
-
-    mmx <- as.data.frame(model.matrix(tmr, knl))
-    mmx
-}
-
-
-pcs.knl <- function(knl)
-{
-    pcs <- data.frame(with(svd(as.dfr(knl)), u %*% diag(d)))
-    names(pcs) <- sprintf("p%02d", seq_along(knl))
-
-    pcs <- as.kmx(pcs)
+    ## try to make d kernels PSD
     pcs <- lapply(pcs, function(x)
     {
         v <- eigen(x, TRUE, TRUE)$values
-        if(sum(v < 0) > sum(v >= 0)) x <- -x
+        if(sum(v < 0) > sum(v >= 0))
+            x <- -x
         x
     })
-    pcs <- as.dfr(pcs)
+
+    names(pcs) <- sprintf("p%02d", seq_along(knl))
     pcs
 }
 
+knl.hom <- function(x, y, d=FALSE) cor(x[upper.tri(x, d)], y[upper.tri(y, d)])
 
-main <- function(N=1000, P=10000, frq=.01, oks=c(ad, dm, rs, ht, ga, p1))
+up1 <- function(.) .[upper.tri(., TRUE)]
+up2 <- function(.) .[upper.tri(., FALSE)]
+
+dfr <- function(k)
+{
+    as.data.frame(do.call(cbind, lapply(k, up2)))
+}
+
+cr <- function(...)
+{
+    dt <- lapply(list(...), as.vector)
+    dt <- do.call(cbind, dt)
+    cor(dt)
+}
+## r <- main(N=400, P=10000, frq=0.1, mdl=~AD+DM+RS+GS+PL+LN)
+## r <- main(N=400, P=10000, frq=0.1, mdl=~id+w0+w1+w2+w3)
+## r <- main(N=500, P=10000, frq=0.2, mdl=~polym(RS1, DM1))
+main <- function(N=1000, P=10000, frq=.01, mdl=~AD+DM)
 {
     rds <- get.rds('sim/dat')
     gls <- list(readRDS(rds))
     dat <- get.gmx(gls, N, P, Q=1, R=1)
 
     gmx <- with(dat, gmx[dvp > 0, ])
-    ## gmx <- scale(gmx)
-
-    knl.gmx <- krn(gmx, oks)
-    knl.gmx <- evl.knl(knl.gmx, mdl=NULL)
+    knl.gmx <- c(ID(gmx), krn(gmx, mdl))
 
     P <- ncol(gmx)
-    fmk <- sample(c(rep(TRUE, P * frq), rep(FALSE, P - P * frq)))
-    fmx <- gmx[, fmk]
-    knl.fmx <- krn(fmx, oks)
-    knl.fmx <- evl.knl(knl.fmx, mdl=NULL)
+    fmx <- gmx[, sample(c(rep(TRUE, P * frq), rep(FALSE, P - P * frq)))]
+    knl.fmx <- c(ID(gmx), krn(fmx, mdl))
     
     ## correlation between the whole SNP and function SNP kernel
-    cor.fgx <- sapply(colnames(knl.gmx), function(n) cor(knl.fmx[, n], knl.gmx[, n]))
+    hom <- mapply(knl.hom, knl.gmx, knl.fmx, MoreArgs=list(d=TRUE))
 
-    ## pca
-    pcs.gmx <- pcs.knl(knl.gmx)
-    pcs.fmx <- pcs.knl(knl.fmx)
-    
-    list(knl.gmx=knl.gmx, knl.fmx=knl.fmx,
-         cor.fgx=cor.fgx,
-         pcs.gmx=pcs.gmx, pcs.fmx=knl.fmx)
+    dfr.gmx <- dfr(knl.gmx)
+    dfr.fmx <- dfr(knl.fmx)
+
+    cor.gmx <- round(cor(dfr.fmx), 2)
+    cor.fmx <- round(cor(dfr.fmx), 2)
+    list(dfr.gmx=dfr.gmx, dfr.fmx=dfr.fmx,
+         knl.gmx=knl.gmx, knl.fmx=knl.fmx, hom=hom,
+         cor.gmx=cor.gmx, cor.fmx=cor.fmx)
 }
 
 knl.lm <- function(knl, coef=NULL)
@@ -135,4 +113,3 @@ knl.lm <- function(knl, coef=NULL)
     }
     knl[-1]
 }
-
