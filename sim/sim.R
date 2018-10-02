@@ -13,7 +13,9 @@ source('R/bat.R')                       # batched trainer
 source('sim/grm.R')                     # genomic relatedness matrix (plink, GCTA)
 source('sim/gct.R')                     # GCTA wrapper
 source('sim/utl.R')                     # simulation utilites
-source('sim/gsm.R')                     # simulation utilites
+source('sim/mdl.R')                     # models
+source('sim/lnk.R')                     # link functions
+source('sim/gsm.R')                     # genomic simulator
 
 library(devtools)                       # enable the C++ functions
 devtools::load_all()
@@ -92,7 +94,7 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, oks=~p1+ga, yks=~p1, ..
         ret <- CL(ret, mn0=vpd(rsp, knl, dvp$mn0$par))
         ret <- CL(ret, mn1=vpd(rsp, knl, dvp$mn1$par))
         ret <- CL(ret, nul=nul.vcm(rsp, dvp$nul$par)$rpt)
-        ret <- CL(ret, fun=vpd(rsp, fnl, c(eps, vcs)))
+        ## ret <- CL(ret, fun=vpd(rsp, fnl, c(eps, vcs)))
         ret
     })
     
