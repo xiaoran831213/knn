@@ -7,34 +7,49 @@
 #' @param k a kernel function or list of kernel functions
 #' @param ... additional named parameters for the kernel function(s)
 #' @return a list of N-N kernel matrices
-krn <- function(x, f=~ply)
+krn <- function(x, M=~ply, J=FALSE)
 {
     N <- NROW(x)
+    enlist <- function(x) if(is.list(x)) x else list(x)
+
+    ## function to recusively retrive upper triangles
+    mtx <- matrix(0, N, N)
+    utr <- upper.tri(mtx, TRUE)
+    upt <- function(x) if(is.list(x)) lapply(x, upt) else x[utr]
 
     ## get kernel functions
-    m <- terms(f)
-    attr(m, 'intercept') <- 0
-    attr(m, 'response') <- 0
-    v <- eval(attr(m, 'variables'))
-    v <- do.call(c, v)
+    tm <- terms(M)
+    vs <- eval(attr(tm, 'variables'))
+    vs <- do.call(c, vs)
+    names(vs) <- rownames(attr(tm, 'factors'))
     
     ## evaluate basic kernels
-    k <- lapply(v, do.call, list(x))
+    ks <- lapply(vs, function(v) v(x))
+    
+    ## get upper triangles
+    ks <- upt(ks)
+    
+    ## expand formula
+    pt <- gsub('([().])', '[\\1]', names(ks))
+    nm <- lapply(ks, names)
+    rp <- sapply(nm, function(n) sprintf('(%s)', paste0(n, collapse='+')))
+    
+    M <- as.character(M)
+    for(i in seq_along(ks))
+        M <- sub(pt[i], rp[i], M)
+    M <- as.formula(M)
+    
+    ## expand data
+    ks <- do.call(c, ks)
+    names(ks) <- do.call(c, nm)
+    ks <- model.matrix(M, ks)
 
-    ## expansion
-    r <- matrix(0, N, N)
-    i <- upper.tri(r, TRUE)
-    k <- do.call(data.frame, lapply(k, `[`, i))
-    k <- as.data.frame(model.matrix(m, k))
+    ## include J kernel?
+    if(J) colnames(ks)[1] <- "J" else ks <- ks[, -1, drop=FALSE]
     
     ## reconstruct kernel matrices
-    lapply(k, function(f)
-    {
-        r[i] <- f
-        r <- t(r)
-        r[i] <- f
-        r
-    })
+    ks <- as.data.frame(ks)
+    lapply(ks, function(k) {mtx[utr] <- k; mtx <- t(mtx); mtx[utr] <- k; mtx})
 }
 
 knl2str <- function(k)
@@ -75,52 +90,52 @@ idn <- function(x, y=NULL, ...)
 #'
 #' @param x N-P matrix or N-1 vector of data
 #' @param y not used
-#' @param sigma variation length scale
-#' @param gamma scaling factor
+#' @param s variation length scale
+#' @param g scaling factor
 #' @param ... not used
 #' 
 #' @return an N-N identity matrix
-gau <- function(x, y=NULL, sigma=1, gamma=1/NCOL(x), ...)
+gau <- function(x, y=NULL, s=1, g=1/NCOL(x), ...)
 {
-    exp(-euc2(x, y) * (.5 * gamma / sigma^2))
+    exp(-euc2(x, y) * (.5 * g / s^2))
 }
 
-lap <- function(x, y=NULL, sigma=1, gamma=1/NCOL(x), ...)
+lap <- function(x, y=NULL, s=1, g=1/NCOL(x), ...)
 {
-    exp(-as.matrix(dist(x, 'man')) * gamma / sigma)
+    exp(-as.matrix(dist(x, 'man')) * g / s)
 }
 
 
 #' @title polynomial kernel between X and Y
 #' @param x: matrix N rows of samples, P columns of features
 #' @param y: matrix M rows of samples, P columns of features
-#' @param gamma: numberic, default is 1/P
+#' @param g: numberic, default is 1/P
 #' @param coef0: numberic, default is 0
 #' @param degree: integer, default is 1
-#' @details K(X, Y) = (gamma <X, Y> + coef0)^degree;
-#' by default, coef=0, degree=1, gamma=1/P;
+#' @details K(X, Y) = (g <X, Y> + coef0)^degree;
+#' by default, coef=0, degree=1, g=1/P;
 #' when Y is is NULL, K(X, X) is computed.
-ply <- function(x, y=NULL, gamma=1/NCOL(x), coef0=0, degree=1L, ...)
+ply <- function(x, y=NULL, g=1/NCOL(x), coef0=0, degree=1L, ...)
 {
-    (tcrossprod(x, y) * gamma + coef0) ^ degree
+    (tcrossprod(x, y) * g + coef0) ^ degree
 }
 
 #' @title linear kernel between X and Y
 #' @param x: matrix N rows of samples, P columns of features
 #' @param y: matrix M rows of samples, P columns of features
 #' @details when Y is is NULL, K(X, X) is computed.
-lnr <- function(x, y=NULL, gamma=1/NCOL(x), ...)
+lnr <- function(x, y=NULL, g=1/NCOL(x), ...)
 {
-    tcrossprod(x, y) * gamma
+    tcrossprod(x, y) * g
 }
 
 ## Folllowings are the definition of base kernels
-ibs <- function(x, level=2, ...)
+ibs <- function(x, l=2, ...)
 {
-    if(is.null(level))
+    if(is.null(l))
         x <- apply(x, function(.) . / max(.))
     else
-        x <- x / level
+        x <- x / l
     1 - as.matrix(dist(x, 'man')) / ncol(x)
 }
 

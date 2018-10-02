@@ -1,27 +1,82 @@
 ## kernels combinations
 library(MASS)
 source('R/kpl.R')
-id <- c(id=function(x) diag(1, NROW(x)))
-p1 <- c(p1=function(x) ply(x, degree=1))
-p2 <- c(p2=function(x) ply(x, degree=2))
-ga <- c(ga=function(x) gau(x))
-lp <- c(lp=function(x) lap(x))
-ib <- c(ib=function(x) ibs(x))
+source('R/utl.R')
 
-k1 <- c(k1=function(x) kin(x))          # kinship
-k2 <- c(k2=function(x) kin(x)^2)        # kinship^2
+ID <- function(x) list(ID=diag(1, NROW(x)))
+JX <- function(x) list(JX=matrix(1, NROW(x), NROW(x)))
+LN <- function(x) list(LN=ply(scale(x), degree=1))
+PL <- function(x) list(PL=ply(x, degree=1))
+LP <- function(x) list(LP=lap(x))
+GS <- function(x) list(GS=gau(x))
+IS <- function(x) list(IS=ibs(x))
+KN <- function(x) list(KN=kin(x))
+RS <- function(x) list(RS=ply((x >  1) / 2 - 1))
+DM <- function(x) list(DM=ply((x >  0) / 2 - 1))
+AD <- function(x) list(AD=ply((x     ) / 2 - 1))
+HT <- function(x) list(HT=ply((x == 1) / 2 - 1))
 
-nt <- c(nt=function(x) ntk(x))
-ac <- c(ac=function(x) ack(x))
+#' polynomial expansion by kernel
+#'
+#' ...: the series of basic kernel functions
+PK <- function(..., d=2, orth=FALSE, J=FALSE)
+{
+    env <- environment()
+    function(x)
+    {
+        print(env[['coef']])
+        N <- NROW(x)                    # sample size
+        mtx <- matrix(0, N, N)          # sample matrix
+        utr <- upper.tri(mtx, TRUE)     # sample upper.tri
 
-ad <- c(ad=function(x) ply((x     ) / 2 - 1))
-rs <- c(rs=function(x) ply((x >  1) / 2 - 1))
-dm <- c(dm=function(x) ply((x >  0) / 2 - 1))
-ht <- c(ht=function(x) ply((x == 1) / 2 - 1))
+        bas <- c(...)                   # bases
+        bas <- unlist(lapply(bas, do.call, list(x=x)), FALSE)
+        bas <- lapply(bas, `[`, utr)
+        nms <- names(bas)
+        
+        ## expansion
+        arg <- c(bas, list(degree=d, coefs=env[['coef']], raw=!orth))
+        bas <- do.call(polym, arg)
+        
+        ## keep orthgonal coeficients
+        cfs <- attr(bas, 'coefs')
+        env[['coef']] <- if(length(nms) >1) cfs else if(is.null(cfs)) NULL else list(cfs)
+        print(env[['coef']])
+
+        bas <- as.data.frame(bas)
+        colnames(bas) <- lapply(strsplit(colnames(bas), '[.]'), function(u)
+        {
+            paste0(nms, u, collapse='.')
+        })
+        
+        lapply(bas, function(k)
+        {
+            mtx[utr] <- k; mtx <- t(mtx); mtx[utr] <- k; mtx
+        })
+    }
+}
+
+OL2 <- PK(LN, d=2, orth=TRUE)
+OL3 <- PK(LN, d=3, orth=TRUE)
+RL2 <- PK(LN, d=2, orth=FALSE)
+RL3 <- PK(LN, d=2, orth=FALSE)
+    
+PG1 <- PK(PL, GS, d=1, orth=FALSE)
+PG2 <- PK(PL, GS, d=2, orth=FALSE)
+PG3 <- PK(PL, GS, d=3, orth=FALSE)
 
 
-sg <- function(x) psd(1/(1 + exp(-std(tcrossprod(x)))))
-
+coef.function <- function(k)
+{
+    environment(k)[['coef']]
+}
+`coef<-` <- function(x, value)
+{
+    env <- environment(x)
+    if(!is.null(env))
+        env[['coef']] <- value
+    x
+}
 
 ## link functions
 #' Distribution Convertor
@@ -41,7 +96,8 @@ dc <- function(x, d=NULL, curb=0.01, ...)
     p <- pnorm(x, m, s)                 # quantile
 
     p <- curb / 2 + p * (1 - curb)
-    
+
+    ## mean of target distribution.
     y <- switch(d, bn={2 * v}, ps={v}, ex={1 / s}, ch={v}, 0)
 
     z <- switch(
@@ -83,25 +139,17 @@ dc.test <- function()
     g
 }
 
-st <- function(x) dc(x, 'st', 0.05)
-bn <- function(x) dc(x, 'bn')
-ps <- function(x) dc(x, 'ps')
-ex <- function(x) dc(x, 'ex')
-ca <- function(x) dc(x, 'ca', 0.05)
-ch <- function(x) dc(x, 'ch')
-i1 <- function(x) x
-i2 <- function(x) x^2 + x
-i3 <- function(x) scale((x + 1)^3, scale=FALSE)
-i2 <- function(x) scale((x + 1)^2, scale=FALSE)
-i3 <- function(x) scale((x + 1)^3, scale=FALSE)
-sn <- function(x) sin(2 * pi * x)
+ST <- function(x) dc(x, 'st', 0.05)
+BN <- function(x) dc(x, 'bn')
+PS <- function(x) dc(x, 'ps')
+EX <- function(x) dc(x, 'ex')
+CA <- function(x) dc(x, 'ca', 0.05)
+CH <- function(x) dc(x, 'ch')
+I1 <- function(x) x
+I2 <- function(x) drop(scale((x + 1)^2, scale=FALSE))
+I3 <- function(x) drop(scale((x + 1)^3, scale=FALSE))
+SN <- function(x) sin(2 * pi * x)
 
-
-## genomic models
-a1 <- ~ a
-a2 <- ~ a + I(a^2)
-aa <- ~ a + I(a^2) + a:a[]
-ax <- ~ a:a[]
 
 #' get and divide a segment from the genome
 #' 
@@ -144,14 +192,26 @@ get.gmx <- function(gls, N=100, P=50, Q=4, R=1)
 
 #' get variance components randomly
 #'
-#' @param m simulation model
-#' @param m the number of instances
-#' @param s scale the components by this much.
-get.vcs <- function(mdl, dfs=1)
+#' @param obj the number of compoents, or a list
+#' @param dfs degree of freedom for each component (rotated)
+get.vcs <- function(obj, dfs=1)
 {
-    nvc <- length(all.vars(mdl))
+    if(is.numeric(obj) && length(obj) == 1)
+        nvc <- obj
+    else
+        nvc <- length(obj)
     dfs <- rep(dfs, l=nvc)
     rchisq(nvc, dfs)
+}
+
+#' get functional mask
+get.fmk <- function(obj, frq=.5)
+{
+    if(is.numeric(obj) && length(obj) == 1)
+        P <- obj
+    else
+        P <- NCOL(obj)
+    sample(c(rep(TRUE, P * frq), rep(FALSE, P - P * frq)))
 }
 
 #' get simulated response
@@ -170,31 +230,38 @@ get.vcs <- function(mdl, dfs=1)
 get.sim <- function(dat, frq=1, lnk=i1, eps=1, oks=~p1, yks=oks, ...)
 {
     dot <- list(...)
-    mdl <- dot$mdl %||% a1
+    ## mdl <- dot$mdl %||% a1
     svc <- dot$svc %||% 1
-    nvc <- length(all.vars(oks))
-    vcs <- dot$vcs %||% get.vcs(nvc, svc)
-
+    
     Q <- with(dat, length(unique(dvp[dvp > 0])))
     R <- with(dat, length(unique(evl[evl > 0])))
-    one <- function(gmx)
+    one <- function(gmx, vcs=NULL, fmk=NULL, ...)
     {
         P <- with(dat, NCOL(gmx))
         N <- with(dat, NROW(gmx))
-        ## functional SNP mask
-        fmk <- sample(c(rep(TRUE, P * frq), rep(FALSE, P - P * frq)))
+
         within(list(gmx=gmx),
         {
-            fmx <- gsm(mdl, gmx[, fmk], rm.dup=FALSE)
+            ## working kernel
+            knl <- krn(gmx, yks)        
+
+            ## function kernel
+            fmk <- fmk %||% get.fmk(gmx, frq)
+            ## fmx <- gsm(mdl, gmx[, fmk], rm.dup=FALSE)
+            fmx <- gmx[, fmk]
             fnl <- krn(fmx, oks)
-            eta <- drop(mvrnorm(1, rep(0, nrow(gmx)), cmb(fnl, vcs)[[1]]))
-            rsp <- lnk(eta) + rnorm(nrow(gmx), 0, sqrt(eps))
-            knl <- krn(gmx, yks)
+            vcs <- vcs %||% get.vcs(fnl, svc)
+            cmx <- cmb(fnl, vcs)[[1]] #  + diag(rnorm(nrow(gmx), 0, 1e-4))
+            eta <- drop(mvrnorm(1, rep(0, nrow(gmx)), cmx))
+            nos <- rnorm(nrow(gmx), 0, sqrt(eps))
+            rsp <- lnk(eta + nos)
         })
     }
     ## core effect
     dat <- within(dat, dvp <- one(gmx[dvp > 0, ]))
-    dat <- within(dat, evl <- one(gmx[evl > 0, ]))
+    vcs <- dat$dvp$vcs
+    fmk <- dat$dvp$fmk
+    dat <- within(dat, evl <- one(gmx[evl > 0, ], vcs, fmk))
     dat
 }
 

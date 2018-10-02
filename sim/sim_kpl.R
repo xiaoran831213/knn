@@ -3,7 +3,7 @@ source('R/hlp.R')
 source('R/kpl.R')
 source("R/mnq.R")
 source("R/utl.R")
-source("sim/utl.R")
+source("sim/ut2.R")
 
 pcs.knl <- function(knl, psd=FALSE)
 {
@@ -35,44 +35,49 @@ pcs.knl <- function(knl, psd=FALSE)
     pcs
 }
 
-knl.hom <- function(x, y) cor(x[upper.tri(x)], y[upper.tri(y)])
+knl.hom <- function(x, y, d=FALSE) cor(x[upper.tri(x, d)], y[upper.tri(y, d)])
 
 up1 <- function(.) .[upper.tri(., TRUE)]
 up2 <- function(.) .[upper.tri(., FALSE)]
 
 dfr <- function(k)
 {
-    as.data.frame(do.call(cbind, lapply(k, up1)))
+    as.data.frame(do.call(cbind, lapply(k, up2)))
 }
 
-## r <- main(N=400, P=10000, frq=0.1)
-main <- function(N=1000, P=10000, frq=.01, mdl=~id+ad+dm+rs+ht+ga+p1)
+cr <- function(...)
+{
+    dt <- lapply(list(...), as.vector)
+    dt <- do.call(cbind, dt)
+    cor(dt)
+}
+## r <- main(N=400, P=10000, frq=0.1, mdl=~AD+DM+RS+GS+PL+LN)
+## r <- main(N=400, P=10000, frq=0.1, mdl=~id+w0+w1+w2+w3)
+## r <- main(N=500, P=10000, frq=0.2, mdl=~polym(RS1, DM1))
+main <- function(N=1000, P=10000, frq=.01, mdl=~AD+DM)
 {
     rds <- get.rds('sim/dat')
     gls <- list(readRDS(rds))
     dat <- get.gmx(gls, N, P, Q=1, R=1)
 
     gmx <- with(dat, gmx[dvp > 0, ])
-    knl.gmx <- krn(gmx, mdl)
-    
+    knl.gmx <- c(ID(gmx), krn(gmx, mdl))
+
     P <- ncol(gmx)
     fmx <- gmx[, sample(c(rep(TRUE, P * frq), rep(FALSE, P - P * frq)))]
-    knl.fmx <- krn(fmx, mdl)
+    knl.fmx <- c(ID(gmx), krn(fmx, mdl))
     
     ## correlation between the whole SNP and function SNP kernel
-    hom <- mapply(knl.hom, knl.gmx, knl.fmx)
+    hom <- mapply(knl.hom, knl.gmx, knl.fmx, MoreArgs=list(d=TRUE))
 
     dfr.gmx <- dfr(knl.gmx)
     dfr.fmx <- dfr(knl.fmx)
 
     cor.gmx <- round(cor(dfr.fmx), 2)
     cor.fmx <- round(cor(dfr.fmx), 2)
-    ## pca
-    ## pcs.gmx <- pcs.knl(knl.gmx)
-    ## pcs.fmx <- pcs.knl(knl.fmx)
-    list(knl.gmx=knl.gmx, knl.fmx=knl.fmx, hom=hom,
+    list(dfr.gmx=dfr.gmx, dfr.fmx=dfr.fmx,
+         knl.gmx=knl.gmx, knl.fmx=knl.fmx, hom=hom,
          cor.gmx=cor.gmx, cor.fmx=cor.fmx)
-
 }
 
 knl.lm <- function(knl, coef=NULL)

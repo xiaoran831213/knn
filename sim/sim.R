@@ -18,6 +18,10 @@ source('sim/gsm.R')                     # simulation utilites
 library(devtools)                       # enable the C++ functions
 devtools::load_all()
 
+## methodology
+## {response model, data model, data}
+##  
+
 #' simulation of kernel deep neural network;
 #' @param N size of population groups
 #' @param P number of variants
@@ -56,31 +60,37 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, oks=~p1+ga, yks=~p1, ..
     ## for each of the Q groups, choose N samples and P features -> Training
     dat <- lapply(gds, readRDS)
     dat <- get.gmx(dat, N, P, Q, R)
-    vcs <- get.vcs(oks, svc)
-    dat <- get.sim(dat, frq, lnk, eps, oks, yks, vcs=vcs, ...)
+    dat <- get.sim(dat, frq, lnk, eps, oks, yks, svc=svc, ...)
 
     ## training
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        ret <- CL(ret, gct=gct.rml(rsp, knl[1]))
-        ret <- CL(ret, mnq=knl.mnq(rsp, knl, psd=FALSE))
-        ret <- CL(ret, mle=rop.vcm(rsp, knl))
+        kn1 <- krn(gmx, ~LN)
+        ret <- CL(ret, gct=gct.rml(rsp, kn1))
+        ## ret <- CL(ret, mle=rop.vcm(rsp, knl))
+        ## ret <- CL(ret, rml=gct.rml(rsp, knl))
+        ret <- CL(ret, mn0=knl.mnq(rsp, knl, psd=FALSE))
+        ret <- CL(ret, mn1=knl.mnq(rsp, knl, psd=TRUE))
         ret <- CL(ret, nul=nul.vcm(rsp))
         ret
     })
     
     ## bias assesment
+    vcs <- dat$dvp$vcs
     par <- CL(dvp %$% 'par', ref=c(eps, vcs))
     bia <- bias(dvp, eps, vcs)
-    
+
     ## testing
     evl <- with(dat$evl,
     {
         ret <- list()
-        ret <- CL(ret, gct=vpd(rsp, knl[1], dvp$gct$par))
-        ret <- CL(ret, mnq=vpd(rsp, knl, dvp$mnq$par))
-        ret <- CL(ret, mle=vpd(rsp, knl, dvp$mle$par))
+        kn1 <- krn(gmx, ~LN)
+        ret <- CL(ret, gct=vpd(rsp, kn1, dvp$gct$par))
+        ## ret <- CL(ret, mle=vpd(rsp, knl, dvp$mle$par))
+        ## ret <- CL(ret, mle=vpd(rsp, knl, dvp$rml$par))
+        ret <- CL(ret, mn0=vpd(rsp, knl, dvp$mn0$par))
+        ret <- CL(ret, mn1=vpd(rsp, knl, dvp$mn1$par))
         ret <- CL(ret, nul=nul.vcm(rsp, dvp$nul$par)$rpt)
         ret <- CL(ret, fun=vpd(rsp, fnl, c(eps, vcs)))
         ret
@@ -105,6 +115,6 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, oks=~p1+ga, yks=~p1, ..
 
 test <- function()
 {
-    u <- main(N=1000, P=10000, Q=2, R=1, frq=1, eps=.5, svc=2, oks=~rs+dm+ga, yks=~rs+dm+ga)
+    u <- main(N=500, P=10000, Q=2, R=1, frq=.1, eps=.5, svc=2, oks=~LN2, yks=~LN2)
     subset(r, dat=='evl' & key=='nlk' | dat=='dvp' & key=='rtm')
 }
