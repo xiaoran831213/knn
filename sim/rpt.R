@@ -1,21 +1,17 @@
 library(ggplot2)
 library(dplyr)
 
-S01 <- function(r, k, ...)
+S01 <- function(r, k, ...) within(subset(r, key==k), {val <- val - min(val); val <- val / max(val)})
+S02 <- function(r, k, ...)
 {
-    ## r <- subset(r, key==k & mtd!='nul' & mtd!='fun')
-    r <- subset(r, key==k)
-    r <- within(r,
-    {
-        val <- val - min(val)
-        val <- val / max(val)
-    })
-    r
+    r <- subset(r, key == k)
+    within(r, val <- val / subset(r, mtd=='nul')$val)
 }
+S03 <- function(r, k, ...) within(subset(r, key == k), val <- val / val[1])
 
 sel <- dplyr::select
 
-readRPT <- function(..., ref=TRUE)
+readRPT <- function(..., ref=1)
 {
     rpt <- list()
     dot <- c(...)
@@ -29,21 +25,12 @@ readRPT <- function(..., ref=TRUE)
         evl <- subset(r, dat == 'evl', -dat)
         dvp <- subset(r, dat == 'dvp', -dat)
         bia <- subset(dvp, grepl('^bia[.]', key))
-        if(ref)
-        {
-            mse <- S01(evl, 'mse')
-            nlk <- S01(evl, 'nlk')
-            ## cyh <- S01(evl, 'cyh')
-            cyh <- subset(evl, key=='cyh')
-            cyh <- within(cyh, val <- val^2)
-            rtm <- S01(dvp, 'rtm')
-            rpt <- c(rpt, list(rbind(bia, rtm, mse, nlk, cyh)))
-        }
-        else
-        {
-            rtm <- subset(dvp, key=='rtm')
-            rpt <- c(rpt, list(rbind(bia, rtm, evl)))
-        }
+
+        mse <- S02(evl, 'mse')
+        nlk <- S02(evl, 'nlk')
+        cyh <- within(subset(evl, key=='cyh'), val <- val^2)
+        rtm <- S03(dvp, 'rtm')
+        rpt <- c(rpt, list(rbind(bia, rtm, mse, nlk, cyh)))
     }
     rpt <- do.call(rbind, rpt)
     rpt <- subset(rpt, !is.infinite(val))
@@ -79,7 +66,7 @@ d0 <- function(name, use.cache=TRUE)
         dat <- readRDS(rds)
     else
     {
-        dat <- readRPT(fdr, ref=TRUE)
+        dat <- readRPT(fdr, ref=2)
         saveRDS(dat, rds)
     }
     print(rds)
@@ -92,14 +79,16 @@ prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE)
     d <- as_tibble(d0(name, cache))
     d <- filter(d, !mtd %in% c('fun', 'nul'))
     r <- list()
-
+    
     ## report: errors
     if(errs)
     {
         rpt <- filter(d, key %in% c('cyh', 'rtm', 'mse', 'nlk'))
+        rpt <- mutate(rpt, val=pmin(val, 1.99))
         g <- ggplot(rpt, aes(x=mtd, y=val))
         g <- g + geom_boxplot()
         g <- g + facet_grid(sim~key)
+        g <- g + ylim(c(0, 2))
         g <- g + ggtitle(ttl(rpt))
         f <- paste0(file.path('~/img', name), '.rpt.png'); print(f)
         ggsave(f, g, width=10, height=11)
@@ -124,10 +113,44 @@ prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE)
     invisible(r)
 }
 
-rpt1 <- function()
+rpt1 <- function(cache=FALSE)
 {
-    prpt('d00', FALSE, bias=FALSE)
-    prpt('d01', FALSE, bias=FALSE)
-    prpt('d02', FALSE, bias=FALSE)
-    prpt('d03', FALSE, bias=FALSE)
+    prpt('d00', cache, bias=FALSE)
+    prpt('d01', cache, bias=FALSE)
+
+    prpt('h00', cache, bias=FALSE)
+    prpt('h01', cache, bias=FALSE)
+    prpt('h02', cache, bias=FALSE)
+    prpt('h03', cache, bias=FALSE)
+
+    prpt('h10', cache, bias=FALSE)
+    prpt('h11', cache, bias=FALSE)
+    prpt('h12', cache, bias=FALSE)
+    prpt('h13', cache, bias=FALSE)
+}
+
+rpt2 <- function(cache=FALSE)
+{
+    prpt('a00', cache, bias=FALSE)
+    prpt('a01', cache, bias=FALSE)
+    prpt('a02', cache, bias=FALSE)
+    prpt('a03', cache, bias=FALSE)
+
+    prpt('a10', cache, bias=FALSE)
+    prpt('a11', cache, bias=FALSE)
+    prpt('a12', cache, bias=FALSE)
+    prpt('a13', cache, bias=FALSE)
+}
+
+rpt3 <- function(cache=FALSE)
+{
+    prpt('p00', cache, bias=FALSE)
+    prpt('p01', cache, bias=FALSE)
+    prpt('p02', cache, bias=FALSE)
+    prpt('p03', cache, bias=FALSE)
+
+    prpt('p10', cache, bias=FALSE)
+    prpt('p11', cache, bias=FALSE)
+    prpt('p12', cache, bias=FALSE)
+    prpt('p13', cache, bias=FALSE)
 }

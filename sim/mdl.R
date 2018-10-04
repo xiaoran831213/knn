@@ -65,10 +65,16 @@ LN2 <- PK(LN, d=2, orth=FALSE)
 LN3 <- PK(LN, d=2, orth=FALSE)
 
 ## product * Gaussian
-PG1 <- PK(PL, GS, d=1, orth=FALSE)
-PG2 <- PK(PL, GS, d=2, orth=FALSE)
-PG3 <- PK(PL, GS, d=3, orth=FALSE)
+OP2 <- PK(PL, d=2, orth=TRUE)
+OP3 <- PK(PL, d=3, orth=TRUE)
+PL1 <- PL
+PL2 <- PK(PL, d=2, orth=FALSE)
+PL3 <- PK(PL, d=3, orth=FALSE)
 
+## mix
+DR1 <- PK(DM, RS, d=1, orth=FALSE)
+DR2 <- PK(DM, RS, d=2, orth=FALSE)
+DR3 <- PK(DM, RS, d=2, orth=FALSE)
 
 coef <- function(k)
 {

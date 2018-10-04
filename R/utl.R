@@ -69,5 +69,3 @@ test.solve <- function(N=1000)
 
     sum((r1 - r2)^2)
 }
-
-address <- function(x) substring(capture.output(.Internal(inspect(x)))[1], 2, 17)

@@ -41,7 +41,7 @@ devtools::load_all()
 #' @param bsz batch size for batched training
 #'
 #' see "sim/utl.R" to understand {oks}, {lnk}, and {yks}.
-main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, oks=~p1+ga, yks=~p1, ...)
+main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, rks=~LN1, oks=~p1+ga, yks=~p1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
@@ -68,10 +68,9 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, oks=~p1+ga, yks=~p1, ..
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        kn1 <- krn(gmx, ~LN)
-        ret <- CL(ret, gct=gct.rml(rsp, kn1))
+        ret <- CL(ret, gct=gct.rml(rsp, krn(gmx, rks)))
         ## ret <- CL(ret, mle=rop.vcm(rsp, knl))
-        ## ret <- CL(ret, rml=gct.rml(rsp, knl))
+        ret <- CL(ret, sat=gct.rml(rsp, krn(gmx, oks)))
         ret <- CL(ret, mn0=knl.mnq(rsp, knl, psd=FALSE))
         ret <- CL(ret, mn1=knl.mnq(rsp, knl, psd=TRUE))
         ret <- CL(ret, nul=nul.vcm(rsp))
@@ -87,10 +86,9 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, oks=~p1+ga, yks=~p1, ..
     evl <- with(dat$evl,
     {
         ret <- list()
-        kn1 <- krn(gmx, ~LN)
-        ret <- CL(ret, gct=vpd(rsp, kn1, dvp$gct$par))
+        ret <- CL(ret, gct=vpd(rsp, krn(gmx, rks), dvp$gct$par))
         ## ret <- CL(ret, mle=vpd(rsp, knl, dvp$mle$par))
-        ## ret <- CL(ret, mle=vpd(rsp, knl, dvp$rml$par))
+        ret <- CL(ret, sat=vpd(rsp, krn(gmx, oks), dvp$sat$par))
         ret <- CL(ret, mn0=vpd(rsp, knl, dvp$mn0$par))
         ret <- CL(ret, mn1=vpd(rsp, knl, dvp$mn1$par))
         ret <- CL(ret, nul=nul.vcm(rsp, dvp$nul$par)$rpt)
