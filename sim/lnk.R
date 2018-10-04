@@ -39,26 +39,6 @@ dc <- function(x, d=NULL, curb=0.01, ...)
     z
 }
 
-dc.test <- function()
-{
-    x <- rnorm(50000, 0, 1.5)
-    x.st <- dc(x, 'st', 0.05)
-    x.ca <- dc(x, 'ca', 0.05)
-    print(list(nm=summary(x), st=summary(x.st), ca=summary(x.ca)))
-
-    d <- rbind(
-        DF(dst='nm', val=x),
-        DF(dst='st', val=x.st),
-        DF(dst='ca', val=x.ca))
-
-    library(ggplot2)
-    g <- ggplot(d, aes(val))
-    g <- g + geom_freqpoly(aes(color=dst), binwidth = 0.1)
-    g <- g + xlim(-15, 15)
-    ## g <- g + ylim(c(1, NA))
-    g
-}
-
 ST <- function(x) dc(x, 'st', 0.05)
 BN <- function(x) dc(x, 'bn')
 PS <- function(x) dc(x, 'ps')
@@ -66,8 +46,8 @@ EX <- function(x) dc(x, 'ex')
 CA <- function(x) dc(x, 'ca', 0.05)
 CH <- function(x) dc(x, 'ch')
 NL <- function(x) x
-I2 <- function(x) drop(scale((x + 1)^2))
-I3 <- function(x) drop(scale((x + 1)^3))
+I2 <- function(x) scale(drop((x + 1)^2))
+I3 <- function(x) scale(drop((x + 1)^3))
 O1 <- function(x) x
 O2 <- function(x) drop(scale(x^2))
 O3 <- function(x) drop(scale(x^3))

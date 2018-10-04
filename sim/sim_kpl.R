@@ -3,7 +3,7 @@ source('R/hlp.R')
 source('R/kpl.R')
 source("R/mnq.R")
 source("R/utl.R")
-source("sim/ut2.R")
+source("sim/utl.R")
 
 pcs.knl <- function(knl, psd=FALSE)
 {
