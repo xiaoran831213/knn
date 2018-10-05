@@ -37,5 +37,5 @@ MLE <- function(rsp, knl, ...)
 ## NULL
 NUL <- function(rsp, knl, ...)
 {
-    nul.vcm(rsp, knl, ...)
+    nul.vcm(rsp, NULL, ...)
 }

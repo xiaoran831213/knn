@@ -100,7 +100,7 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, rks=~LN1, oks=~p1+ga, y
         ret <- CL(ret, bm2=vpd(rsp, knl, dvp$bm2$par))
         ret <- CL(ret, bm3=vpd(rsp, knl, dvp$bm3$par))
         ret <- CL(ret, bm4=vpd(rsp, knl, dvp$bm4$par))
-        ret <- CL(ret, nul=vpd(rsp, knl, dvp$nul$par))
+        ret <- CL(ret, nul=vpd(rsp, NULL, dvp$nul$par))
         ret
     })
     
