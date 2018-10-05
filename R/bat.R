@@ -86,7 +86,7 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
         if(rtm > wtm) {cat('BMQ: reach walltime:', wtm, 's\n'); break}
         itr <- itr + 1L
     }
-    
+    print(list(bsz=bsz))
     ## mean solution
     par <- mean(hst %$% 'par')
 

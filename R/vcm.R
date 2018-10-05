@@ -106,11 +106,14 @@ vcm.fsi <- function(W, K, Y, ...)
 #' @param W a vector of variance components
 #' @param ln the VCs are logged? if true, exp(W) is used instead of W
 #' @param rt return a table? if false, a named vector is returned
-vpd <- function(y, K, W, rt=1, ...)
+vpd <- function(y, K=NULL, W=NULL, rt=1, ...)
 {
     y <- unname(y)
-    ## is W logged
     N <- NROW(y)
+
+    ## use null model?
+    if(is.null(W))
+        W <- c(eps=sum(y^2) / N)
 
     ## prepand noisy kernel
     C <- c(list(eps=diag(N)), cv=K)
@@ -121,16 +124,16 @@ vpd <- function(y, K, W, rt=1, ...)
     alpha <- solve(v, y)                # V^{-1}y
     f <- v - diag(W[1], length(y))      # W[1] is PHI
 
-    ## prediction 1: conditional Gaussian
+    ## prediction 1: conditional mean
     h <- f %*% alpha
 
     mse <- mean((y - h)^2)
-    ## gurad against zero-standard deviation
-    cyh <- tryCatch(cor(y, h), warning=function(w) 0, error=function(e) NA)
+    ## cyh <- tryCatch(cor(y, h), warning=function(w) 0, error=function(e) NA)
+    cyh <- if(sd(h) == 0) 0 else cyh <- cor(y, h)
 
     ## negative likelihood
-    ld <- with(.Internal(det_ge_real(v, TRUE)), sign * modulus)
-    nlk <- .5 / N * (sum(alpha * y) + ld + N * log(2*pi))
+    ldt <- with(.Internal(det_ge_real(v, TRUE)), sign * modulus)
+    nlk <- .5 / N * (sum(alpha * y) + ldt + N * log(2*pi))
     
     ## prediction 2: leave one out CV
     ## h <- y - a %*% y / diag(a)
@@ -244,60 +247,13 @@ nwt.vcm <- function(y, K, W=NULL, ...)
     list(rpt=rbind(rtm, prd), par=exp(W))
 }
 
-vcm <- function(y, v, e)
+#' the null model
+nul.vcm <- function(y, K=NULL, W=NULL, ...)
 {
-    N <- nrow(v)
-    f <- v - diag(e, N)
-    u <- chol(v)
-    a <- chol2inv(u)
-
-    ## prediction 1: conditional Gaussian
-    h <- f %*% (a %*% y)
-    mse <- mean((y - h)^2)
-    cyh <- cor(y, h)
-
-    ## prediction 2: leave one out CV
-    h <- y - a %*% y / diag(a)
-    loo <- mean((y - h)^2)
-
-    ## negative log likelihood
-    nlk <- nlk(y, v, u, a)
-
-    DF(key=c('mse', 'loo', 'nlk', 'cyh'), val=c(mse, loo, nlk, cyh))
-}
-
-#' the null model prediction
-nul <- function(y)
-{
-    N <- NROW(y)
-
-    ## the distribution of y
-    m <- mean(y)
-    v <- diag(var(y), N)
-
-    ## mean square error
-    mse <- mean((y - m)^2)
-
-    ## negative log likelihood
-    nlk <- nlk(y, v) / N
-
-    ## leave one out
-    h <- (sum(y) - y) / (N - 1)
-    loo <- mean((y - h)^2)
-
-    ## report
-    ret <- DF(key=c('mse', 'nlk', 'loo', 'cyh'), val=c(mse, nlk, loo, cyh))
-    rownames(ret) <- ret$key
-    ret
-}
-
-nul.vcm <- function(y, eps=NULL, ...)
-{
+    ## keep K and W for syntatic consistency
     N <- NROW(y)
     mse <- sum(y^2) / N
-
-    if(is.null(eps))
-        eps <- mse
+    eps <- mse
     v <- diag(eps, N)
     alpha <- solve(v, y)                # v^{-1}y or y/e = y / sum(y^2/N) = N * y/ sum(y^2)
 

@@ -16,13 +16,20 @@ source('sim/utl.R')                     # simulation utilites
 source('sim/mdl.R')                     # models
 source('sim/lnk.R')                     # link functions
 source('sim/gsm.R')                     # genomic simulator
+source('sim/mtd.R')                     # methods
 
 library(devtools)                       # enable the C++ functions
 devtools::load_all()
 
 ## methodology
-## {response model, data model, data}
-##  
+mkm <- function(mtd=knl.mnq, mdl=~LN1, ...)
+{
+    list(mtd=mtd, mdl=mdl, arg=list(...))
+}
+MTD <- within(list(),
+{
+
+})
 
 #' simulation of kernel deep neural network;
 #' @param N size of population groups
@@ -68,12 +75,13 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, rks=~LN1, oks=~p1+ga, y
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        ret <- CL(ret, gct=gct.rml(rsp, krn(gmx, rks)))
-        ## ret <- CL(ret, mle=rop.vcm(rsp, knl))
-        ret <- CL(ret, sat=gct.rml(rsp, krn(gmx, oks)))
-        ret <- CL(ret, mn0=knl.mnq(rsp, knl, psd=FALSE))
-        ret <- CL(ret, mn1=knl.mnq(rsp, knl, psd=TRUE))
-        ret <- CL(ret, nul=nul.vcm(rsp))
+        ret <- CL(ret, gct=GCT(rsp, krn(gmx, rks)))
+        ret <- CL(ret, ful=GCT(rsp, krn(gmx, oks)))
+        ret <- CL(ret, pmq=PMQ(rsp, knl))
+        ret <- CL(ret, bm2=BM2(rsp, knl, ...))
+        ret <- CL(ret, bm3=BM3(rsp, knl, ...))
+        ret <- CL(ret, bm4=BM4(rsp, knl, ...))
+        ret <- CL(ret, nul=NUL(rsp, knl))
         ret
     })
     
@@ -87,12 +95,12 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I, eps=.1, rks=~LN1, oks=~p1+ga, y
     {
         ret <- list()
         ret <- CL(ret, gct=vpd(rsp, krn(gmx, rks), dvp$gct$par))
-        ## ret <- CL(ret, mle=vpd(rsp, knl, dvp$mle$par))
-        ret <- CL(ret, sat=vpd(rsp, krn(gmx, oks), dvp$sat$par))
-        ret <- CL(ret, mn0=vpd(rsp, knl, dvp$mn0$par))
-        ret <- CL(ret, mn1=vpd(rsp, knl, dvp$mn1$par))
-        ret <- CL(ret, nul=nul.vcm(rsp, dvp$nul$par)$rpt)
-        ## ret <- CL(ret, fun=vpd(rsp, fnl, c(eps, vcs)))
+        ret <- CL(ret, ful=vpd(rsp, krn(gmx, oks), dvp$ful$par))
+        ret <- CL(ret, pmq=vpd(rsp, knl, dvp$pmq$par))
+        ret <- CL(ret, bm2=vpd(rsp, knl, dvp$bm2$par))
+        ret <- CL(ret, bm3=vpd(rsp, knl, dvp$bm3$par))
+        ret <- CL(ret, bm4=vpd(rsp, knl, dvp$bm4$par))
+        ret <- CL(ret, nul=vpd(rsp, knl, dvp$nul$par))
         ret
     })
     

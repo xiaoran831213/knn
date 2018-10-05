@@ -23,7 +23,7 @@ PK <- function(..., d=2, orth=FALSE, J=FALSE)
     env <- environment()
     function(x)
     {
-        print(env[['coef']])
+        ## print(env[['coef']])
         N <- NROW(x)                    # sample size
         mtx <- matrix(0, N, N)          # sample matrix
         utr <- upper.tri(mtx, TRUE)     # sample upper.tri
@@ -40,7 +40,7 @@ PK <- function(..., d=2, orth=FALSE, J=FALSE)
         ## keep orthgonal coeficients
         cfs <- attr(bas, 'coefs')
         env[['coef']] <- if(length(nms) >1) cfs else if(is.null(cfs)) NULL else list(cfs)
-        print(env[['coef']])
+        ## print(env[['coef']])
 
         bas <- as.data.frame(bas)
         colnames(bas) <- lapply(strsplit(colnames(bas), '[.]'), function(u)
