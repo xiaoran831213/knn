@@ -4,6 +4,7 @@ source('R/kpl.R')
 source("R/mnq.R")
 source("R/utl.R")
 source("sim/utl.R")
+source("sim/mdl.R")
 
 pcs.knl <- function(knl, psd=FALSE)
 {
@@ -61,11 +62,11 @@ main <- function(N=1000, P=10000, frq=.01, mdl=~AD+DM)
     dat <- get.gmx(gls, N, P, Q=1, R=1)
 
     gmx <- with(dat, gmx[dvp > 0, ])
-    knl.gmx <- c(ID(gmx), krn(gmx, mdl))
+    knl.gmx <- krn(gmx, mdl)
 
     P <- ncol(gmx)
     fmx <- gmx[, sample(c(rep(TRUE, P * frq), rep(FALSE, P - P * frq)))]
-    knl.fmx <- c(ID(gmx), krn(fmx, mdl))
+    knl.fmx <- krn(fmx, mdl)
     
     ## correlation between the whole SNP and function SNP kernel
     hom <- mapply(knl.hom, knl.gmx, knl.fmx, MoreArgs=list(d=TRUE))

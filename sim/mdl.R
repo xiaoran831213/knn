@@ -10,10 +10,33 @@ LP <- function(x) list(LP=lap(x))
 GS <- function(x) list(GS=gau(x))
 IS <- function(x) list(IS=ibs(x))
 KN <- function(x) list(KN=kin(x))
-RS <- function(x) list(RS=ply((x >  1) / 2 - 1))
-DM <- function(x) list(DM=ply((x >  0) / 2 - 1))
-AD <- function(x) list(AD=ply((x     ) / 2 - 1))
-HT <- function(x) list(HT=ply((x == 1) / 2 - 1))
+RS <- function(x)
+{
+    x <- (x > 1) * 2 - 1
+    x <- x[, apply(x, 2L, sd) > 0]
+    x <- scale(x)
+    list(RS=ply(x))
+}
+DM <- function(x)
+{
+    x <- (x > 0) * 2 - 1
+    x <- x[, apply(x, 2L, sd) > 0]
+    x <- scale(x)
+    list(DM=ply(x))
+}
+AD <- function(x)
+{
+    x <- x - 1
+    x <- scale(x)
+    list(AD=ply(x))
+}
+HT <- function(x)
+{
+    x <- (x == 1) * 2 - 1
+    x <- x[, apply(x, 2L, sd) > 0]
+    x <- scale(x)
+    list(HT=ply(x))
+}
 
 #' polynomial expansion by kernel
 #'
@@ -62,7 +85,8 @@ OL3 <- PK(LN, d=3, orth=TRUE)
 ## linear kernels
 LN1 <- LN
 LN2 <- PK(LN, d=2, orth=FALSE)
-LN3 <- PK(LN, d=2, orth=FALSE)
+LN3 <- PK(LN, d=3, orth=FALSE)
+LN4 <- PK(LN, d=4, orth=FALSE)
 
 ## product * Gaussian
 OP2 <- PK(PL, d=2, orth=TRUE)
@@ -74,7 +98,22 @@ PL3 <- PK(PL, d=3, orth=FALSE)
 ## mix
 DR1 <- PK(DM, RS, d=1, orth=FALSE)
 DR2 <- PK(DM, RS, d=2, orth=FALSE)
-DR3 <- PK(DM, RS, d=2, orth=FALSE)
+DR3 <- PK(DM, RS, d=3, orth=FALSE)
+DR4 <- PK(DM, RS, d=4, orth=FALSE)
+
+## additive, dominative, recessive
+AD1 <- PK(AD, d=1, orth=FALSE)
+AD2 <- PK(AD, d=2, orth=FALSE)
+AD3 <- PK(AD, d=3, orth=FALSE)
+DM1 <- PK(DM, d=1, orth=FALSE)
+DM2 <- PK(DM, d=2, orth=FALSE)
+DM3 <- PK(DM, d=3, orth=FALSE)
+RS1 <- PK(RS, d=1, orth=FALSE)
+RS2 <- PK(RS, d=2, orth=FALSE)
+RS3 <- PK(RS, d=3, orth=FALSE)
+HT1 <- PK(HT, d=1, orth=FALSE)
+HT2 <- PK(HT, d=2, orth=FALSE)
+HT3 <- PK(HT, d=3, orth=FALSE)
 
 coef <- function(k)
 {

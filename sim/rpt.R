@@ -1,6 +1,30 @@
 library(ggplot2)
 library(dplyr)
 
+plt.cor <- function(dat)
+{
+    d1 <- list()
+    nm <- names(dat)
+    for(i in seq_along(dat))
+    {
+        for(j in seq_along(dat))
+        {
+            p1 <- data.frame(dx=dat[, i], dy=dat[, j], vx=nm[i], vy=nm[j])
+            d1 <- c(d1, list(p1))
+        }
+    }
+    d1 <- do.call(rbind, d1)
+
+    gc <- ggplot(d1, aes(x=dx, y=dy))
+    gc <- gc + geom_point(size=.5)
+    gc <- gc + facet_grid(vx~vy)
+
+    th <- theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+                axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank())
+    gc <- gc + th
+    gc
+}
+
 S01 <- function(r, k, ...) within(subset(r, key==k), {val <- val - min(val); val <- val / max(val)})
 S02 <- function(r, k, ...)
 {
@@ -154,3 +178,4 @@ rpt3 <- function(cache=FALSE)
     prpt('p12', cache, bias=FALSE)
     prpt('p13', cache, bias=FALSE)
 }
+
