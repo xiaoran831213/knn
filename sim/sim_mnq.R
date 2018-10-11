@@ -9,6 +9,8 @@ source("R/mnq.R")
 source("R/utl.R")
 source("sim/utl.R")
 source("sim/mn1.R")
+source("sim/mdl.R")
+source("sim/mtd.R")
 
 ## test for cpp minque versus R minque
 ts1 <- function(N=2000, P=4000, r=5)
@@ -45,24 +47,27 @@ ts1 <- function(N=2000, P=4000, r=5)
     ## list(r1=r1, r2=r2)
 }
 
-ts2 <- function(N=100, P=50, frq=.1, r=10)
+ts2 <- function(N=200, P=500, r=10)
 {
-    X <- matrix(rnorm(N * P, 1), N, P)
-    ## . <- sample(c(rep(TRUE, P*frq), rep(FALSE, P - P*frq)))
-    ## F <- X[, .]
-
-    knl <- krn(X, c(id, ki, s1))
-    fnl <- krn(X, c(id, ki, s1))
+    xmx <- matrix(rnorm(N * P, 1), N, P)
+    knl <- krn(xmx, ~LN1)               # working kernel
+    fnl <- krn(xmx, ~GS1)               # function kernel
     
     ## true covariance
-    W <- c(eps=.5, vc1=1, vc2=2, vc3=1, vc4=2)[1:length(fnl)]
-    y <- mvrnorm(1, rep(0, N), cmb(fnl, W)[[1]])
+    W <- c(.5, 1, 2, 1, 1)[seq(1 + length(fnl))]
+    C <- cmb(c(EPS(xmx), fnl), W)[[1]]  # function covariance
+    y <- mvrnorm(1, rep(0, N), C)
 
-    r1 <- knl.mnq.R(y, knl, X=NULL)$vcs
-    r2 <- itr.mnq(y, knl, X=NULL)$par
-    r3 <- round(drop(rop.vcm(y, knl[-1])$par), 4)
+    print('PDS=1, MINQUE')
+    r1 <- knl.mnq(y, knl, NULL, itr=50, cpp=FALSE, psd=1)
 
-    list(mnq.old=r1, mnq.new=r2, mle=r3, ref=W)
+    print('PDS=0, MINQUE')
+    r0 <- knl.mnq(y, knl, NULL, itr=50, cpp=FALSE, psd=0)
+
+    print('PDS=0, MINQUE')
+    r2 <- rop.vcm(y, knl, NULL, cpp=FALSE)
+
+    list(mn1=r1, mn0=r0, mle=r2, ref=W)
 }
 
 ts3 <- function(N=100, P=50, frq=.1, r=10)

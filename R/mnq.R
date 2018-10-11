@@ -14,11 +14,11 @@ knl.mnq.R <- function(y, V, W=NULL, X=NULL, ...)
 
     ## initial weights
     if(is.null(W))
-        W <- matrix(1/K, K, Q)
+        W <- matrix(1, K, Q)
 
     ## sum of V_i, i = 1 .. k    # chapter 7
     sumV <- cmb(V, W)[[1]]
-    invV <- try(chol2inv(chol(sumV)))
+    invV <- try(chol2inv(chol(sumV)), silent=TRUE)
     if(inherits(invV, 'try-error'))
         invV <- solve(sumV)
     
@@ -149,42 +149,45 @@ knl.ply <- function(V, order=1)
 #'   - mean square error between y and y.hat;
 #'   - negative log likelihood assuming y ~ N(0, sum_i(V_i * par_i))
 #'   - cor(y, y.hat)
-knl.mnq <- function(y, V, W=NULL, cpp=TRUE, ...)
+knl.mnq <- function(y, V, W=NULL, cpp=TRUE, itr=1, ...)
 {
     dot <- list(...)
     prd <- dot$prd %||% FALSE           # make self prediction
     psd <- dot$psd %||% 1L              # make PSD projection?
+    tol <- 1e-6
     N <- NROW(y)                        # sample size
     Q <- NCOL(y)                        # response count
+    hst <- dot$hst %||% list()          # history
 
     ## append noise kernel
     C <- c(list(eps=diag(N)), V)
     K <- length(C)                      # kernel count
     if(is.null(W))                      # initial weights
-        W <- matrix(1/K, K, Q)
+        W <- matrix(1, K, Q)
 
     ## print('begin MINQUE')
     t0 <- Sys.time()
-    k <- length(V)                      # kernel count
-    
-    ## call the kernel MINQUE core function
-    if(cpp)
-        r <- .Call('knl_mnq', PACKAGE = 'knn', as.matrix(y), C, psd)
-    else
-        r <- knl.mnq.R(y, C, W, psd=psd)
+
+    while(itr > 0)
+    {
+        ## call the kernel MINQUE core function
+        if(cpp)
+            r <- .Call('knl_mnq', as.matrix(y), C, psd, PACKAGE='knn')
+        else
+            r <- knl.mnq.R(y, C, W, psd=psd)
+        Z <- pmax(r$vcs, tol)
+        D <- max(abs(Z - W))
+        print(round(c(itr, Z, D), 7))
+        if(D < tol)
+            break
+        W <- Z
+        itr <- itr - 1
+    }
     td <- Sys.time() - t0; units(td) <- 'secs'; td <- as.numeric(td)
     ## print('end MINQUE')
 
-    ## make predictions
-    if(prd)
-        prd <- vpd(y, V, r$vcs, rt=1)
-    else
-        prd <- NULL
+    rpt <- rbind(vpd(y, V, Z), DF(key='rtm', val=td))
+    names(Z) <- names(C)
 
-    ## timing
-    rtm <- DF(key='rtm', val=td)
-    
-    par <- drop(r$vcs)
-    names(par) <- names(C)
-    ret <- list(par=par, se2=drop(r$se2), rpt=rbind(rtm=rtm, prd))
+    list(par=Z, se2=r$se2, rpt=rpt)
 }
