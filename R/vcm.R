@@ -120,27 +120,30 @@ vpd <- function(y, K=NULL, W=NULL, rt=1, ...)
     
     ## make predictions
     v <- unname(cmb(C, W)[[1]])
-    ## a <- solve(v)
     alpha <- solve(v, y)                # V^{-1}y
     f <- v - diag(W[1], length(y))      # W[1] is PHI
 
-    ## prediction 1: conditional mean
+    ## prediction: conditional mean and covariance
     h <- f %*% alpha
-
+    mht <- mean(h)
+    
     mse <- mean((y - h)^2)
-    ## cyh <- tryCatch(cor(y, h), warning=function(w) 0, error=function(e) NA)
     cyh <- if(sd(h) == 0) 0 else cyh <- cor(y, h)
-
+    rsq <- cyh^2
+    
     ## negative likelihood
-    ldt <- with(.Internal(det_ge_real(v, TRUE)), sign * modulus)
-    nlk <- .5 / N * (sum(alpha * y) + ldt + N * log(2*pi))
+    ldt <- with(.Internal(det_ge_real(v, TRUE)), sign * modulus) / N
+    yay <- sum(alpha * y) / N           # y^T V^{-1} y
+    ## nlk <- .5 * (yay + ldt + log(2 * pi))
+    nlk <- yay + ldt
     
     ## prediction 2: leave one out CV
+    ## a <- solve(v)
     ## h <- y - a %*% y / diag(a)
     ## loo <- mean((y - h)^2)
 
     ## return
-    rpt <- c(mse=mse, nlk=nlk, cyh=cyh, ssz=N)
+    rpt <- c(rsq=rsq, mse=mse, nlk=nlk, cyh=cyh, ldt=ldt, yay=yay, mht=mht, ssz=N)
     if(rt == 1)
         rpt <- DF(key=names(rpt), val=rpt, row.names=names(rpt))
     if(rt == 2)

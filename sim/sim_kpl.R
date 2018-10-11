@@ -52,9 +52,7 @@ cr <- function(...)
     dt <- do.call(cbind, dt)
     cor(dt)
 }
-## r <- main(N=400, P=10000, frq=0.1, mdl=~AD+DM+RS+GS+PL+LN)
-## r <- main(N=400, P=10000, frq=0.1, mdl=~id+w0+w1+w2+w3)
-## r <- main(N=500, P=10000, frq=0.2, mdl=~polym(RS1, DM1))
+## r <- main(N=400, P=10000, frq=0.1, mdl=~GS3+LN3)
 main <- function(N=1000, P=10000, frq=.01, mdl=~AD+DM)
 {
     rds <- get.rds('sim/dat')

@@ -46,8 +46,9 @@ EX <- function(x) dc(x, 'ex')
 CA <- function(x) dc(x, 'ca', 0.05)
 CH <- function(x) dc(x, 'ch')
 NL <- function(x) x
-I2 <- function(x) scale(drop((x + 1)^2))
-I3 <- function(x) scale(drop((x + 1)^3))
+I1 <- function(x) drop(scale((x + 1)^1))
+I2 <- function(x) drop(scale((x + 1)^2))
+I3 <- function(x) drop(scale((x + 1)^3))
 O1 <- function(x) x
 O2 <- function(x) drop(scale(x^2))
 O3 <- function(x) drop(scale(x^3))

@@ -1,14 +1,27 @@
 ## methods
 
 ## batched minque
-BM1 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 100, ...)
-BM2 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 200, ...)
-BM3 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 300, ...)
-BM4 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 400, ...)
-BM5 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 500, ...)
-BM6 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 600, ...)
-BM7 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 700, ...)
-BM8 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 800, ...)
+BM0 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 2^0, ...)
+BM1 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 2^1, ...)
+BM2 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 2^2, ...)
+BM3 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 2^3, ...)
+BM4 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 2^4, ...)
+BM5 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 2^5, ...)
+BM6 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 2^6, ...)
+BM7 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 2^7, ...)
+BM8 <- function(rsp, knl, ...) GBT(knl.mnq, rsp, knl, 2^8, ...)
+
+## batched MLE
+BL0 <- function(rsp, knl, ...) GBT(rop.vcm, rsp, knl, 2^0, ...)
+BL1 <- function(rsp, knl, ...) GBT(rop.vcm, rsp, knl, 2^1, ...)
+BL2 <- function(rsp, knl, ...) GBT(rop.vcm, rsp, knl, 2^2, ...)
+BL3 <- function(rsp, knl, ...) GBT(rop.vcm, rsp, knl, 2^3, ...)
+BL4 <- function(rsp, knl, ...) GBT(rop.vcm, rsp, knl, 2^4, ...)
+BL5 <- function(rsp, knl, ...) GBT(rop.vcm, rsp, knl, 2^5, ...)
+BL6 <- function(rsp, knl, ...) GBT(rop.vcm, rsp, knl, 2^6, ...)
+BL7 <- function(rsp, knl, ...) GBT(rop.vcm, rsp, knl, 2^7, ...)
+BL8 <- function(rsp, knl, ...) GBT(rop.vcm, rsp, knl, 2^8, ...)
+BL9 <- function(rsp, knl, ...) GBT(rop.vcm, rsp, knl, 2^9, ...)
 
 ## PSD minque
 PMQ <- function(rsp, knl, ...)

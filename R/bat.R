@@ -1,65 +1,79 @@
 ## General Batched Trainer
 
+batch.mask <- function(rsp, nbt=5, bpt=0, ...)
+{
+    N <- NROW(rsp)
+    msk <- replicate(ceiling(N / nbt), sample.int(nbt))[seq.int(N)]
+    ## cnt <- sapply(seq(nbt), function(x) sum(msk == x))
+    ## names(cnt) <- seq(nbt)
+    ## print(list(cnt=cnt))
+    if(bpt==1)
+    {
+        seq <- sort(rsp, index.return=TRUE)$ix
+        qes <- sort(seq, index.return=TRUE)$ix
+        msk <- msk[qes]
+    }
+    else
+        msk <- sample(msk)
+
+    ## print(list(var=var(rsp)))
+    ## for(i in seq.int(nbt))
+    ## {
+    ##     y <- rsp[msk == i]
+    ##     print(var(y))
+    ## }
+    invisible(msk)
+}
+
 #' @title General Batched Trainer
 #' @param fun function the non-batched algorithm
-#' @param bsz integer batch size
+#' @param nbt number of batches (def=5)
 #' @param wtm numeric (in ...) walltime in hours
 #' @param wep integer (in ...) wall epoch count
 #'
 #' @return a list of training history, the averaged parameters
-GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
+GBT <- function(FUN, rsp, knl, nbt=5, ...)
 {
     N <- NROW(rsp)                      # sample size
-    nbt <- N / bsz                      # number of batches
     
     ## list of history
     hst <- list()
-    acc <- list()
 
     ## dots
     dot <- list(...)
     wtm <- dot$wtm %||% 36              # wall time  (def=36 sec)
     wep <- dot$wep %||% 1               # wall epoch (def=1)
     wit <- dot$wit %||% 1000
+    pss <- dot$pss %||% 0               # pass on estimates?
+    ini <- dot$ini
+    bpt <- dot$bpt %||% 0
 
     ## message tracks
     tks <- list(msg(~ep, "%04d"),
                 msg(~mse, "%7.3f"), msg(~nlk, "%7.3f"),
-                msg(~phi, "%7.3f"), msg(~rtm, "%4.1f"))
+                msg(~eps, "%7.3f"), msg(~rtm, "%4.1f"))
     
     ## initial parameters
-    itr <- 0; rtm <- 0; ep <- 0; bt <- 0
+    itr <- 1; rtm <- 0; ep <- 1; bt <- 1
     while(TRUE)
     {
         ## create batches
         t0 <- Sys.time()
-        if(nbt > 1)
+        if(bt == 1L)                    # new batch
         {
-            ep <- as.integer((itr * bsz) / N) + 1 # epoch count
-            bt <- (itr * bsz) %% N / bsz          # batch count
-            if(bt == 0)                           # 1st batch?
-            {
-                sq <- sample.int(N)               # permutation
-                eph <- list()
-            }
-            . <- sq[seq.int(bt * bsz + 1L, l=bsz) %% (N + 1)]
-            bat <- list(knl=lapply(knl, `[`, ., .), rsp=rsp[.])
+            bmk <- batch.mask(rsp, nbt, bpt) # batch mask
+            eph <- list()
         }
-        else
-        {
-            ep <- itr + 1
-            bt <- 0
-            knl.bat <- knl
-            rsp.bat <- rsp
-        }
-        bt <- bt + 1
-        if(ep > wep) {cat('BMQ: reach max_epoc:', wep, 'e\n'); break}
-        t1 <- Sys.time()
-        td <- t1 - t0; units(td) <- 'secs'; td <- as.numeric(td)
         
-        ## MINQUE on each batch
-        ssz <- nrow(bat)
-        bat <- c(bat, with(bat, FUN(rsp, knl, ...)))
+        ## get batch data
+        t1 <- Sys.time()
+        . <- bmk == bt
+        bat <- list(knl=lapply(knl, `[`, ., .), rsp=rsp[.])
+        td <- t1 - t0; units(td) <- 'secs'; td <- as.numeric(td)
+
+        ## get batch estimates
+        bat <- c(bat, with(bat, FUN(rsp, knl, ini, ...)))
+        ini <- if(pss) bat$par else NULL # pass on initial values?
         rtm <- rtm + bat$rpt['rtm', 'val'] + td
 
         ## gather information
@@ -67,28 +81,33 @@ GBT <- function(FUN, rsp, knl, bsz=NROW(rsp), ...)
         
         ## accumulate an epoch, calculate training statistics
         eph <- CL(eph, bat[c('par', 'se2')])
-        if(length(eph) == nbt)
+        bt <- bt + 1
+        if(bt == nbt)                   # end of an epoch?
         {
             par <- mean(eph %$% 'par')
-            phi <- par[1]
+            eps <- par[1]
             rpt <- vpd(rsp, knl, par, rt=0, ...)
             mse <- rpt['mse']
             nlk <- rpt['nlk']
-            msg <- c(msg, rpt)
+            msg <- c(msg, rpt)          # additional info
             ## append message to STDOUT
             cat(ln.msg(tks), "\n", sep="")
+            ep <- ep + 1L               # next epoch
+            bt <- 1L                    # next epoch
         }
 
-        ## append message to the history
+        ## append message to history
         hst <- CL(hst, msg)
         
-        if(itr > wit) {cat('BMQ: reach max_iter:', wit, 'b\n'); break}
         if(rtm > wtm) {cat('BMQ: reach walltime:', wtm, 's\n'); break}
-        itr <- itr + 1L
+        if(ep > wep) {cat('BMQ: reach max_epoc:', wep, 'e\n'); break}
     }
-    print(list(bsz=bsz))
     ## mean solution
-    par <- mean(hst %$% 'par')
+    ## par <- mean(hst %$% 'par')
+    par <- do.call(rbind, hst %$% 'par')
+    ## par <- pmin(par, 1e-5)
+    ## par <- apply(par, 2L, geom.mean)
+    par <- apply(par, 2L, mean)
 
     ## assessment
     t0 <- Sys.time(); rpt <- vpd(y=rsp, K=knl, W=par); t1 <- Sys.time()

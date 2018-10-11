@@ -65,13 +65,13 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I1, eps=.1, oks=~LN1, ...)
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        ret <- CL(ret, JL1=PMQ(rsp, krn(gmx, ~LN1+JX)))
-        ret <- CL(ret, JL2=PMQ(rsp, krn(gmx, ~LN2+JX)))
-        ret <- CL(ret, NL1=PMQ(rsp, krn(gmx, ~LN1   )))
-        ret <- CL(ret, NL2=PMQ(rsp, krn(gmx, ~LN2   )))
-        ret <- CL(ret, JMX=PMQ(rsp, krn(gmx, ~    JX)))
-        ret <- CL(ret, GCT=GCT(rsp, krn(gmx, ~LN1   )))
-        ret <- CL(ret, FUL=GCT(rsp, krn(gmx, ~LN2   )))
+        knl <- krn(gmx, ~LN2)
+        ret <- CL(ret, GCT=GCT(rsp, krn(gmx, ~ LN1)))
+        ret <- CL(ret, FUL=GCT(rsp, knl))
+        ret <- CL(ret, PMQ=PMQ(rsp, knl, ..., cpp=FALSE, psd=FALSE))
+        ret <- CL(ret, BM3=BM3(rsp, knl, ..., cpp=FALSE, psd=FALSE))
+        ret <- CL(ret, BM4=BM4(rsp, knl, ..., cpp=FALSE, psd=FALSE))
+        ret <- CL(ret, BM5=BM5(rsp, knl, ..., cpp=FALSE, psd=FALSE))
         ret <- CL(ret, NUL=NUL(rsp, NULL))
         ret
     })
@@ -80,19 +80,19 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I1, eps=.1, oks=~LN1, ...)
     vcs <- dat$dvp$vcs
     par <- pars(dvp, c(eps=eps, vcs))
     bia <- list(bias(dvp, eps, vcs))
-
+    
     ## testing
     evl <- with(dat$evl,
     {
         ret <- list()
+        knl <- krn(gmx, ~LN2)
+        ret <- CL(ret, GCT=vpd(rsp, krn(gmx, ~ LN1), dvp$GCT$par))
+        ret <- CL(ret, FUL=vpd(rsp, knl, dvp$FUL$par))
+        ret <- CL(ret, PMQ=vpd(rsp, knl, dvp$PMQ$par))
+        ret <- CL(ret, BM3=vpd(rsp, knl, dvp$BM3$par))
+        ret <- CL(ret, BM4=vpd(rsp, knl, dvp$BM4$par))
+        ret <- CL(ret, BM5=vpd(rsp, knl, dvp$BM5$par))
         ret <- CL(ret, NUL=vpd(rsp, NULL, dvp$NUL$par))
-        ret <- CL(ret, JL1=vpd(rsp, krn(gmx, ~LN1+JX), dvp$JL1$par))
-        ret <- CL(ret, JL2=vpd(rsp, krn(gmx, ~LN2+JX), dvp$JL2$par))
-        ret <- CL(ret, NL1=vpd(rsp, krn(gmx, ~LN1   ), dvp$NL1$par))
-        ret <- CL(ret, NL2=vpd(rsp, krn(gmx, ~LN2   ), dvp$NL2$par))
-        ret <- CL(ret, JMX=vpd(rsp, krn(gmx, ~    JX), dvp$JMX$par))
-        ret <- CL(ret, GCT=vpd(rsp, krn(gmx, ~LN1   ), dvp$GCT$par))
-        ret <- CL(ret, FUL=vpd(rsp, krn(gmx, ~LN2   ), dvp$FUL$par))
         ret
     })
     
@@ -115,6 +115,6 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I1, eps=.1, oks=~LN1, ...)
 
 test <- function()
 {
-    u <- main(N=500, P=10000, Q=2, R=1, frq=.1, eps=.5, svc=2, oks=~LN2, yks=~LN2)
+    r=main(oks=~GS2, N=1000, P=10000, Q=2, R=1, eps=.2, vcs=c(0, 2.0), frq=.1, pss=FALSE, wep=3)
     subset(r, dat=='evl' & key=='nlk' | dat=='dvp' & key=='rtm')
 }

@@ -25,16 +25,6 @@ plt.cor <- function(dat)
     gc
 }
 
-S01 <- function(r, k, ...) within(subset(r, key==k), {val <- val - min(val); val <- val / max(val)})
-S02 <- function(r, k, ...)
-{
-    r <- subset(r, key == k)
-    within(r, val <- val / subset(r, mtd=='nul')$val)
-}
-S03 <- function(r, k, ...) within(subset(r, key == k), val <- val / val[1])
-
-sel <- dplyr::select
-
 readRPT <- function(..., ref=1)
 {
     rpt <- list()
@@ -46,30 +36,58 @@ readRPT <- function(..., ref=1)
         if(inherits(r, 'try-error'))
             next
 
-        evl <- subset(r, dat == 'evl', -dat)
-        dvp <- subset(r, dat == 'dvp', -dat)
-        bia <- subset(dvp, grepl('^bia[.]', key))
+        evl <- subset(r, dat == 'evl')
+        dvp <- subset(r, dat == 'dvp')
+        bia <- subset(r, dat == 'bia')
+        
+        ## MSE
+        mse <- subset(evl, key == 'mse')
+        nul <- subset(mse, mtd == 'NUL')$val
+        mse <- within(mse, val <- val / nul)
 
-        mse <- S02(evl, 'mse')
-        nlk <- S02(evl, 'nlk')
-        cyh <- within(subset(evl, key=='cyh'), val <- val^2)
-        rtm <- S03(dvp, 'rtm')
-        rpt <- c(rpt, list(rbind(bia, rtm, mse, nlk, cyh)))
+        ## likelihood
+        nlk <- subset(evl, key == 'nlk')
+        nul <- subset(nlk, mtd == 'NUL')$val
+        ldt <- within(subset(evl, key == 'ldt'), val <- exp(val - nul))
+        yay <- within(subset(evl, key == 'yay'), val <- exp(val - nul))
+        nlk <- within(nlk, val <- exp(val - nul))
+
+        ## R^2
+        rsq <- subset(evl, key=='rsq')
+
+        ## running time
+        rtm <- subset(dvp, key == 'rtm')
+        rtm <- within(rtm, val <- val / median(val))
+        rpt <- c(rpt, list(rbind(bia, rtm, mse, yay, ldt, nlk, rsq)))
     }
     rpt <- do.call(rbind, rpt)
-    rpt <- subset(rpt, !is.infinite(val))
-
+    
     ## clean up parentheses
     .cp <- function(x) gsub("[~ ()]", "", x)
     rpt <- within(rpt,
     {
         oks <- .cp(oks)
         if(exists('lnk', inherits=FALSE))
+        {
             oks <- sprintf("%s(%s)", lnk, sub('^~', '', oks))
-        sim <- sprintf("%s~%s", oks, .cp(yks))
+            rm(lnk)
+        }
+        if(exists('yks', inherits=FALSE))
+            yks <- .cp(yks)
+        else
+            yks <- "[*]"
+        sim <- sprintf("%s~%s", oks, yks)
+        
+        if(exists('pss', inherits=FALSE))
+            sim <- sprintf("%s, ps=%s", sim, pss)
+        if(exists('bpt', inherits=FALSE))
+            sim <- sprintf("%s, bp=%s", sim, bpt)
+        if(exists('wep', inherits=FALSE))
+            sim <- sprintf("%s, ep=%s", sim, wep)
+        
     })
     rpt <- within(rpt, {H <- N * R; N <- N * Q})
-    rpt <- within(rpt, rm(R, Q, oks, yks, seed))
+    rpt <- within(rpt, rm(R, Q, oks, seed))
     rpt
 }
 
@@ -101,35 +119,37 @@ d0 <- function(name, use.cache=TRUE)
 prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE)
 {
     d <- as_tibble(d0(name, cache))
-    d <- filter(d, !mtd %in% c('fun', 'nul'))
+    d <- filter(d, !mtd %in% c('NUL'))
     r <- list()
     
     ## report: errors
     if(errs)
     {
-        rpt <- filter(d, key %in% c('cyh', 'rtm', 'mse', 'nlk'))
-        rpt <- mutate(rpt, val=pmin(val, 1.99))
+        rpt <- filter(d, key %in% c('rsq', 'mse', 'nlk', 'ldt', 'yay'))
+        rpt <- mutate(rpt, val=pmin(val, 1.99), val=pmax(val, 0.01))
         g <- ggplot(rpt, aes(x=mtd, y=val))
         g <- g + geom_boxplot()
         g <- g + facet_grid(sim~key)
         g <- g + ylim(c(0, 2))
         g <- g + ggtitle(ttl(rpt))
         f <- paste0(file.path('~/img', name), '.rpt.png'); print(f)
-        ggsave(f, g, width=10, height=11)
+        ggsave(f, g, width=16, height=10)
         r <- c(r, rpt=g)
     }
 
     if(bias)
     {
         ## report: bias
-        bia <- filter(d, grepl('^bia[.]', key))
+        bia <- filter(d, dat=='bia')
         bia <- mutate(bia, key=sub('^.*[.]', '', key))
+        bia <- mutate(bia, val=pmin(val, 1.99), val=pmax(val, -1.99))
         g <- ggplot(bia, aes(x=key, y=val))
         g <- g + geom_boxplot()
         g <- g + facet_grid(sim~mtd)
+        g <- g + ylim(c(-2, 2))
         g <- g + ggtitle(ttl(bia))
         f <- paste0(file.path('~/img', name), '.bia.png'); print(f)
-        ggsave(f, g, width=10, height=11)
+        ggsave(f, g, width=16, height=10)
         r <- c(r, bia=g)
     }
 
@@ -139,43 +159,19 @@ prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE)
 
 rpt1 <- function(cache=FALSE)
 {
-    prpt('d00', cache, bias=FALSE)
-    prpt('d01', cache, bias=FALSE)
-
-    prpt('h00', cache, bias=FALSE)
-    prpt('h01', cache, bias=FALSE)
-    prpt('h02', cache, bias=FALSE)
-    prpt('h03', cache, bias=FALSE)
-
-    prpt('h10', cache, bias=FALSE)
-    prpt('h11', cache, bias=FALSE)
-    prpt('h12', cache, bias=FALSE)
-    prpt('h13', cache, bias=FALSE)
+    prpt('b00', cache, bias=TRUE)
+    prpt('b01', cache, bias=TRUE)
+    prpt('b12', cache, bias=TRUE)
 }
 
-rpt2 <- function(cache=FALSE)
+rpt2 <- function(cache=FALSE, bias=TRUE)
 {
-    prpt('a00', cache, bias=FALSE)
-    prpt('a01', cache, bias=FALSE)
-    prpt('a02', cache, bias=FALSE)
-    prpt('a03', cache, bias=FALSE)
-
-    prpt('a10', cache, bias=FALSE)
-    prpt('a11', cache, bias=FALSE)
-    prpt('a12', cache, bias=FALSE)
-    prpt('a13', cache, bias=FALSE)
+    prpt('a00', cache, bias=bias)
+    prpt('a01', cache, bias=bias)
 }
 
-rpt3 <- function(cache=FALSE)
+rpt3 <- function(cache=FALSE, bias=TRUE)
 {
-    prpt('p00', cache, bias=FALSE)
-    prpt('p01', cache, bias=FALSE)
-    prpt('p02', cache, bias=FALSE)
-    prpt('p03', cache, bias=FALSE)
-
-    prpt('p10', cache, bias=FALSE)
-    prpt('p11', cache, bias=FALSE)
-    prpt('p12', cache, bias=FALSE)
-    prpt('p13', cache, bias=FALSE)
+    prpt('d00', cache, bias=bias)
+    prpt('d01', cache, bias=bias)
 }
-

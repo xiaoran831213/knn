@@ -2,7 +2,7 @@
 source('R/utl.R')
 source('R/kpl.R')
 
-ID <- function(x) list(ID=idn(x))
+ID <- function(x) list(ID=diag(1, NROW(x)))
 JX <- function(x) list(JX=matrix(1, NROW(x), NROW(x)))
 LN <- function(x) list(LN=ply(scale(x), degree=1))
 PL <- function(x) list(PL=ply(x, degree=1))
@@ -13,31 +13,35 @@ KN <- function(x) list(KN=kin(x))
 RS <- function(x)
 {
     x <- (x > 1) * 2 - 1
-    ## x <- x[, apply(x, 2L, sd) > 0]
-    ## x <- scale(x)
+    x <- x[, apply(x, 2L, sd) > 0]
+    x <- scale(x)
     list(RS=ply(x))
 }
 DM <- function(x)
 {
     x <- (x > 0) * 2 - 1
-    ## x <- x[, apply(x, 2L, sd) > 0]
-    ## x <- scale(x)
+    x <- x[, apply(x, 2L, sd) > 0]
+    x <- scale(x)
     list(DM=ply(x))
 }
-AD <- function(x) list(AD=ply(scale(x - 1)))
-
+AD <- function(x)
+{
+    x <- x - 1
+    x <- scale(x)
+    list(AD=ply(x))
+}
 HT <- function(x)
 {
     x <- (x == 1) * 2 - 1
-    ## x <- x[, apply(x, 2L, sd) > 0]
-    ## x <- scale(x)
+    x <- x[, apply(x, 2L, sd) > 0]
+    x <- scale(x)
     list(HT=ply(x))
 }
 
 #' polynomial expansion by kernel
 #'
 #' ...: the series of basic kernel functions
-PK <- function(..., d=2, o=0, j=0)
+PK <- function(..., d=2, orth=FALSE, J=FALSE)
 {
     env <- environment()
     function(x)
@@ -53,7 +57,7 @@ PK <- function(..., d=2, o=0, j=0)
         nms <- names(bas)
         
         ## expansion
-        arg <- c(bas, list(degree=d, coefs=env[['coef']], raw= (o!=1)))
+        arg <- c(bas, list(degree=d, coefs=env[['coef']], raw=!orth))
         bas <- do.call(polym, arg)
         
         ## keep orthgonal coeficients
@@ -67,63 +71,52 @@ PK <- function(..., d=2, o=0, j=0)
             paste0(nms, u, collapse='.')
         })
         
-        bas <- lapply(bas, function(k)
+        lapply(bas, function(k)
         {
             mtx[utr] <- k; mtx <- t(mtx); mtx[utr] <- k; mtx
         })
-        if(j)
-        {
-            bas <- c(JX(x), bas)
-            names(bas)[1] <- 'JX1'
-        }
-        bas
     }
 }
 
 ## othalnormal linear kernels
-OL1 <- PK(LN, d=1, o=TRUE)
-OL2 <- PK(LN, d=2, o=TRUE)
-OL3 <- PK(LN, d=3, o=TRUE)
+OL2 <- PK(LN, d=2, orth=TRUE)
+OL3 <- PK(LN, d=3, orth=TRUE)
 
 ## linear kernels
-LN1 <- PK(LN, d=1, o=FALSE)
-LN2 <- PK(LN, d=2, o=FALSE)
-LN3 <- PK(LN, d=3, o=FALSE)
-LN4 <- PK(LN, d=4, o=FALSE)
+LN1 <- LN
+LN2 <- PK(LN, d=2, orth=FALSE)
+LN3 <- PK(LN, d=3, orth=FALSE)
+LN4 <- PK(LN, d=4, orth=FALSE)
 
 ## product * Gaussian
-OP1 <- PK(PL, d=1, o=TRUE)
-OP2 <- PK(PL, d=2, o=TRUE)
-OP3 <- PK(PL, d=3, o=TRUE)
-PL1 <- PK(PL, d=1, o=FALSE)
-PL2 <- PK(PL, d=2, o=FALSE)
-PL3 <- PK(PL, d=3, o=FALSE)
-GS1 <- PK(GS, d=1, o=FALSE)
-GS2 <- PK(GS, d=2, o=FALSE)
-GS3 <- PK(GS, d=3, o=FALSE)
+OP2 <- PK(PL, d=2, orth=TRUE)
+OP3 <- PK(PL, d=3, orth=TRUE)
+PL1 <- PL
+PL2 <- PK(PL, d=2, orth=FALSE)
+PL3 <- PK(PL, d=3, orth=FALSE)
+
+GS1 <- GS
 
 ## mix
-JX1 <- PK(JX, d=1, o=FALSE)
-JL1 <- PK(LN, d=1, o=FALSE, j=1)
-JL2 <- PK(LN, d=1, o=FALSE, j=2)
-JL3 <- PK(LN, d=1, o=FALSE, j=3)
-DR1 <- PK(DM, RS, d=1, o=FALSE)
-DR2 <- PK(DM, RS, d=2, o=FALSE)
-DR3 <- PK(DM, RS, d=3, o=FALSE)
+JMX <- JX
+DR1 <- PK(DM, RS, d=1, orth=FALSE)
+DR2 <- PK(DM, RS, d=2, orth=FALSE)
+DR3 <- PK(DM, RS, d=3, orth=FALSE)
+DR4 <- PK(DM, RS, d=4, orth=FALSE)
 
 ## additive, dominative, recessive
-AD1 <- PK(AD, d=1, o=FALSE)
-AD2 <- PK(AD, d=2, o=FALSE)
-AD3 <- PK(AD, d=3, o=FALSE)
-DM1 <- PK(DM, d=1, o=FALSE)
-DM2 <- PK(DM, d=2, o=FALSE)
-DM3 <- PK(DM, d=3, o=FALSE)
-RS1 <- PK(RS, d=1, o=FALSE)
-RS2 <- PK(RS, d=2, o=FALSE)
-RS3 <- PK(RS, d=3, o=FALSE)
-HT1 <- PK(HT, d=1, o=FALSE)
-HT2 <- PK(HT, d=2, o=FALSE)
-HT3 <- PK(HT, d=3, o=FALSE)
+AD1 <- PK(AD, d=1, orth=FALSE)
+AD2 <- PK(AD, d=2, orth=FALSE)
+AD3 <- PK(AD, d=3, orth=FALSE)
+DM1 <- PK(DM, d=1, orth=FALSE)
+DM2 <- PK(DM, d=2, orth=FALSE)
+DM3 <- PK(DM, d=3, orth=FALSE)
+RS1 <- PK(RS, d=1, orth=FALSE)
+RS2 <- PK(RS, d=2, orth=FALSE)
+RS3 <- PK(RS, d=3, orth=FALSE)
+HT1 <- PK(HT, d=1, orth=FALSE)
+HT2 <- PK(HT, d=2, orth=FALSE)
+HT3 <- PK(HT, d=3, orth=FALSE)
 
 coef <- function(k)
 {

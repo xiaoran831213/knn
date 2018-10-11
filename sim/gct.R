@@ -17,8 +17,8 @@ gct.rml <- function(y, K, qcvr=NULL, dcvr=NULL, maxit=100)
     GRM <- K
     if(is.null(names(GRM)))
         names(GRM) <- sprintf('G%02d', seq(length(GRM)))
-    K <- c(list(phi=diag(NROW(y))), K)
-
+    K <- c(list(eps=diag(N)), K)
+    
     GRM.dir <- file.path(tpd, 'grm')
     if(!dir.create(GRM.dir))
         stop('failed to create directory', GRM.dir)
@@ -60,26 +60,33 @@ gct.rml <- function(y, K, qcvr=NULL, dcvr=NULL, maxit=100)
         stop(cmd, ' GCTA existed with non-zero.')
 
     ## parse the output
-    out <- gcta.parse(tpd)
-    
+    out <- within(gcta.parse(tpd),
+    {
+        se2 <- vcs$se^2
+        par <- vcs$var
+        names(se2) <- names(K)
+        names(par) <- names(K)
+    })
     ## summary
     h <- rowSums(out$blp[-1:-3])
-    v <- cmb(K, out$vcs$var)[[1]]
+    v <- cmb(K, out$par)[[1]]
     u <- chol(v)
     a <- chol2inv(u)
 
     ## mse <- mean((y - h)^2)           # mean squre error
     mse <- mean(out$blp[, 3]^2)         # estimate residual
     cyh <- cor(y, h)                    # correlation
-    nlk <- .5 * sum(crossprod(y, a) * y) + sum(log(diag(u))) + .5 * N * log(2 * pi)
+    rsq <- cyh^2
+    ## nlk <- .5 * sum(crossprod(y, a) * y) + sum(log(diag(u))) + .5 * N * log(2 * pi)
+    nlk <- sum(crossprod(y, a) * y) + 2 * sum(log(diag(u)))
     nlk <-  nlk / N                     # NLK
 
     h <- y - a %*% y / diag(a)
     loo <- mean((y - h)^2)
 
     rpt <- DF(
-        key=c('mse', 'nlk', 'cyh', 'loo', 'rtm', 'ssz'),
-        val=c(mse, nlk, cyh, loo, td, N))
+        key=c('mse', 'nlk', 'cyh', 'rsq', 'rtm', 'ssz'),
+        val=c(mse, nlk, cyh, rsq, td, N))
     rownames(rpt) <- rpt$key
 
     ## remove temporary directory
@@ -104,7 +111,7 @@ gcta.parse <- function(tpd)
     vcs <- within(vcs, par <- sub("V[(](.*)[)]", "\\1", par))
     vcs <- subset(vcs, !grepl('Vp$', par))
     vcs <- vcs[c(nrow(vcs), 1:(nrow(vcs) - 1)), ]
-    vcs$par[1] <- 'PHI'
+    vcs$par[1] <- 'eps'
     
     ## --- parse *.indi.blp for predictions on training data ---
     blp.path <- file.path(tpd, 'out.indi.blp')

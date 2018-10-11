@@ -79,11 +79,12 @@ get.fmk <- function(obj, frq=.5)
 #'
 #' @return a list of lists, where the inner lists contains original genotypes and
 #' generated response.
-get.sim <- function(dat, frq=1, lnk=i1, eps=1, oks=~p1, yks=oks, ...)
+get.sim <- function(dat, frq=1, lnk=i1, eps=1, oks=~LN1, ...)
 {
     dot <- list(...)
     ## mdl <- dot$mdl %||% a1
     svc <- dot$svc %||% 1
+    vcs <- dot$vcs %||% NULL
     
     Q <- with(dat, length(unique(dvp[dvp > 0])))
     R <- with(dat, length(unique(evl[evl > 0])))
@@ -94,15 +95,14 @@ get.sim <- function(dat, frq=1, lnk=i1, eps=1, oks=~p1, yks=oks, ...)
 
         within(list(gmx=gmx),
         {
-            ## working kernel
-            knl <- krn(gmx, yks)        
-
             ## function kernel
             fmk <- fmk %||% get.fmk(gmx, frq)
             ## fmx <- gsm(mdl, gmx[, fmk], rm.dup=FALSE)
             fmx <- gmx[, fmk]
             fnl <- krn(fmx, oks)
             vcs <- vcs %||% get.vcs(fnl, svc)
+            vcs <- rep(vcs, l=length(fnl))
+            names(vcs) <- names(fnl)
             cmx <- cmb(fnl, vcs)[[1]] #  + diag(rnorm(nrow(gmx), 0, 1e-4))
             eta <- drop(mvrnorm(1, rep(0, nrow(gmx)), cmx))
             nos <- rnorm(nrow(gmx), 0, sqrt(eps))
@@ -110,7 +110,7 @@ get.sim <- function(dat, frq=1, lnk=i1, eps=1, oks=~p1, yks=oks, ...)
         })
     }
     ## core effect
-    dat <- within(dat, dvp <- one(gmx[dvp > 0, ]))
+    dat <- within(dat, dvp <- one(gmx[dvp > 0, ], vcs))
     vcs <- dat$dvp$vcs
     fmk <- dat$dvp$fmk
     dat <- within(dat, evl <- one(gmx[evl > 0, ], vcs, fmk))
@@ -125,22 +125,53 @@ get.rds <- function(..., n=1)
     sample(fs, n)
 }
 
+pars <- function(dvp, ref=NULL)
+{
+    par <- dvp %$% 'par'
+    key <- unlist(sapply(par, names), use.names=FALSE)
+    if(!is.null(ref))
+        key <- c(names(ref), key)
+    key <- unique(key)
+    mtd <- names(dvp)
+
+    par <- sapply(par, `[`, key)
+    rownames(par) <- key
+    par[is.na(par)] <- 0
+    par <- data.frame(t(par))
+    
+    if(!is.null(ref))
+    {
+        ref <- ref[key]
+        names(ref) <- key
+        ref[is.na(ref)] <- 0
+        par <- rbind(par, REF=ref)
+    }
+    par
+}
+
 bias <- function(dvp, eps, vcs)
 {
     ## bias assesment
     par <- dvp %$% 'par'                # estimates
-    ref <- c(eps, vcs)                  # reference
-    len <- max(length(ref), unlist(par %$% length))
-    key <- paste0('bia.', c('eps', paste0('vc', 1:(len-1))))
+    ref <- c(eps=eps, vcs)              # reference
 
-    ## zero padding
-    par <- lapply(par, function(.) c(., rep(0, len - length(.))))
-    ref <- c(ref, rep(0, len - length(ref)))
+    ## parameter names, and methods
+    key <- unique(unlist(c(names(ref), sapply(par, names)), use.names=FALSE))
+    mtd <- names(dvp)
+    
+    ## alignment:
+    ## 1) the estimates
+    par <- sapply(par, `[`, key)
+    rownames(par) <- key
+    par[is.na(par)] <- 0
 
-    ## bias
-    ret <- lapply(names(par), function(.)
-    {
-        DF(mtd=., key=key, val=par[[.]] - ref)
-    })
-    DF(dat='dvp', do.call(rbind, ret))
+    ## 2) reference
+    ref <- ref[key]
+    names(ref) <- key
+    ref[is.na(ref)] <- 0
+
+    ## the table of bias
+    bia <- data.frame(t(par - ref))
+    bia <- reshape(bia, key, 'val', timevar='key', idvar='mtd', ids=mtd, times=key, direction='l')
+    DF(dat='bia', bia)
 }

@@ -6,13 +6,21 @@ knl.psd <- function(A)
     with(eigen(X), list(v=vectors, d=pmax(values, 0)))
 }
 
-knl.mnq.R <- function(y, V, X=NULL)
+knl.mnq.R <- function(y, V, W=NULL, X=NULL, ...)
 {
-    k     <- length(V)
+    dot <- list(...)
+    psd <- dot$psd %||% 1L
+    K     <- length(V)
+
+    ## initial weights
+    if(is.null(W))
+        W <- matrix(1/K, K, Q)
 
     ## sum of V_i, i = 1 .. k    # chapter 7
-    sumV <- Reduce(f = '+', x = V)
-    invV <- chol2inv(chol(sumV))
+    sumV <- cmb(V, W)[[1]]
+    invV <- try(chol2inv(chol(sumV)))
+    if(inherits(invV, 'try-error'))
+        invV <- solve(sumV)
     
     ## b) Calculate P matrix and Q matrix
     ## Pv = X \(X' \sumV X) X' \sumV   # projection defined by eq 1.2
@@ -31,13 +39,13 @@ knl.mnq.R <- function(y, V, X=NULL)
     ## Caculate S matrix, S_ij = Tr(W_i V_j)
     ## B_i = R V_i R
     B <- list()
-    for(i in 1:k)
+    for(i in 1:K)
         B[[i]] <- R %*% V[[i]] %*% R
 
-    S <- matrix(.0, k, k)
-    for(i in 1:k)
+    S <- matrix(.0, K, K)
+    for(i in 1:K)
     {
-        for(j in 2:k)
+        for(j in 2:K)
         {
             S[i, j] <- sum(B[[i]] * V[[j]])
             S[j, i] <- S[i, j]
@@ -56,7 +64,7 @@ knl.mnq.R <- function(y, V, X=NULL)
     {
         a <- Reduce('+', mapply('*', B, L[i, ], SIMPLIFY = FALSE))
         w <- sum(y * a %*% y)          # attempt to estimate s^2
-        if(w < 0)                      # make A matrix PSD if s^2 < 0.
+        if(w < 0 && psd)               # make A matrix PSD if s^2 < 0.
         {
             ## Modified y'A y
             a <- eigen((a + t(a)) / 2)
@@ -141,35 +149,42 @@ knl.ply <- function(V, order=1)
 #'   - mean square error between y and y.hat;
 #'   - negative log likelihood assuming y ~ N(0, sum_i(V_i * par_i))
 #'   - cor(y, y.hat)
-knl.mnq <- function(y, V, order=1, cpp=TRUE, ...)
+knl.mnq <- function(y, V, W=NULL, cpp=TRUE, ...)
 {
     dot <- list(...)
     prd <- dot$prd %||% FALSE           # make self prediction
     psd <- dot$psd %||% 1L              # make PSD projection?
-    
     N <- NROW(y)                        # sample size
+    Q <- NCOL(y)                        # response count
+
+    ## append noise kernel
+    C <- c(list(eps=diag(N)), V)
+    K <- length(C)                      # kernel count
+    if(is.null(W))                      # initial weights
+        W <- matrix(1/K, K, Q)
 
     ## print('begin MINQUE')
     t0 <- Sys.time()
-    C <- knl.ply(V, order)
-    k <- length(C)                      # kernel count
+    k <- length(V)                      # kernel count
     
     ## call the kernel MINQUE core function
-    ## fixed contrast matrix
     if(cpp)
         r <- .Call('knl_mnq', PACKAGE = 'knn', as.matrix(y), C, psd)
     else
-        r <- knl.mnq.R(y, C)
+        r <- knl.mnq.R(y, C, W, psd=psd)
     td <- Sys.time() - t0; units(td) <- 'secs'; td <- as.numeric(td)
     ## print('end MINQUE')
 
     ## make predictions
     if(prd)
-        prd <- vpd(y, V, r$vcs, ln=0, rt=1)
+        prd <- vpd(y, V, r$vcs, rt=1)
     else
         prd <- NULL
 
     ## timing
     rtm <- DF(key='rtm', val=td)
-    ret <- list(par=drop(r$vcs), se2=drop(r$se2), rpt=rbind(rtm=rtm, prd))
+    
+    par <- drop(r$vcs)
+    names(par) <- names(C)
+    ret <- list(par=par, se2=drop(r$se2), rpt=rbind(rtm=rtm, prd))
 }

@@ -30,6 +30,12 @@ tr <- function(...)
     sum(diag(prd))
 }
 
+geom.mean <- function(x, na.rm=TRUE)
+{
+    (-1)^sum(x < 0, na.rm=na.rm) * exp(mean(log(abs(x)), na.rm=na.rm))
+}
+
+
 ## condjugated gradient decent solver of Kx=b
 sv.cgd <- function(K, b, max.itr=1000, tol=1e-6)
 {
