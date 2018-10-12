@@ -154,6 +154,7 @@ knl.mnq <- function(y, V, W=NULL, cpp=TRUE, itr=1, ...)
     dot <- list(...)
     prd <- dot$prd %||% FALSE           # make self prediction
     psd <- dot$psd %||% 1L              # make PSD projection?
+    zbd <- dot$zbd %||% 1L              # 0 as lower bound?
     tol <- 1e-6
     N <- NROW(y)                        # sample size
     Q <- NCOL(y)                        # response count
@@ -175,7 +176,11 @@ knl.mnq <- function(y, V, W=NULL, cpp=TRUE, itr=1, ...)
             r <- .Call('knl_mnq', as.matrix(y), C, psd, PACKAGE='knn')
         else
             r <- knl.mnq.R(y, C, W, psd=psd)
-        Z <- pmax(r$vcs, tol)
+        Z <- r$vcs
+        if(zbd)
+        {
+            Z <- pmax(Z, tol)
+        }
         D <- max(abs(Z - W))
         print(round(c(itr, Z, D), 7))
         if(D < tol)
@@ -186,7 +191,7 @@ knl.mnq <- function(y, V, W=NULL, cpp=TRUE, itr=1, ...)
     td <- Sys.time() - t0; units(td) <- 'secs'; td <- as.numeric(td)
     ## print('end MINQUE')
 
-    rpt <- rbind(vpd(y, V, Z), DF(key='rtm', val=td))
+    rpt <- rbind(vpd(y, V, Z), rtm=DF(key='rtm', val=td))
     names(Z) <- names(C)
 
     list(par=Z, se2=r$se2, rpt=rpt)

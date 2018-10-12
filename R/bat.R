@@ -75,7 +75,7 @@ GBT <- function(FUN, rsp, knl, nbt=5, ...)
         bat <- c(bat, with(bat, FUN(rsp, knl, ini, ...)))
         ini <- if(pss) bat$par else NULL # pass on initial values?
         rtm <- rtm + bat$rpt['rtm', 'val'] + td
-
+        
         ## gather information
         msg <- c(ep=ep, bt=bt, rtm=rtm, bat[c('par', 'se2')], bsz=bat$rpt['ssz', 'val'])
         
@@ -105,7 +105,6 @@ GBT <- function(FUN, rsp, knl, nbt=5, ...)
     ## mean solution
     ## par <- mean(hst %$% 'par')
     par <- do.call(rbind, hst %$% 'par')
-    ## par <- pmin(par, 1e-5)
     ## par <- apply(par, 2L, geom.mean)
     par <- apply(par, 2L, mean)
 
