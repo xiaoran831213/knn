@@ -96,6 +96,9 @@ PK <- function(..., d=2, o=0, j=0)
     }
 }
 
+## noise kernel (epsilon)
+EPS <- function(x) list(EPS=idn(x))
+
 ## othalnormal linear kernels
 OL1 <- PK(LN, d=1, o=TRUE)
 OL2 <- PK(LN, d=2, o=TRUE)
