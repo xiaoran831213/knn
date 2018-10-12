@@ -61,6 +61,22 @@ PK <- function(..., d=2, o=0, j=0)
         env[['coef']] <- if(length(nms) >1) cfs else if(is.null(cfs)) NULL else list(cfs)
         ## print(env[['coef']])
 
+        ## pca?
+        if(o == 2)
+        {
+            pca <- env[['pca']]
+            if(is.null(pca))
+            {
+                print("New PCA.")
+                pca <- prcomp(bas, retx=FALSE)
+                env[['pca']] <- pca
+            }
+            else
+                print(pca)
+            bas <- predict(pca, bas)
+            nms <- NULL
+        }
+        
         bas <- as.data.frame(bas)
         colnames(bas) <- lapply(strsplit(colnames(bas), '[.]'), function(u)
         {
@@ -84,6 +100,7 @@ PK <- function(..., d=2, o=0, j=0)
 OL1 <- PK(LN, d=1, o=TRUE)
 OL2 <- PK(LN, d=2, o=TRUE)
 OL3 <- PK(LN, d=3, o=TRUE)
+OL4 <- PK(LN, d=4, o=TRUE)
 
 ## linear kernels
 LN1 <- PK(LN, d=1, o=FALSE)
@@ -105,11 +122,21 @@ GS3 <- PK(GS, d=3, o=FALSE)
 ## mix
 JX1 <- PK(JX, d=1, o=FALSE)
 JL1 <- PK(LN, d=1, o=FALSE, j=1)
-JL2 <- PK(LN, d=1, o=FALSE, j=2)
-JL3 <- PK(LN, d=1, o=FALSE, j=3)
+JL2 <- PK(LN, d=2, o=FALSE, j=2)
+JL3 <- PK(LN, d=3, o=FALSE, j=3)
 DR1 <- PK(DM, RS, d=1, o=FALSE)
 DR2 <- PK(DM, RS, d=2, o=FALSE)
 DR3 <- PK(DM, RS, d=3, o=FALSE)
+
+##
+JP1 <- JL1
+JP2 <- PK(LN, d=2, o=2, j=1)
+JP3 <- PK(LN, d=3, o=2, j=1)
+JP4 <- PK(LN, d=4, o=2, j=1)
+PC2 <- PK(LN, d=2, o=2, j=0)
+PC3 <- PK(LN, d=3, o=2, j=0)
+PC4 <- PK(LN, d=4, o=2, j=0)
+
 
 ## additive, dominative, recessive
 AD1 <- PK(AD, d=1, o=FALSE)
