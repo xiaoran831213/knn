@@ -79,7 +79,7 @@ get.fmk <- function(obj, frq=.5)
 #'
 #' @return a list of lists, where the inner lists contains original genotypes and
 #' generated response.
-get.sim <- function(dat, frq=1, lnk=i1, eps=1, oks=~LN1, ...)
+get.sim <- function(dat, frq=1, lnk=NL, eps=1, oks=~LN1, ...)
 {
     dot <- list(...)
     ## mdl <- dot$mdl %||% a1
@@ -103,10 +103,9 @@ get.sim <- function(dat, frq=1, lnk=i1, eps=1, oks=~LN1, ...)
             vcs <- vcs %||% get.vcs(fnl, svc)
             vcs <- rep(vcs, l=length(fnl))
             names(vcs) <- names(fnl)
-            cmx <- cmb(fnl, vcs)[[1]] #  + diag(rnorm(nrow(gmx), 0, 1e-4))
-            eta <- drop(mvrnorm(1, rep(0, nrow(gmx)), cmx))
-            nos <- rnorm(nrow(gmx), 0, sqrt(eps))
-            rsp <- lnk(eta + nos)
+            cmx <- eps * idn(gmx) + cmb(fnl, vcs)[[1]]
+            rsp <- drop(mvrnorm(1, rep(0, nrow(gmx)), cmx))
+            rsp <- lnk(rsp)
         })
     }
     ## core effect

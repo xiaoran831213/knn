@@ -84,6 +84,8 @@ readRPT <- function(..., ref=1)
             sim <- sprintf("%s, bp=%s", sim, bpt)
         if(exists('wep', inherits=FALSE))
             sim <- sprintf("%s, ep=%s", sim, wep)
+        if(exists('bmq', inherits=FALSE))
+            sim <- sprintf("%s, bm=%s", sim, bmq)
         
     })
     rpt <- within(rpt, {H <- N * R; N <- N * Q})
@@ -161,7 +163,8 @@ rpt1 <- function(cache=FALSE)
 {
     prpt('b00', cache, bias=TRUE)
     prpt('b01', cache, bias=TRUE)
-    prpt('b12', cache, bias=TRUE)
+    ## prpt('b02', cache, bias=TRUE)
+    ## prpt('b03', cache, bias=TRUE)
 }
 
 rpt2 <- function(cache=FALSE, bias=TRUE)

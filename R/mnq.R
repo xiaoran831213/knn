@@ -182,7 +182,7 @@ knl.mnq <- function(y, V, W=NULL, cpp=TRUE, itr=1, ...)
             Z <- pmax(Z, tol)
         }
         D <- max(abs(Z - W))
-        print(round(c(itr, Z, D), 7))
+        print(c(itr, Z, D))
         if(D < tol)
             break
         W <- Z

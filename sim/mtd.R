@@ -26,7 +26,6 @@ INM <- function(rsp, knl, ...) knl.mnq(rsp, knl, itr=50, cpp=FALSE, psd=0, zbd=0
 IZM <- function(rsp, knl, ...) knl.mnq(rsp, knl, itr=50, cpp=FALSE, psd=0, zbd=1, ...)
 
 ## batched minque
-BMQ <- IZM
 BM0 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 2^0, ...)
 BM1 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 2^1, ...)
 BM2 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 2^2, ...)

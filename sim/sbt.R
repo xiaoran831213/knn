@@ -38,7 +38,7 @@ devtools::load_all()
 #' @param bsz batch size for batched training
 #'
 #' see "sim/utl.R" to understand {oks}, {lnk}, and {yks}.
-main <- function(N, P, Q=1, R=1, frq=.05, lnk=I1, eps=.1, oks=~LN1, ...)
+main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
@@ -54,6 +54,9 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I1, eps=.1, oks=~LN1, ...)
         gds <- get.rds('sim/dat')
     else
         gds <- 'data/1kg_c05.rds'
+
+    ## batched MINQUE: core algorithm
+    assign('BMQ', dot$bmq %||% OZM, .GlobalEnv)
     
     ## ------------------------- data genration ------------------------- ##
     ## for each of the Q groups, choose N samples and P features -> Training
@@ -68,7 +71,7 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I1, eps=.1, oks=~LN1, ...)
         knl <- krn(gmx, ~LN2)
         ret <- CL(ret, GCT=GCT(rsp, krn(gmx, ~LN1)))
         ret <- CL(ret, FUL=GCT(rsp, krn(gmx,  oks)))
-        ret <- CL(ret, OZM=OZM(rsp, knl, ...))
+        ret <- CL(ret, BMQ=BMQ(rsp, knl, ...))
         ret <- CL(ret, BM3=BM3(rsp, knl, ...))
         ret <- CL(ret, BM4=BM4(rsp, knl, ...))
         ret <- CL(ret, BM5=BM5(rsp, knl, ...))
@@ -88,7 +91,7 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I1, eps=.1, oks=~LN1, ...)
         knl <- krn(gmx, ~LN2)
         ret <- CL(ret, GCT=vpd(rsp, krn(gmx, ~LN1), dvp$GCT$par))
         ret <- CL(ret, FUL=vpd(rsp, krn(gmx,  oks), dvp$FUL$par))
-        ret <- CL(ret, OZM=vpd(rsp, knl, dvp$OZM$par))
+        ret <- CL(ret, BMQ=vpd(rsp, knl, dvp$BMQ$par))
         ret <- CL(ret, BM3=vpd(rsp, knl, dvp$BM3$par))
         ret <- CL(ret, BM4=vpd(rsp, knl, dvp$BM4$par))
         ret <- CL(ret, BM5=vpd(rsp, knl, dvp$BM5$par))
@@ -115,6 +118,6 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=I1, eps=.1, oks=~LN1, ...)
 
 test <- function()
 {
-    r=main(oks=~LN1, N=1000, P=10000, Q=2, R=1, eps=.2, vcs=c(1), frq=.1, pss=FALSE, wep=2)
+    r=main(oks=~LN1, N=1000, P=10000, Q=2, R=1, eps=.2, vcs=c(1), frq=.1, pss=FALSE)
     subset(r, dat=='evl' & key=='nlk' | dat=='dvp' & key=='rtm')
 }
