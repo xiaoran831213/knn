@@ -26,15 +26,16 @@ INM <- function(rsp, knl, ...) knl.mnq(rsp, knl, itr=50, cpp=FALSE, psd=0, zbd=0
 IZM <- function(rsp, knl, ...) knl.mnq(rsp, knl, itr=50, cpp=FALSE, psd=0, zbd=1, ...)
 
 ## batched minque
-BM0 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 2^0, ...)
-BM1 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 2^1, ...)
-BM2 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 2^2, ...)
-BM3 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 2^3, ...)
-BM4 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 2^4, ...)
-BM5 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 2^5, ...)
-BM6 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 2^6, ...)
-BM7 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 2^7, ...)
-BM8 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 2^8, ...)
+BM0 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 256 * 2^0, ...)
+BM1 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 256 * 2^1, ...)
+BM2 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 256 * 2^2, ...)
+BM3 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 256 * 2^3, ...)
+BM4 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 256 * 2^4, ...)
+BM5 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 256 * 2^5, ...)
+BM6 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 256 * 2^6, ...)
+BM7 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 256 * 2^7, ...)
+BM8 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 256 * 2^8, ...)
+BM9 <- function(rsp, knl, ...) GBT(BMQ, rsp, knl, 256 * 2^9, ...)
 
 
 ## GCTA Default

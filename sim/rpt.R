@@ -75,20 +75,21 @@ readRPT <- function(..., ref=1)
         if(exists('yks', inherits=FALSE))
             yks <- .cp(yks)
         else
-            yks <- "[*]"
+            yks <- "*"
         sim <- sprintf("%s~%s", oks, yks)
         
-        if(exists('pss', inherits=FALSE))
+        if(exists('pss', inherits=FALSE) && length(unique(pss)) > 1)
             sim <- sprintf("%s, ps=%s", sim, pss)
-        if(exists('bpt', inherits=FALSE))
+        if(exists('bpt', inherits=FALSE) && length(unique(bpt)) > 1)
             sim <- sprintf("%s, bp=%s", sim, bpt)
-        if(exists('wep', inherits=FALSE))
+        if(exists('wep', inherits=FALSE) && length(unique(wep)) > 1)
             sim <- sprintf("%s, ep=%s", sim, wep)
-        if(exists('bmq', inherits=FALSE))
+        if(exists('bmq', inherits=FALSE) && length(unique(bmq)) > 1)
             sim <- sprintf("%s, bm=%s", sim, bmq)
-        
+        if(length(unique(Q)) > 1)
+            sim <- sprintf("%s, Q=%s", sim, Q)
     })
-    rpt <- within(rpt, {H <- N * R; N <- N * Q})
+    ## rpt <- within(rpt, {H <- N * R; N <- N * Q})
     rpt <- within(rpt, rm(R, Q, oks, seed))
     rpt
 }
@@ -161,10 +162,18 @@ prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE)
 
 rpt1 <- function(cache=FALSE)
 {
-    prpt('b00', cache, bias=TRUE)
-    prpt('b01', cache, bias=TRUE)
+    ## prpt('b00', cache, bias=TRUE)
+    ## prpt('b01', cache, bias=TRUE)
     ## prpt('b02', cache, bias=TRUE)
     ## prpt('b03', cache, bias=TRUE)
+    ## prpt('b10', cache, bias=TRUE)
+    ## prpt('b11', cache, bias=TRUE)
+    ## prpt('b15', cache, bias=TRUE)
+    ## prpt('b16', cache, bias=TRUE)
+    ## prpt('b20', cache, bias=TRUE)
+    ## prpt('b21', cache, bias=TRUE)
+    ## prpt('b25', cache, bias=TRUE)
+    ## prpt('b26', cache, bias=TRUE)
 }
 
 rpt2 <- function(cache=FALSE, bias=TRUE)
