@@ -55,8 +55,8 @@ RcppExport SEXP knl_mnq(SEXP _y, SEXP _V, SEXP _psd)
     /* Lambda_i = P_i' S^{-1} (Rao. 1917), i = 1 .. nrow(P).
        To solve each VC, the contrast matrix must be I(k), so
        Lambda = S^{-1} */
-    // fmat L = pinv(S);
-    fmat L = inv_sympd(S);
+    fmat L = pinv(S);
+    // fmat L = inv_sympd(S);
     // List A(L.n_rows);	// k A-matrices
     fmat A[L.n_rows];
     fvec W(L.n_rows);		// k contrasts -> k VC(s)
