@@ -32,10 +32,10 @@ batch.mask <- function(rsp, nbt=5, bpt=0, ...)
 #' @param wep integer (in ...) wall epoch count
 #'
 #' @return a list of training history, the averaged parameters
-GBT <- function(FUN, rsp, knl, nbt=5, ...)
+GBT <- function(FUN, rsp, knl, bsz=100, ...)
 {
     N <- NROW(rsp)                      # sample size
-    
+    nbt <- as.integer(N / bsz)
     ## list of history
     hst <- list()
 
