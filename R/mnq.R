@@ -1,6 +1,6 @@
 ## Modified MINQUE
 
-.mnq <- function(y, v., w.=NULL, X=NULL, ...)
+.mn0 <- function(y, v., w.=NULL, X=NULL, ...)
 {
     dot <- list(...)
     psd <- dot$psd %||% 1L              # PSD projection?
@@ -46,7 +46,6 @@
         }
         F[i, i] <- sum(B[[i]] * v.[[i]])
     }
-    print(list(F=F))
 
     ## lambda_i = P_i * F^{-1}, to solve for each variance compoent, 
     ## the contract matrix P must be I(k), thus Lambda == F^{-1}.
@@ -98,7 +97,7 @@
     })
 }
     
-.mn2 <- function(y, v., w.=NULL, X=NULL, ...)
+.mnq <- function(y, v., w.=NULL, X=NULL, ...)
 {
     dot <- list(...)
     K   <- length(v.)
@@ -148,7 +147,6 @@
         }
         F[i, i] <- sum(Rv.[[i]] * Rv.[[i]])
     }
-    print(list(F=F))
 
     ## [s2_1, s2_2, ..., s2_K]^T =
     ## [yA1y, yA2y, ..., yAKy]^T = solve(F, v_)
@@ -226,7 +224,7 @@ knl.mnq <- function(y, V, W=NULL, cpp=TRUE, itr=1, ...)
     prd <- dot$prd %||% FALSE           # make self prediction
     psd <- dot$psd %||% 1L              # make PSD projection?
     zbd <- dot$zbd %||% 1L              # 0 as lower bound?
-    tol <- 1e-6
+    tol <- dot$tol %||% 1e-5
     N <- NROW(y)                        # sample size
     Q <- NCOL(y)                        # response count
     hst <- dot$hst %||% list()          # history

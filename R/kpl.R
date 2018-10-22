@@ -152,7 +152,7 @@ cmb <- function(k, w, drop=FALSE)
     {
         . <- k[[1]] * w[1, m]
         l <- 2
-        while(l < L)
+        while(l <= L)
         {
             . <- . + k[[l]] * w[l, m]
             l <- l + 1
