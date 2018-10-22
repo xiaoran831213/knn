@@ -120,6 +120,6 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
 
 test <- function()
 {
-    r=main(oks=~LN1, N=2048, P=10000, Q=, R=1, eps=.2, vcs=c(1), frq=.1, pss=FALSE)
+    r <- main(oks=~LN1, N=1024, P=10000, Q=2, R=1, eps=1, vcs=c(2, 2), frq=.2, pss=0, bmq=ONM)
     subset(r, dat=='evl' & key=='nlk' | dat=='dvp' & key=='rtm')
 }

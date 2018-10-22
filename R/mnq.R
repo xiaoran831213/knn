@@ -127,7 +127,10 @@
         ## R V_i = V^{-1} V_i
         Rv. <- list()
         for(i in seq.int(K))
+        {
+            print(i)
             Rv.[[i]] <- solve(V, v.[[i]])
+        }
         ## R y   = V^{-1} y
         Ry <- solve(V, y)
     }

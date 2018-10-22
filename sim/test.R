@@ -71,12 +71,14 @@ test.lnk <- function()
     dat <- within(list(),
     {
         NM <- DF(d='nn', x=x, y=x)
-        st <- DF(d='st', x=x, y=dc(x, 'st', 0.01))
-        ca <- DF(d='ca', x=x, y=dc(x, 'ca', 0.01))
+        ## st <- DF(d='st', x=x, y=dc(x, 'st', 0.05))
+        ## ca <- DF(d='ca', x=x, y=dc(x, 'ca', 0.05))
         bn <- DF(d='bn', x=x, y=dc(x, 'bn', 0.00))
         ch <- DF(d='ch', x=x, y=dc(x, 'ch', 0.00))
         ps <- DF(d='ps', x=x, y=dc(x, 'ps', 0.00))
         ex <- DF(d='ex', x=x, y=dc(x, 'ex', 0.00))
+        o2 <- DF(d='o2', x=x, y=O2(x))
+        o2 <- DF(d='i2', x=x, y=I2(x))
     })
     dat <- do.call(rbind, dat)
     
