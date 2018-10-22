@@ -68,7 +68,7 @@ PK <- function(..., d=2, o=0, j=0)
             if(is.null(pca))
             {
                 print("New PCA.")
-                pca <- prcomp(bas, retx=FALSE)
+                pca <- prcomp(bas, retx=FALSE, scale.=TRUE)
                 env[['pca']] <- pca
             }
             else

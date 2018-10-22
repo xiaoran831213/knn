@@ -70,25 +70,34 @@ ts2 <- function(N=200, P=500, r=10)
     list(mn1=r1, mn0=r0, mle=r2, ref=W)
 }
 
-ts3 <- function(N=100, P=50, frq=.1, r=10)
+ts3 <- function(N=400, P=800, frq=.1, r=10)
 {
-    X1 <- matrix(rpois(N * P, 2), N, P)
-    X2 <- matrix(rnorm(N * P, 2), N, P)
-    K1 <- krn(X1, p1)[[1]]
-    K2 <- krn(X2, ga)[[1]]
-    id <- diag(N)
+    Z1 <- matrix(rpois(N * P, 2), N, P)
+    Z2 <- matrix(rnorm(N * P, 2), N, P)
+    K1 <- krn(Z1, ~LN)[[1]]
+    K2 <- krn(Z2, ~GS)[[1]]
+    I1 <- diag(N)
 
-    knl <- list(id, K1)
-    use <- list(id, K1, K2)
+    knl <- list(I1, K1, K2)
+    use <- list(I1, K1, K2)
+
+    ## covariants
+    X <- cbind(x1=rbinom(N, 1, .3), x2=rbinom(N, 1, .5), x3=rnorm(N))
+    b <- rnorm(3, 0, 2)
+    m <- X %*% b
     
     ## true covariance
-    vcs <- c(eps=1, vc1=1, vc2=1)[1:length(knl)]
-    cmx <- cmb(knl, vcs)[[1]]
-    y <- mvrnorm(1, rep(0, N), cmx)
+    vcs <- c(EPS=1, LN1=2, GS1=2)[1:length(knl)]
+    V <- cmb(knl, vcs, drop=TRUE)
+    y <- mvrnorm(1, m, V)
 
-    r1 <- knl.mnq.R(y, use, X=NULL)$vcs
-    r2 <- itr.mnq(y, use, X=NULL)$par
-    r3 <- round(drop(rop.vcm(y, use[-1])$par), 4)
+    mbk <- microbenchmark(
+        r1 <- .mnq(y, use, X=NULL)$vcs,
+        r2 <- .mn2(y, use, X=NULL)$vcs,
+        times=r)
+    print(mbk)
+    ## r2 <- itr.mnq(y, use, X=NULL)$par
+    ## r3 <- round(drop(rop.vcm(y, use[-1])$par), 4)
 
-    list(mnq.old=r1, mnq.new=r2, mle=r3, ref=vcs)
+    list(mnq.old=r1, mnq.new=r2, ref=vcs)
 }

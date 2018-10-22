@@ -54,7 +54,7 @@ gct.rml <- function(y, K, qcvr=NULL, dcvr=NULL, maxit=100)
 
     ## execute command
     t0 <- Sys.time()
-    ext <- system(cmd, show.output.on.console=FALSE)
+    ext <- system(cmd)
     td <- Sys.time() - t0; units(td) <- 'secs'; td <- as.numeric(td)
     if(ext != 0)
         stop(cmd, ' GCTA existed with non-zero.')

@@ -1,29 +1,23 @@
 ## Modified MINQUE
 
-knl.psd <- function(A)
-{
-    X <- (A + t(A)) / 2
-    with(eigen(X), list(v=vectors, d=pmax(values, 0)))
-}
-
-knl.mnq.R <- function(y, V, W=NULL, X=NULL, ...)
+.mnq <- function(y, v., w.=NULL, X=NULL, ...)
 {
     dot <- list(...)
-    psd <- dot$psd %||% 1L
-    K     <- length(V)
+    psd <- dot$psd %||% 1L              # PSD projection?
+    K   <- length(v.)
 
     ## initial weights
-    if(is.null(W))
-        W <- matrix(1, K, Q)
+    if(is.null(w.))
+        w. <- matrix(1, K, 1)
 
-    ## sum of V_i, i = 1 .. k    # chapter 7
-    sumV <- cmb(V, W)[[1]]
-    invV <- try(chol2inv(chol(sumV)), silent=TRUE)
+    ## sum of V_i, i = 1 .. K
+    V <- cmb(v., w.)[[1]]
+    invV <- try(chol2inv(chol(V)), silent=TRUE)
     if(inherits(invV, 'try-error'))
-        invV <- solve(sumV)
+        invV <- solve(V)
     
     ## b) Calculate P matrix and Q matrix
-    ## Pv = X \(X' \sumV X) X' \sumV   # projection defined by eq 1.2
+    ## Pv = X \(X' V^{-1} X) X' V^{-1}   # projection defined by eq 1.2
     ## Qv = I - Pv              # eq 7.1, or lemma 3.4
     ## R = \V Qv                # eq 7.1, for the best choice of A*
     ## R is simplified since X=0 (i.e., not mixed, only kernels)
@@ -36,30 +30,34 @@ knl.mnq.R <- function(y, V, W=NULL, X=NULL, ...)
     else
         R <- invV
     
-    ## Caculate S matrix, S_ij = Tr(W_i V_j)
     ## B_i = R V_i R
     B <- list()
     for(i in 1:K)
-        B[[i]] <- R %*% V[[i]] %*% R
+        B[[i]] <- R %*% v.[[i]] %*% R
 
-    S <- matrix(.0, K, K)
+    ## Caculate F: F_ij = Tr(R V_i R V_j)
+    F <- matrix(.0, K, K)
     for(i in 1:K)
     {
         for(j in 2:K)
         {
-            S[i, j] <- sum(B[[i]] * V[[j]])
-            S[j, i] <- S[i, j]
+            F[i, j] <- sum(B[[i]] * v.[[j]])
+            F[j, i] <- F[i, j]
         }
-        S[i, i] <- sum(B[[i]] * V[[i]])
+        F[i, i] <- sum(B[[i]] * v.[[i]])
     }
+    print(list(F=F))
 
-    ## lambda_i = P_i * S^{-1}, to solve for each variance compoent, 
-    ## the contract matrix P must be I(k), thus Lambda == S^{-1}.
-    L <- MASS::ginv(S)
+    ## lambda_i = P_i * F^{-1}, to solve for each variance compoent, 
+    ## the contract matrix P must be I(k), thus Lambda == F^{-1}.
+    ## solve F L = [p1, p2, ...]
+    ## when the K components are desired, [p1, p2, ...]  = I_K.
+    ## ==> L = solve(F, I_K) = F^{-}
+    L <- MASS::ginv(F)
 
     ## Calculate A matrix and contrasts
     A <- list()
-    W <- double(nrow(L))                # variance component estimate
+    w. <- double(nrow(L))               # variance component estimate
     for(i in 1:nrow(L))
     {
         a <- Reduce('+', mapply('*', B, L[i, ], SIMPLIFY = FALSE))
@@ -74,18 +72,91 @@ knl.mnq.R <- function(y, V, W=NULL, X=NULL, ...)
             w <- sum(y * a %*% y)
         }
         A[[i]] <- a
-        W[i] <- w
+        w.[i] <- w
     }
 
     ## estimate standard error of variance components estimate
-    C <- cmb(V, W)[[1]]                 # marginal covariance of y
+    C <- cmb(v., w.)[[1]]                 # marginal covariance of y
     e <- double(nrow(L))
     ## var(vc_i) = var(Y' \hat{A}_i y) = 2Tr(\hat{A}_i C \hat{A}_i C)
     for(i in 1:nrow(L))                 # 
         e[i] <- 2 * sum((A[[i]] %*% C)^2)
 
     ## pack up
-    list(vcs=W, se2=e)
+    list(vcs=w., se2=e)
+}
+
+.ginv <- function(x, e=sqrt(.Machine$double.eps))
+{
+    with(svd(x),
+    {
+        i <- d > d[1L] * e
+        if(all(i))
+            v %*% (t(u) / d)
+        else
+            v[, i, drop=FALSE] %*% (t(u[, i, drop=FALSE]) / d[i])
+    })
+}
+    
+.mn2 <- function(y, v., w.=NULL, X=NULL, ...)
+{
+    dot <- list(...)
+    K   <- length(v.)
+
+    ## initial weights
+    w. <- w. %||% matrix(1, K, 1)
+
+    ## sum of V_i, i = 1 .. K
+    V <- cmb(v., w., TRUE)
+    
+    ## b) Calculate Q, R V_i, and R y, avoid calculating R directly.
+    if(!is.null(X))
+    {
+        . <- solve(V, X)     # V^{-1}X
+        P <- X %*% ginv(t(X) %*% .) %*% .
+
+        ## R V_i = V^{-1}(I - P) V_i = V^{-1}(V_i - P V_i)
+        Rv. <- list()
+        for(i in seq.int(K))
+            Rv.[[i]] <- solve(V, v.[[i]] - P %*% v.[[i]])
+
+        ## R y   = V^{-1}(I - P) y   = V^{-1}(y   - P y  )
+        Ry <- solve(V, y - P %*% y)
+    }
+    else
+    {
+        ## R V_i = V^{-1} V_i
+        Rv. <- list()
+        for(i in seq.int(K))
+            Rv.[[i]] <- solve(V, v.[[i]])
+        ## R y   = V^{-1} y
+        Ry <- solve(V, y)
+    }
+    ## v_i = e' V_i e = y' R V_i R y
+    v_<- double(K)
+    for(i in seq.int(K))
+        v_[i] <- sum(Ry * v.[[i]] %*% Ry)
+
+    ## Caculate F: F_ij = Tr(R V_i R V_j)
+    F <- matrix(.0, K, K)
+    for(i in seq.int(K))
+    {
+        for(j in seq.int(2L, K))
+        {
+            F[i, j] <- sum(Rv.[[i]] * Rv.[[j]])
+            F[j, i] <- F[i, j]
+        }
+        F[i, i] <- sum(Rv.[[i]] * Rv.[[i]])
+    }
+    print(list(F=F))
+
+    ## [s2_1, s2_2, ..., s2_K]^T =
+    ## [yA1y, yA2y, ..., yAKy]^T = solve(F, v_)
+    w <- solve(F, v_)
+    ## [ A1, A2, ... AK] is not directly calculated
+
+    ## pack up
+    list(vcs=w, se2=NULL)
 }
 
 #' Kernel Polynomial Expansion
@@ -175,14 +246,13 @@ knl.mnq <- function(y, V, W=NULL, cpp=TRUE, itr=1, ...)
         if(cpp)
             r <- .Call('knl_mnq', as.matrix(y), C, psd, PACKAGE='knn')
         else
-            r <- knl.mnq.R(y, C, W, psd=psd)
+            r <- .mnq(y, C, W, psd=psd)
         Z <- r$vcs
-        if(zbd)
-        {
-            Z <- pmax(Z, tol)
-        }
+        if(zbd)                         # zero bounded?
+            Z <- pmax(Z, 0)
+
         D <- max(abs(Z - W))
-        print(c(itr, Z, D))
+        cat('MNQ:', sprintf('%03d', itr), c(Z, D), '\n')
         if(D < tol)
             break
         W <- Z

@@ -139,14 +139,32 @@ ibs <- function(x, l=2, ...)
     1 - as.matrix(dist(x, 'man')) / ncol(x)
 }
 
-cmb <- function(k, w)
+cmb <- function(k, w, drop=FALSE)
 {
-    if(is.matrix(k))
-        k <- list(k)
     w <- as.matrix(w)
-    M <- ncol(w)
-    L <- nrow(w)
-    lapply(1:M, function(m) Reduce(`+`, mapply(`*`, k, w[, m], SIMPLIFY=FALSE)))
+    stopifnot(is.list(k), length(k) == NROW(w))
+
+    M <- ncol(w)                        # num of output
+    L <- nrow(w)                        # num of kernel
+    m <- 1
+    r <- list()
+    for(m in seq.int(1, M))
+    {
+        . <- k[[1]] * w[1, m]
+        l <- 2
+        while(l < L)
+        {
+            . <- . + k[[l]] * w[l, m]
+            l <- l + 1
+        }
+        r[[m]] <- .
+        m <- m + 1
+    }
+
+    ## drop the list if only one output is produced?
+    if(drop && M==1)
+        r <- r[[1]]
+    r
 }
 
 ## kinship matrix
