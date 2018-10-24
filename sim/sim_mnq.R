@@ -11,6 +11,8 @@ source("sim/utl.R")
 source("sim/mn1.R")
 source("sim/mdl.R")
 source("sim/mtd.R")
+source("sim/gct.R")
+source("sim/grm.R")
 
 ## test for cpp minque versus R minque
 ts1 <- function(N=2000, P=4000, r=5)
@@ -70,34 +72,38 @@ ts2 <- function(N=200, P=500, r=10)
     list(mn1=r1, mn0=r0, mle=r2, ref=W)
 }
 
-ts3 <- function(N=400, P=800, frq=.1, r=10)
+ts3 <- function(N=1000, P=2000, r=10)
 {
-    Z1 <- matrix(rpois(N * P, 2), N, P)
-    Z2 <- matrix(rnorm(N * P, 2), N, P)
-    K1 <- krn(Z1, ~LN)[[1]]
-    K2 <- krn(Z2, ~GS)[[1]]
-    I1 <- diag(N)
+    Z <- matrix(rpois(N * P, 2), N, P)
 
-    knl <- list(I1, K1, K2)
-    use <- list(I1, K1, K2)
+    knl <- krn(Z, ~LN1)
+    use <- krn(Z, ~ID + LN1)
 
     ## covariants
     X <- cbind(x1=rbinom(N, 1, .3), x2=rbinom(N, 1, .5), x3=rnorm(N))
-    b <- rnorm(3, 0, 2)
-    m <- X %*% b
+    bts <- c(X1=1, X2=2, X3=1.5)
+    M <- X %*% bts                      # mean
+    ## X <- NULL
+    ## M <- rep(0, N)
     
-    ## true covariance
-    vcs <- c(EPS=1, LN1=2, GS1=2)[1:length(knl)]
-    V <- cmb(knl, vcs, drop=TRUE)
-    y <- mvrnorm(1, m, V)
+    ## covariance
+    vcs <- c(LN1=2.0)
+    eps <- c(EPS=0.5)
+    S <- cmb(knl, vcs, drop=TRUE)       # Sigma
 
-    mbk <- microbenchmark(
-        r1 <- .mnq(y, use, X=NULL)$vcs,
-        r2 <- .mn2(y, use, X=NULL)$vcs,
-        times=r)
-    print(mbk)
-    ## r2 <- itr.mnq(y, use, X=NULL)$par
-    ## r3 <- round(drop(rop.vcm(y, use[-1])$par), 4)
+    ## response
+    rsp <- mvrnorm(1, M, S) + rnorm(N, 0, sqrt(eps))
 
-    list(mnq.old=r1, mnq.new=r2, ref=vcs)
+    ## mbk <- microbenchmark(
+    ##     r1 <- .mn0(rsp, use, X=X)$vcs,
+    ##     r2 <- .mnq(rsp, use, X=X)$vcs,
+    ##     times=r)
+    ## print(mbk)
+
+    ## only once.
+    r1 <- .mn0(rsp, use, X=X)$vcs
+    r2 <- .mnq(rsp, use, X=X)$vcs
+    r3 <- gct.rml(rsp, knl, qcvr=cbind(1, X))$par
+
+    list(mnq.old=r1, mnq.new=r2, gct.rml=r3, ref=c(eps, vcs))
 }

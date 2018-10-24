@@ -108,32 +108,31 @@
     ## sum of V_i, i = 1 .. K
     V <- cmb(v., w., TRUE)
     
-    ## b) Calculate Q, R V_i, and R y, avoid calculating R directly.
+    ## Calculate P, and Q = I - P, then calculate R V_i and R y
+    ## avoid direct calculation of R = V^{-1} Q
+    Rv. <- list()
+    if(is.null(X))
+    {
+        ## R V_i = V^{-1}(I - P) V_i = V^{-1}(V_i - P V_i)
+        for(i in seq.int(K))
+            Rv.[[i]] <- solve(V, v.[[i]])
+
+        ## R y   = V^{-1}(I - P) y   = V^{-1}(y   - P y  )
+        Ry <- solve(V, y)
+    }
     if(!is.null(X))
     {
-        . <- solve(V, X)     # V^{-1}X
-        P <- X %*% ginv(t(X) %*% .) %*% .
+        . <- solve(V, X)                # V^{-1}X
+        P <- X %*% ginv(t(X) %*% .) %*% t(.)
 
         ## R V_i = V^{-1}(I - P) V_i = V^{-1}(V_i - P V_i)
-        Rv. <- list()
         for(i in seq.int(K))
             Rv.[[i]] <- solve(V, v.[[i]] - P %*% v.[[i]])
 
         ## R y   = V^{-1}(I - P) y   = V^{-1}(y   - P y  )
         Ry <- solve(V, y - P %*% y)
     }
-    else
-    {
-        ## R V_i = V^{-1} V_i
-        Rv. <- list()
-        for(i in seq.int(K))
-        {
-            print(i)
-            Rv.[[i]] <- solve(V, v.[[i]])
-        }
-        ## R y   = V^{-1} y
-        Ry <- solve(V, y)
-    }
+
     ## v_i = e' V_i e = y' R V_i R y
     v_<- double(K)
     for(i in seq.int(K))
