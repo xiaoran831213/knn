@@ -2,8 +2,8 @@
 
 ## genetic effect model
 gsm <- function(mdl=~ a + d + r, G,   # model, and raw data.
-                max.gvr=Inf,         # maximum number of variants
-                max.tms=Inf,         # naximum number of terms
+                max.gvr=Inf,          # maximum number of variants
+                max.tms=Inf,          # naximum number of terms
                 rm.nic=TRUE,          # remove non-informative columns
                 rm.dup=TRUE,          # remove duplicated columns
                 ...)
@@ -103,13 +103,10 @@ gsm <- function(mdl=~ a + d + r, G,   # model, and raw data.
 
 
 ## genomic models
-GMD <- with(list(),
-{
-    AD <- ~ a
-    A2 <- ~ a + I(a^2)
-    A3 <- ~ a + I(a^2) + a:a[]
-    A4 <- ~ a:a[]
-})
+A1 <- ~ a
+A2 <- ~ a + I(a^2)
+AA <- ~ a + a:a[]
+AX <- ~ a + I(a^2) + a:a[]
 
 mdl.str <- function(mdl)
 {

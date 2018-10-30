@@ -82,37 +82,40 @@ get.fmk <- function(obj, frq=.5)
 get.sim <- function(dat, frq=1, lnk=NL, eps=1, oks=~LN1, ...)
 {
     dot <- list(...)
-    ## mdl <- dot$mdl %||% a1
+    mdl <- dot$mdl %||% A1
     svc <- dot$svc %||% 1
     vcs <- dot$vcs %||% NULL
+    ep2 <- dot$ep2 %||% NULL
+    vc2 <- dot$vc2 %||% NULL
     
     Q <- with(dat, length(unique(dvp[dvp > 0])))
     R <- with(dat, length(unique(evl[evl > 0])))
-    one <- function(gmx, vcs=NULL, fmk=NULL, ...)
+    one <- function(gmx, ep.=1, vc.=NULL, fmk=NULL, ...)
     {
-        P <- with(dat, NCOL(gmx))
-        N <- with(dat, NROW(gmx))
-
+        N <- NROW(gmx)
         within(list(gmx=gmx),
         {
             ## function kernel
             fmk <- fmk %||% get.fmk(gmx, frq)
-            ## fmx <- gsm(mdl, gmx[, fmk], rm.dup=FALSE)
             fmx <- gmx[, fmk]
+            fmx <- gsm(mdl, fmx)
             fnl <- krn(fmx, oks)
-            vcs <- vcs %||% get.vcs(fnl, svc)
-            vcs <- rep(vcs, l=length(fnl))
-            names(vcs) <- names(fnl)
-            cmx <- eps * idn(gmx) + cmb(fnl, vcs)[[1]]
-            rsp <- drop(mvrnorm(1, rep(0, nrow(gmx)), cmx))
-            rsp <- lnk(rsp)
+            vc. <- vc. %||% get.vcs(fnl, svc)
+            vc. <- rep(vc., l=length(fnl))
+            names(vc.) <- names(fnl)
+            cmx <- cmb(fnl, vc., TRUE)
+            eta <- drop(mvrnorm(1, rep(0, N), cmx))
+            rsp <- lnk(eta) + rnorm(N, 0, sqrt(ep.))
         })
     }
     ## core effect
-    dat <- within(dat, dvp <- one(gmx[dvp > 0, ], vcs))
-    vcs <- dat$dvp$vcs
+    dat <- within(dat, dvp <- one(gmx[dvp > 0, ], eps, vcs))
+    if(is.null(vc2))
+        vc2 <- dat$dvp$vcs
+    if(is.null(ep2))
+        ep2 <- eps
     fmk <- dat$dvp$fmk
-    dat <- within(dat, evl <- one(gmx[evl > 0, ], vcs, fmk))
+    dat <- within(dat, evl <- one(gmx[evl > 0, ], ep2, vc2, fmk))
     dat
 }
 

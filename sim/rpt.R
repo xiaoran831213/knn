@@ -50,6 +50,7 @@ readRPT <- function(..., ref=1)
         nul <- subset(nlk, mtd == 'NUL')$val
         ldt <- within(subset(evl, key == 'ldt'), val <- exp(val - nul))
         yay <- within(subset(evl, key == 'yay'), val <- exp(val - nul))
+        nl1 <- within(nlk, val <- val / nul)
         nlk <- within(nlk, val <- exp(val - nul))
 
         ## R^2
@@ -57,40 +58,19 @@ readRPT <- function(..., ref=1)
 
         ## running time
         rtm <- subset(dvp, key == 'rtm')
-        rtm <- within(rtm, val <- val / median(val))
-        rpt <- c(rpt, list(rbind(bia, rtm, mse, yay, ldt, nlk, rsq)))
+        rtm <- within(rtm, val <- val / median(val) / 2)
+        rpt <- c(rpt, list(rbind(bia, rtm, mse, yay, ldt, nlk, rsq, nl1)))
     }
     rpt <- do.call(rbind, rpt)
     
-    ## clean up parentheses
-    .cp <- function(x) gsub("[~ ()]", "", x)
+    rpt <- within(rpt, {H <- N * R; N <- N * Q})
+    rpt <- within(rpt, rm(R, Q, oks, lnk, seed))
     rpt <- within(rpt,
     {
-        oks <- .cp(oks)
-        if(exists('lnk', inherits=FALSE))
-        {
-            oks <- sprintf("%s(%s)", lnk, sub('^~', '', oks))
-            rm(lnk)
-        }
-        if(exists('yks', inherits=FALSE))
-            yks <- .cp(yks)
-        else
-            yks <- "*"
-        sim <- sprintf("%s~%s", oks, yks)
-        
-        if(exists('pss', inherits=FALSE) && length(unique(pss)) > 1)
-            sim <- sprintf("%s, ps=%s", sim, pss)
-        if(exists('bpt', inherits=FALSE) && length(unique(bpt)) > 1)
-            sim <- sprintf("%s, bp=%s", sim, bpt)
-        if(exists('wep', inherits=FALSE) && length(unique(wep)) > 1)
-            sim <- sprintf("%s, ep=%s", sim, wep)
-        if(exists('bmq', inherits=FALSE) && length(unique(bmq)) > 1)
-            sim <- sprintf("%s, bm=%s", sim, bmq)
-        if(length(unique(Q)) > 1)
-            sim <- sprintf("%s, Q=%s", sim, Q)
+        tag <- as.factor(tag)
+        if('ref' %in% levels(tag))
+           tag <- relevel(tag, 'ref')
     })
-    ## rpt <- within(rpt, {H <- N * R; N <- N * Q})
-    rpt <- within(rpt, rm(R, Q, oks, seed))
     rpt
 }
 
@@ -124,19 +104,23 @@ prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE)
     d <- as_tibble(d0(name, cache))
     d <- filter(d, !mtd %in% c('NUL'))
     r <- list()
-    
+
+    th <- theme(strip.text.x = element_text(size=12, face="bold"),
+                strip.text.y = element_text(size=12, face="bold"),
+                strip.background = element_rect(colour="red", fill="#CCCCFF"))
     ## report: errors
     if(errs)
     {
-        rpt <- filter(d, key %in% c('rsq', 'mse', 'nlk', 'ldt', 'yay'))
-        rpt <- mutate(rpt, val=pmin(val, 1.99), val=pmax(val, 0.01))
+        rpt <- filter(d, key %in% c('rsq', 'mse', 'nlk', 'nl1', 'rtm')) # , 'ldt', 'yay'))
+        rpt <- mutate(rpt, val=pmin(val, 1.00), val=pmax(val, 0.01))
         g <- ggplot(rpt, aes(x=mtd, y=val))
         g <- g + geom_boxplot()
-        g <- g + facet_grid(sim~key)
-        g <- g + ylim(c(0, 2))
+        g <- g + facet_grid(tag~key)
+        g <- g + ylim(c(0, 1))
         g <- g + ggtitle(ttl(rpt))
-        f <- paste0(file.path('~/img', name), '.rpt.png'); print(f)
-        ggsave(f, g, width=16, height=10)
+        g <- g + th
+        f <- paste0(file.path('~/img', name), '_rpt.png'); print(f)
+        ggsave(f, g, width=17, height=10)
         r <- c(r, rpt=g)
     }
 
@@ -148,11 +132,12 @@ prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE)
         bia <- mutate(bia, val=pmin(val, 1.99), val=pmax(val, -1.99))
         g <- ggplot(bia, aes(x=key, y=val))
         g <- g + geom_boxplot()
-        g <- g + facet_grid(sim~mtd)
+        g <- g + facet_grid(tag~mtd)
         g <- g + ylim(c(-2, 2))
         g <- g + ggtitle(ttl(bia))
-        f <- paste0(file.path('~/img', name), '.bia.png'); print(f)
-        ggsave(f, g, width=16, height=10)
+        g <- g + th
+        f <- paste0(file.path('~/img', name), '_bia.png'); print(f)
+        ggsave(f, g, width=17, height=10)
         r <- c(r, bia=g)
     }
 
@@ -160,30 +145,37 @@ prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE)
     invisible(r)
 }
 
+rpt4 <- function(cache=FALSE)
+{
+    prpt('i00', cache, bias=TRUE)
+    ## prpt('i01', cache, bias=TRUE)
+    ## prpt('i02', cache, bias=TRUE)
+    ## prpt('i03', cache, bias=TRUE)
+}
+
 rpt1 <- function(cache=FALSE)
 {
-    ## prpt('b00', cache, bias=TRUE)
-    ## prpt('b01', cache, bias=TRUE)
-    ## prpt('b02', cache, bias=TRUE)
-    ## prpt('b03', cache, bias=TRUE)
-    ## prpt('b10', cache, bias=TRUE)
-    ## prpt('b11', cache, bias=TRUE)
-    ## prpt('b15', cache, bias=TRUE)
-    ## prpt('b16', cache, bias=TRUE)
-    ## prpt('b20', cache, bias=TRUE)
-    ## prpt('b21', cache, bias=TRUE)
-    ## prpt('b25', cache, bias=TRUE)
-    ## prpt('b26', cache, bias=TRUE)
+    prpt('b00', cache, bias=TRUE)
+    prpt('b01', cache, bias=TRUE)
+    prpt('b02', cache, bias=TRUE)
 }
 
 rpt2 <- function(cache=FALSE, bias=TRUE)
 {
-    prpt('a00', cache, bias=bias)
     prpt('a01', cache, bias=bias)
 }
 
-rpt3 <- function(cache=FALSE, bias=TRUE)
+rpt3 <- function()
 {
-    prpt('d00', cache, bias=bias)
-    prpt('d01', cache, bias=bias)
+    prpt('a00', FALSE, bias=TRUE)
+    prpt('d00', FALSE, bias=TRUE)
+    prpt('i00', FALSE, bias=TRUE)
+
+    ## prpt('a01', FALSE, bias=TRUE)
+    ## prpt('d01', FALSE, bias=TRUE)
+    ## prpt('i01', FALSE, bias=TRUE)
+
+    prpt('l00', FALSE, bias=TRUE)
+    prpt('l01', FALSE, bias=TRUE)
+    prpt('l02', FALSE, bias=TRUE)
 }

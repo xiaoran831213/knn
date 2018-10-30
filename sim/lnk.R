@@ -32,24 +32,27 @@ dc <- function(x, d=NULL, curb=0.01, ...)
         ch={ qchisq(p, v / 2)})
 
     ## centered?
-    cdc <- as.logical(get0('cdc', ifnotfound=FALSE))
+    cdc <- as.logical(get0('cdc', ifnotfound=TRUE))
     print(list(cdc=cdc))
     if(cdc)
         z <- z - y
     z
 }
 
+NL <- function(x) x
+SC <- function(x) drop(scale(x, scale=FALSE))
 ST <- function(x) dc(x, 'st', 0.05)
+CA <- function(x) dc(x, 'ca', 0.05)
 BN <- function(x) dc(x, 'bn')
 PS <- function(x) dc(x, 'ps')
-EX <- function(x) dc(x, 'ex')
-CA <- function(x) dc(x, 'ca', 0.05)
-CH <- function(x) dc(x, 'ch')
-NL <- function(x) x
-I1 <- function(x) drop(scale((x + 1)^1, scale=FALSE))
-I2 <- function(x) drop(scale((x + 1)^2, scale=FALSE))
-I3 <- function(x) drop(scale((x + 1)^3, scale=FALSE))
-O1 <- function(x) x
-O2 <- function(x) drop(scale(x^2, scale=FALSE))
-O3 <- function(x) drop(scale(x^3, scale=FALSE))
+XP <- function(x) dc(x, 'ex')
+X2 <- function(x) dc(x, 'ch')
+
+P1 <- function(x) (1 + SC(x))^1
+P2 <- function(x) (1 + SC(x))^2
+P3 <- function(x) (1 + SC(x))^3
+O1 <- function(x) SC(x)^1
+O2 <- function(x) SC(x)^2
+O3 <- function(x) SC(x)^3
+
 SN <- function(x) sin(2 * pi * x)

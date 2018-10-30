@@ -38,7 +38,7 @@ devtools::load_all()
 #' @param bsz batch size for batched training
 #'
 #' see "sim/utl.R" to understand {oks}, {lnk}, and {yks}.
-main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
+main <- function(N, P, Q=1, R=1, frq=.2, lnk=NL, eps=1, oks=~LN1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
@@ -60,16 +60,18 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
     dat <- lapply(gds, readRDS)
     dat <- get.gmx(dat, N, P, Q, R)
     dat <- get.sim(dat, frq, lnk, eps, oks, svc=svc, ...)
-
+    
     ## training
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        knl <- krn(gmx, ~LN2)
-        ret <- CL(ret, IZM=IZM(rsp, knl, ...))
-        ## ret <- CL(ret, INM=INM(rsp, knl, ...))
-        ret <- CL(ret, OZM=OZM(rsp, knl, ...))
-        ret <- CL(ret, ONM=ONM(rsp, knl, ...))
+        kn1 <- krn(gmx, ~LN2)
+        kn2 <- krn(gmx, ~JL2)
+        ## ret <- CL(ret, IZM=IZM(rsp, knl, ...))
+        ## ret <- CL(ret, OZ1=OZM(rsp, kn1, ...))
+        ret <- CL(ret, ON1=ONM(rsp, kn1, ...))
+        ## ret <- CL(ret, OZ2=OZM(rsp, kn2, ...))
+        ret <- CL(ret, ON2=ONM(rsp, kn2, ...))
         ret <- CL(ret, GCT=GCT(rsp, krn(gmx, ~LN1)))
         ret <- CL(ret, FUL=GCT(rsp, krn(gmx,  oks)))
         ret <- CL(ret, NUL=NUL(rsp, NULL))
@@ -86,11 +88,13 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
     evl <- with(dat$evl,
     {
         ret <- list()
-        knl <- krn(gmx, ~LN2)
-        ret <- CL(ret, IZM=vpd(rsp, knl, dvp$IZM$par))
-        ## ret <- CL(ret, INM=vpd(rsp, knl, dvp$INM$par))
-        ret <- CL(ret, OZM=vpd(rsp, knl, dvp$OZM$par))
-        ret <- CL(ret, ONM=vpd(rsp, knl, dvp$ONM$par))
+        kn1 <- krn(gmx, ~LN2)
+        kn2 <- krn(gmx, ~JL2)
+        ## ret <- CL(ret, IZM=vpd(rsp, knl, dvp$IZM$par))
+        ## ret <- CL(ret, OZ1=vpd(rsp, kn1, dvp$OZ1$par))
+        ret <- CL(ret, ON1=vpd(rsp, kn1, dvp$ON1$par))
+        ## ret <- CL(ret, OZ2=vpd(rsp, kn2, dvp$OZ2$par))
+        ret <- CL(ret, ON2=vpd(rsp, kn2, dvp$ON2$par))
         ret <- CL(ret, GCT=vpd(rsp, krn(gmx, ~LN1), dvp$GCT$par))
         ret <- CL(ret, FUL=vpd(rsp, krn(gmx,  oks), dvp$FUL$par))
         ret <- CL(ret, NUL=vpd(rsp, NULL, dvp$NUL$par))
