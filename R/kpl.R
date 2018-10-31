@@ -120,6 +120,23 @@ ply <- function(x, y=NULL, g=1/NCOL(x), coef0=0, degree=1L, ...)
     (tcrossprod(x, y) * g + coef0) ^ degree
 }
 
+p2w <- function(x, y=NULL, g=1/NCOL(x), ...)
+{
+    if(is.null(y))
+        o2 <- tcrossprod(x^2)
+    else
+        o2 <- tcrossprod(x^2, y^2)
+    (g^2) * (tcrossprod(x, y)^2 - o2)
+}
+
+p2o <- function(x, y=NULL, g=1/NCOL(x), ...)
+{
+    if(is.null(y))
+        (g^2) * tcrossprod(x^2)
+    else
+        (g^2) * tcrossprod(x^2, y^2)
+}
+
 #' @title linear kernel between X and Y
 #' @param x: matrix N rows of samples, P columns of features
 #' @param y: matrix M rows of samples, P columns of features

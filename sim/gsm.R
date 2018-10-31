@@ -102,12 +102,6 @@ gsm <- function(mdl=~ a + d + r, G,   # model, and raw data.
 }
 
 
-## genomic models
-A1 <- ~ a
-A2 <- ~ a + I(a^2)
-AA <- ~ a + a:a[]
-AX <- ~ a + I(a^2) + a:a[]
-
 mdl.str <- function(mdl)
 {
     mdl <- tail(as.character(mdl), 1)

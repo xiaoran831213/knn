@@ -10,29 +10,20 @@ LP <- function(x) list(LP=lap(x))
 GS <- function(x) list(GS=gau(x))
 IS <- function(x) list(IS=ibs(x))
 KN <- function(x) list(KN=kin(x))
-RS <- function(x)
-{
-    x <- (x > 1) * 2 - 1
-    ## x <- x[, apply(x, 2L, sd) > 0]
-    ## x <- scale(x)
-    list(RS=ply(x))
-}
-DM <- function(x)
-{
-    x <- (x > 0) * 2 - 1
-    ## x <- x[, apply(x, 2L, sd) > 0]
-    ## x <- scale(x)
-    list(DM=ply(x))
-}
-AD <- function(x) list(AD=ply(scale(x - 1)))
+RS <- function(x) list(RS=ply((x > 1) * 2 - 1))
+DM <- function(x) list(DM=ply((x > 0) * 2 - 1))
+AD <- function(x) list(AD=ply((x - 1)))
+HT <- function(x) list(HT=ply((x == 1) * 2 - 1))
 
-HT <- function(x)
-{
-    x <- (x == 1) * 2 - 1
-    ## x <- x[, apply(x, 2L, sd) > 0]
-    ## x <- scale(x)
-    list(HT=ply(x))
-}
+## genomic models
+## A1 <- ~ a
+## A2 <- ~ a + I(a^2)
+## AA <- ~ a + a:a[]
+## AX <- ~ a + I(a^2) + a:a[]
+A2 <- function(x) list(A2=p2o(scale(x)))
+AA <- function(x) list(AA=p2w(scale(x)))
+AX <- function(x) list(AX=ply(scale(x), degree=2))
+
 
 #' polynomial expansion by kernel
 #'
