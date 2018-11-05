@@ -73,12 +73,16 @@ test.lnk <- function(hist=0, seed=100)
     {
         ## st <- DF(d='st', x=x, y=dc(x, 'st', 0.05))
         ## ca <- DF(d='ca', x=x, y=dc(x, 'ca', 0.05))
-        bn <- DF(d='binomial', x=x, y=dc(x, 'bn', 0.00))
-        ch <- DF(d='chi-square', x=x, y=dc(x, 'ch', 0.00))
-        ps <- DF(d='Poisson', x=x, y=dc(x, 'ps', 0.00))
-        ex <- DF(d='exponential', x=x, y=dc(x, 'ex', 0.00))
+        ## bn <- DF(d='binomial', x=x, y=dc(x, 'bn', 0.00))
+        ## ch <- DF(d='chi-square', x=x, y=dc(x, 'ch', 0.00))
+        ## ps <- DF(d='Poisson', x=x, y=dc(x, 'ps', 0.00))
+        ## ex <- DF(d='exponential', x=x, y=dc(x, 'ex', 0.00))
         ## o2 <- DF(d='o2', x=x, y=O2(x))
         ## o3 <- DF(d='i2', x=x, y=O3(x))
+        hy1 <- DF(d='Hyperbola1',     x=x, y=HY1(x))
+        hy2 <- DF(d='Hyperbola2',     x=x, y=HY2(x))
+        rc1 <- DF(d='Ricker Curver1', x=x, y=RC1(x))
+        rc2 <- DF(d='Ricker Curver2', x=x, y=RC2(x))
     })
     d0 <- do.call(rbind, dat)
 
@@ -99,16 +103,17 @@ test.lnk <- function(hist=0, seed=100)
 
     g <- g + coord_flip()
     g <- g + facet_wrap(~d, 1)
-    g <- g + theme(legend.position = "none",
-                   strip.text=element_text(face='bold', size=15),
-                   strip.background = element_rect(colour="red", fill="#CCCCFF"),
-                   axis.title = element_text(face='bold', size=15))
+    g <- g + theme(
+        legend.position = "none",
+        strip.text=element_text(face='bold', size=15),
+        strip.background = element_rect(colour="red", fill="#CCCCFF"),
+        axis.title = element_text(face='bold', size=15))
     ## axis.title=element_blank()
     g
 }
 
 main <- function()
 {
-    ggsave('~/Dropbox/pub/img/mq2_tran.png', test.lnk(0), scale=1, width=19, height=19/4-.2)
-    ggsave('~/Dropbox/pub/img/mq2_hist.png', test.lnk(1), scale=1, width=19, height=19/4-.2)
+    ggsave('~/Dropbox/pub/img/nl2_tran.png', test.lnk(0), scale=1, width=19, height=19/4-.2)
+    ggsave('~/Dropbox/pub/img/nl2_hist.png', test.lnk(1), scale=1, width=19, height=19/4-.2)
 }

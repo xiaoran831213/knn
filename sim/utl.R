@@ -1,7 +1,6 @@
 ## kernels combinations
 library(MASS)
 source('R/utl.R')
-source('sim/gsm.R')
 
 #' get and divide a segment from the genome
 #' 
@@ -66,6 +65,39 @@ get.fmk <- function(obj, frq=.5)
     sample(c(rep(TRUE, P * frq), rep(FALSE, P - P * frq)))
 }
 
+#' get simulated response for once
+#'
+#' @param gmx N x P genomic data matrix
+#' @param oks formula of output kernels
+#' @param eps noise size, or functional
+#' @param vcs 
+get.one <- function(gmx, oks=~LN, lnk=NL, frq=.1, eps=1, ...)
+{
+    N <- nrow(gmx)
+    dot <- list(...)
+
+    ## functional variants
+    fmk <- dot$fmk %||% get.fmk(gmx, frq) # functional mask
+    fnl <- krn(gmx[, fmk], oks)           # functional kernel
+
+    ## variance components
+    vcs <- dot$vcs %||% 1                 #
+    vcs <- rep(vcs, l=length(fnl))        # propagate
+    names(vcs) <- names(fnl)
+
+    ## covariance matrix
+    cmx <- cmb(fnl, vcs, TRUE)
+
+    ## noise function
+    efn <- dot$efn %||% EGS
+
+    ## transform and return
+    eta <- drop(mvrnorm(1, rep(0, N), cmx))
+    rsp <- lnk(eta) + efn(N, eps)
+
+    ret <- list(gmx=gmx, rsp=rsp, fmk=fmk, vcs=vcs)
+}
+
 #' get simulated response
 #'
 #' @param dat genomic matrix, with training and testing masks.
@@ -79,43 +111,15 @@ get.fmk <- function(obj, frq=.5)
 #'
 #' @return a list of lists, where the inner lists contains original genotypes and
 #' generated response.
-get.sim <- function(dat, frq=1, lnk=NL, eps=1, oks=~LN1, ...)
+get.sim <- function(dat, ...)
 {
     dot <- list(...)
-    mdl <- dot$mdl %||% A1
-    svc <- dot$svc %||% 1
-    vcs <- dot$vcs %||% NULL
-    ep2 <- dot$ep2 %||% NULL
-    vc2 <- dot$vc2 %||% NULL
-    
-    Q <- with(dat, length(unique(dvp[dvp > 0])))
-    R <- with(dat, length(unique(evl[evl > 0])))
-    one <- function(gmx, ep.=1, vc.=NULL, fmk=NULL, ...)
-    {
-        N <- NROW(gmx)
-        within(list(gmx=gmx),
-        {
-            ## function kernel
-            fmk <- fmk %||% get.fmk(gmx, frq)
-            fmx <- gmx[, fmk]
-            fmx <- gsm(mdl, fmx)
-            fnl <- krn(fmx, oks)
-            vc. <- vc. %||% get.vcs(fnl, svc)
-            vc. <- rep(vc., l=length(fnl))
-            names(vc.) <- names(fnl)
-            cmx <- cmb(fnl, vc., TRUE)
-            eta <- drop(mvrnorm(1, rep(0, N), cmx))
-            rsp <- lnk(eta) + rnorm(N, 0, sqrt(ep.))
-        })
-    }
+    Q <- with(dat, length(unique(dvp[dvp > 0]))) # dvp groups
+    R <- with(dat, length(unique(evl[evl > 0]))) # evl groups
+
     ## core effect
-    dat <- within(dat, dvp <- one(gmx[dvp > 0, ], eps, vcs))
-    if(is.null(vc2))
-        vc2 <- dat$dvp$vcs
-    if(is.null(ep2))
-        ep2 <- eps
-    fmk <- dat$dvp$fmk
-    dat <- within(dat, evl <- one(gmx[evl > 0, ], ep2, vc2, fmk))
+    dat <- within(dat, dvp <- get.one(gmx[dvp > 0, ], ...))
+    dat <- within(dat, evl <- get.one(gmx[evl > 0, ], ..., fmk=dvp$fmk))
     dat
 }
 

@@ -39,6 +39,17 @@ dc <- function(x, d=NULL, curb=0.01, ...)
     z
 }
 
+.S <- function(x, v, o=1, a=0)
+{
+    e <- quote(epr)
+    s <- sd(x)
+    if(a)
+        x <- abs(x)
+    x <- x^o
+    v <- eval(v)
+    s * drop(scale(v))
+}
+
 NL <- function(x) x
 SC <- function(x) drop(scale(x, scale=FALSE))
 ST <- function(x) dc(x, 'st', 0.05)
@@ -48,11 +59,21 @@ PS <- function(x) dc(x, 'ps')
 XP <- function(x) dc(x, 'ex')
 X2 <- function(x) dc(x, 'ch')
 
-P1 <- function(x) (1 + SC(x))^1
-P2 <- function(x) (1 + SC(x))^2
-P3 <- function(x) (1 + SC(x))^3
-O1 <- function(x) SC(x)^1
-O2 <- function(x) SC(x)^2
-O3 <- function(x) SC(x)^3
+P2 <- function(x) drop(scale(1+x)^2) * sd(x)
+P3 <- function(x) drop(scale(1+x)^3) * sd(x)
+O2 <- function(x) drop(scale(x ^ 2)) * sd(x)
+O3 <- function(x) drop(scale(x ^ 3)) * sd(x)
 
-SN <- function(x) sin(2 * pi * x)
+SN <- function(x) .S(x * sin(2 * pi * x))
+
+## Hyperbola
+HY1 <- function(x) .S(x, quote(x / (1 + x)), 1, 1)
+HY2 <- function(x) .S(x, quote(x / (1 + x)), 2, 1)
+HY3 <- function(x) .S(x, quote(x / (1 + x)), 3, 1)
+
+## Ricker Curve
+RCC <- function(x) .S(x, quote(x * exp(-x)), 1, 0)
+RC1 <- function(x) .S(x, quote(x * exp(-x)), 1, 1)
+RC2 <- function(x) .S(x, quote(x * exp(-x)), 2, 1)
+RC3 <- function(x) .S(x, quote(x * exp(-x)), 3, 1)
+

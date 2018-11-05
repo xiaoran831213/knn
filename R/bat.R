@@ -84,7 +84,7 @@ GBT <- function(FUN, rsp, knl, bsz=100, ...)
         bt <- bt + 1
         if(bt == nbt)                   # end of an epoch?
         {
-            par <- mean(eph %$% 'par')
+            par  <- if(pss) bat[['par']] else par <- mean(eph %$% 'par')
             eps <- par[1]
             rpt <- vpd(rsp, knl, par, rt=0, ...)
             mse <- rpt['mse']

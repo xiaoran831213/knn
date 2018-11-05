@@ -17,6 +17,7 @@ source('sim/mdl.R')                     # models
 source('sim/lnk.R')                     # link functions
 source('sim/gsm.R')                     # genomic simulator
 source('sim/mtd.R')                     # methods
+source('sim/eps.R')                     # noise
 
 library(devtools)                       # enable the C++ functions
 devtools::load_all()
@@ -45,21 +46,19 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=SC, eps=1, oks=~PL1, ...)
     set.seed(dot$seed)
     het <- dot$het %||% 0.0
     svc <- dot$svc %||% 1.0
+    efn <- dot$efn %||% EGS             # epsilon function for noise
     arg <- match.call() %>% tail(-1) %>% as.list
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
     arg <- do.call(data.frame, arg)
     gds <- dot$gds %||% 'ukb'
-    if(gds=='ukb')
-        gds <- get.rds('sim/dat')
-    else
-        gds <- 'data/1kg_c05.rds'
+    gds <- if(gds=='ukb') get.rds('sim/dat') else 'data/1kg_c05.rds'
     
     ## ------------------------- data genration ------------------------- ##
     ## for each of the Q groups, choose N samples and P features -> Training
     dat <- lapply(gds, readRDS)
     dat <- get.gmx(dat, N, P, Q, R)
-    dat <- get.sim(dat, frq, lnk, eps, oks, svc=svc, ...)
+    dat <- get.sim(dat, frq=frq, lnk=lnk, eps=eps, oks=oks, ...)
     
     ## training
     dvp <- with(dat$dvp,
@@ -75,7 +74,6 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=SC, eps=1, oks=~PL1, ...)
         ret <- CL(ret, GCT=GCT(rsp, kn1))
         ## ret <- CL(ret, FUL=GCT(rsp, krn(gmx,  oks)))
         ret <- CL(ret, NUL=NUL(rsp, NULL))
-        ## ret <- CL(ret, JMX=PMQ(rsp, krn(gmx, ~JX1)))
         ret
     })
     
@@ -98,7 +96,6 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=SC, eps=1, oks=~PL1, ...)
         ret <- CL(ret, GCT=vpd(rsp, kn1, dvp$GCT$par))
         ## ret <- CL(ret, FUL=vpd(rsp, krn(gmx,  oks), dvp$FUL$par))
         ret <- CL(ret, NUL=vpd(rsp, NULL, dvp$NUL$par))
-        ## ret <- CL(ret, JMX=vpd(rsp, krn(gmx, ~JX1), dvp$JMX$par))
         ret
     })
     

@@ -145,19 +145,3 @@ RS3 <- PK(RS, d=3, o=FALSE)
 HT1 <- PK(HT, d=1, o=FALSE)
 HT2 <- PK(HT, d=2, o=FALSE)
 HT3 <- PK(HT, d=3, o=FALSE)
-
-coef <- function(k)
-{
-    env <- environment(x)
-    if(!is.null(env))
-        environment(k)[['coef']]
-    else
-        NULL
-}
-`coef<-` <- function(x, value)
-{
-    env <- environment(x)
-    if(!is.null(env))
-        env[['coef']] <- value
-    x
-}

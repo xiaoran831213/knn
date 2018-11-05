@@ -17,6 +17,7 @@ source('sim/mdl.R')                     # models
 source('sim/lnk.R')                     # link functions
 source('sim/gsm.R')                     # genomic simulator
 source('sim/mtd.R')                     # methods
+source('sim/eps.R')                     # noise
 
 library(devtools)                       # enable the C++ functions
 devtools::load_all()
@@ -56,26 +57,25 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
         gds <- 'data/1kg_c05.rds'
 
     ## batched MINQUE: core algorithm
-    assign('BMQ', dot$bmq %||% OZM, .GlobalEnv)
+    assign('BMQ', dot$bmq %||% ONM, .GlobalEnv)
     
     ## ------------------------- data genration ------------------------- ##
     ## for each of the Q groups, choose N samples and P features -> Training
     dat <- lapply(gds, readRDS)
     dat <- get.gmx(dat, N, P, Q, R)
-    dat <- get.sim(dat, frq, lnk, eps, oks, svc=svc, ...)
+    dat <- get.sim(dat, frq=frq, lnk=lnk, eps=eps, oks=oks, ...)
 
     ## training
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        knl <- krn(gmx, ~LN2)
-        ## ret <- CL(ret, GCT=GCT(rsp, krn(gmx, ~LN1)))
-        ret <- CL(ret, FUL=GCT(rsp, krn(gmx,  oks)))
-        ret <- CL(ret, BMQ=BMQ(rsp, knl, ...))
-        ret <- CL(ret, BM0=BM0(rsp, knl, ...))
-        ret <- CL(ret, BM1=BM1(rsp, knl, ...))
-        ret <- CL(ret, BM2=BM2(rsp, knl, ...))
-        ret <- CL(ret, BM3=BM3(rsp, knl, ...))
+        kn2 <- krn(gmx, ~JL2)
+        kn1 <- krn(gmx, ~LN1)
+        ret <- CL(ret, GCT=GCT(rsp, kn1))
+        ## ret <- CL(ret, FUL=GCT(rsp, krn(gmx,  oks)))
+        ret <- CL(ret, BMQ=BMQ(rsp, kn2, ...))
+        ## ret <- CL(ret, BM2=BM2(rsp, kn2, ...))
+        ret <- CL(ret, BM3=BM3(rsp, kn2, ...))
         ret <- CL(ret, NUL=NUL(rsp, NULL))
         ret
     })
@@ -89,14 +89,13 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
     evl <- with(dat$evl,
     {
         ret <- list()
-        knl <- krn(gmx, ~LN2)
-        ## ret <- CL(ret, GCT=vpd(rsp, krn(gmx, ~LN1), dvp$GCT$par))
-        ret <- CL(ret, FUL=vpd(rsp, krn(gmx,  oks), dvp$FUL$par))
-        ret <- CL(ret, BMQ=vpd(rsp, knl, dvp$BMQ$par))
-        ret <- CL(ret, BM0=vpd(rsp, knl, dvp$BM0$par))
-        ret <- CL(ret, BM1=vpd(rsp, knl, dvp$BM1$par))
-        ret <- CL(ret, BM2=vpd(rsp, knl, dvp$BM2$par))
-        ret <- CL(ret, BM3=vpd(rsp, knl, dvp$BM3$par))
+        kn2 <- krn(gmx, ~JL2)
+        kn1 <- krn(gmx, ~LN1)
+        ret <- CL(ret, GCT=vpd(rsp, kn1, dvp$GCT$par))
+        ## ret <- CL(ret, FUL=vpd(rsp, krn(gmx, oks), dvp$FUL$par))
+        ret <- CL(ret, BMQ=vpd(rsp, kn2, dvp$BMQ$par))
+        ## ret <- CL(ret, BM2=vpd(rsp, kn2, dvp$BM2$par))
+        ret <- CL(ret, BM3=vpd(rsp, kn2, dvp$BM3$par))
         ret <- CL(ret, NUL=vpd(rsp, NULL, dvp$NUL$par))
         ret
     })
@@ -120,6 +119,5 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
 
 test <- function()
 {
-    r <- main(oks=~LN1, N=1024, P=10000, Q=2, R=1, eps=1, vcs=c(2, 2), frq=.2, pss=0, bmq=ONM)
-    subset(r, dat=='evl' & key=='nlk' | dat=='dvp' & key=='rtm')
+    r <- main(N=512, P=10000, Q=2, R=1, efn=EGS, eps=2, vcs=c(2, 2), frq=.2, pss=0, bmq=ONM)
 }
