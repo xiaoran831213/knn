@@ -1,5 +1,6 @@
 library(ggplot2)
 library(dplyr)
+source('R/hlp.R')
 
 plt.cor <- function(dat)
 {
@@ -42,29 +43,43 @@ readRPT <- function(..., ref=1)
         
         ## MSE
         mse <- subset(evl, key == 'mse')
-        nul <- subset(mse, mtd == 'NUL')$val
-        mse <- within(mse, val <- val / nul)
+        if(ref)
+        {
+            nul <- subset(mse, mtd == 'NUL')$val
+            mse <- within(mse, val <- val / nul)
+        }
 
         ## likelihood
         nlk <- subset(evl, key == 'nlk')
-        nul <- subset(nlk, mtd == 'NUL')$val
-        ldt <- within(subset(evl, key == 'ldt'), val <- exp(val - nul))
-        yay <- within(subset(evl, key == 'yay'), val <- exp(val - nul))
-        nl1 <- within(nlk, val <- val / nul)
-        nlk <- within(nlk, val <- exp(val - nul))
+        if(ref)
+        {
+            nul <- subset(nlk, mtd == 'NUL')$val
+            ## ldt <- within(subset(evl, key == 'ldt'), val <- exp(val - nul))
+            ## yay <- within(subset(evl, key == 'yay'), val <- exp(val - nul))
+            nlk <- within(nlk, val <- exp(2 * (val - nul)))
+        }
+
+        ## bias of epsilon
+        
+        bs0 <- within(subset(bia, key == 'eps'), {key <- 'bs0'; dat='evl'})
+        if(ref)
+            bs0 <- within(bs0, val  <- val / 4 + 0.5)
 
         ## R^2
-        rsq <- subset(evl, key=='rsq')
+        rsq <- subset(evl, key == 'rsq')
 
         ## running time
         rtm <- subset(dvp, key == 'rtm')
-        rtm <- within(rtm, val <- val / median(val) / 2)
-        rpt <- c(rpt, list(rbind(bia, rtm, mse, yay, ldt, nlk, rsq, nl1)))
+        if(ref)
+        {
+            rtm <- within(rtm, val <- val / median(val) / 2)
+        }
+        rpt <- c(rpt, list(rbind(bia, rtm, mse, nlk, bs0, rsq)))
     }
     rpt <- do.call(rbind, rpt)
     
     rpt <- within(rpt, {H <- N * R; N <- N * Q})
-    rpt <- within(rpt, rm(R, Q, oks, lnk, seed))
+    rpt <- within(rpt, rm(R, Q, seed))
     rpt <- within(rpt,
     {
         tag <- as.factor(tag)
@@ -83,7 +98,7 @@ ttl <- function(d)
 }
 
 ## fetch reports
-d0 <- function(name, use.cache=TRUE)
+d0 <- function(name, use.cache=TRUE, ...)
 {
     fdr <- file.path('sim/run', name)
     rds <- paste0(fdr, '.rds')
@@ -91,7 +106,7 @@ d0 <- function(name, use.cache=TRUE)
         dat <- readRDS(rds)
     else
     {
-        dat <- readRPT(fdr, ref=2)
+        dat <- readRPT(fdr, ...)
         saveRDS(dat, rds)
     }
     print(rds)
@@ -99,28 +114,32 @@ d0 <- function(name, use.cache=TRUE)
 }
 
 ## plot reports
-prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE)
+prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE, ...)
 {
-    d <- as_tibble(d0(name, cache))
+    d <- as_tibble(d0(name, cache, ...))
     d <- filter(d, !mtd %in% c('NUL'))
     r <- list()
 
-    th <- theme(strip.text.x = element_text(size=12, face="bold"),
-                strip.text.y = element_text(size=12, face="bold"),
-                strip.background = element_rect(colour="red", fill="#CCCCFF"))
+    th <- theme(
+        axis.title.x=element_blank(), axis.title.y=element_blank(), 
+        strip.text.x = element_text(size=12, face="bold"),
+        strip.text.y = element_text(size=12, face="bold"),
+        strip.background = element_rect(colour="red", fill="#CCCCFF"))
     ## report: errors
     if(errs)
     {
-        rpt <- filter(d, key %in% c('rsq', 'mse', 'nlk', 'nl1', 'rtm')) # , 'ldt', 'yay'))
-        rpt <- mutate(rpt, val=pmin(val, 1.00), val=pmax(val, 0.01))
+        rpt <- filter(d, key %in% c('bs0', 'rsq', 'mse', 'nlk', 'rtm'))
+        rpt <- mutate(rpt, val=pmin(val, 1.00), val=pmax(val, 0.00))
         g <- ggplot(rpt, aes(x=mtd, y=val))
         g <- g + geom_boxplot()
-        g <- g + facet_grid(tag~key)
-        g <- g + ylim(c(0, 1))
+        g <- g + facet_grid(tag~key, scales='free')
+        ## g <- g + ylim(c(0, 1))
         g <- g + ggtitle(ttl(rpt))
         g <- g + th
         f <- paste0(file.path('~/img', name), '_rpt.png'); print(f)
-        ggsave(f, g, width=17, height=10)
+        h <- length(unique(rpt$tag))
+        w <- length(unique(rpt$key))
+        ggsave(f, g, width=1.9 * w + .2, height=1 * h + .2, scale=1.3)
         r <- c(r, rpt=g)
     }
 
@@ -133,11 +152,13 @@ prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE)
         g <- ggplot(bia, aes(x=key, y=val))
         g <- g + geom_boxplot()
         g <- g + facet_grid(tag~mtd)
-        g <- g + ylim(c(-2, 2))
+        ## g <- g + ylim(c(-2, 2))
         g <- g + ggtitle(ttl(bia))
         g <- g + th
+        w <- length(unique(rpt$mtd))
+        h <- length(unique(rpt$tag))
         f <- paste0(file.path('~/img', name), '_bia.png'); print(f)
-        ggsave(f, g, width=17, height=10)
+        ggsave(f, g, width=1.9 * w + .2, height=1 * h + .2, scale=1.3)
         r <- c(r, bia=g)
     }
 
@@ -145,37 +166,124 @@ prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE)
     invisible(r)
 }
 
-rpt4 <- function(cache=FALSE)
+## labeller
+lb1 <- function (labels, multi_line = TRUE) 
 {
-    prpt('i00', cache, bias=TRUE)
-    ## prpt('i01', cache, bias=TRUE)
-    ## prpt('i02', cache, bias=TRUE)
-    ## prpt('i03', cache, bias=TRUE)
+    labels <- label_value(labels, multi_line = multi_line)
+    dc <- c(
+        `ref`="bold(y)*'='*bold(alpha)+bold(epsilon)",
+        `bin`="binomial",
+        `chi`="'chi-square'",
+        `poi`="Poisson",
+        `exp`="exponential",
+        `hy1`="bold(y)*'='*over('|'*bold(alpha)*'|', 1 + '|'*bold(alpha)*'|') + bold(epsilon)",
+        `rc1`="bold(y)*'='*bold('|'*alpha*'|')*e^bold('|'*alpha*'|') + bold(epsilon)",
+        `e^1`="bold(y)*'='*bold(alpha) + bold(epsilon)",
+        `e^2`="bold(y)*'='*bold(alpha)^2 + bold(epsilon)",
+        `e^3`="bold(y)*'='*bold(alpha)^3 + bold(epsilon)",
+        `g:2`="'2-way interaction'",
+        `g:3`="'3-way interaction'",
+        `g*2`="'2-way + quadratic'",
+        `g*3`="'3-way + cubic'",
+        `bs0`="hat(symbol(sigma))[0]^2 - symbol(sigma)[0]^2",
+        `mse`="MSE(bold(y), hat(bold(y)))",
+        `rsq`="COR(bold(y), hat(bold(y)))^2",
+        `rtm`="time ~~ (sec)")
+    if (multi_line)
+    {
+        lapply(unname(labels), lapply, function(values)
+        {
+            if(values %in% names(dc))
+                values <- dc[[values]]
+            c(parse(text = as.character(values)))
+        })
+    }
+    else
+    {
+        lapply(labels, function(values)
+        {
+            values <- paste0("list(", values, ")")
+            lapply(values, function(expr) c(parse(text = expr)))
+        })
+    }
 }
+
+pabs <- function(d, o=NULL, fill=TRUE, bat=FALSE)
+{
+    th <- theme(
+        axis.title.x=element_blank(), axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(), 
+        strip.text.x = element_text(size=12, face="bold"),
+        strip.text.y = element_text(size=12, face="bold"),
+        strip.background = element_rect(colour="red", fill="#CCCCFF"))
+    if(fill)
+    {
+        th <- th + theme(legend.title=element_blank(), legend.position='bottom')
+        th <- th + theme(axis.text.x=element_blank())
+    }
+    
+    ## method dictionary
+    if(!bat)
+        d <- subset(d, !grepl('^B', mtd))
+    d <- within(d, mds <- c(
+                  GCT="GCTA",
+                  MNQ="KNN",
+                  BMQ="KNN-BAT")[mtd])
+    d <- within(d, mds <- as.factor(mds))
+    d <- within(d, relevel(mds, 'GCTA'))
+    
+    ## report: errors grouped by (tag, key)
+    d <- filter(d, key %in% c('bs0', 'rsq', 'mse', 'rtm'))
+
+    ## cap the outliers
+    d <- d %>% group_by(tag, key) %>%
+        mutate(val=pmin(val, quantile(val, .975))) %>%
+        mutate(val=pmax(val, quantile(val, .025))) %>% ungroup
+
+    ## dimensional of sub-plots
+    ntag <- length(unique(d$tag))
+    nkey <- length(unique(d$key))
+
+    ## plot
+    if(fill)
+        g <- ggplot(d, aes(x=mtd, y=val, fill=mds))
+    else
+        g <- ggplot(d, aes(x=mtd, y=val))
+    g <- g + geom_boxplot()
+    ## if(bat)
+    ##     g <- g + geom_boxplot(data=subset(d, grepl('^BM.', mtd)))
+    ## else
+    ##     g <- g + geom_boxplot(data=subset(d, grepl('^BM.', mtd)), alpha=0, linetype=0)
+    g <- g + facet_grid(key ~ tag, scales='free_y', labeller=lb1)
+    g <- g + th
+    g <- g + ggtitle(ttl(d))
+    ## g <- g + scale_fill_manual(breaks=c('GCTA', 'KNN', 'KNN-BAT'),
+    ##                            values=c("red", "blue", "green"))
+
+    ## output
+    if(!is.null(o))
+    {
+        o <- paste0(file.path('~/img', o), '.png')
+        print(o)
+        ggsave(o, g, width=1.9 * ntag + .2, height=1.0 * nkey + .2, scale=1.5)
+    }
+    ## return
+    invisible(d)
+}
+
 
 rpt1 <- function(cache=FALSE)
 {
-    prpt('b00', cache, bias=TRUE)
-    prpt('b01', cache, bias=TRUE)
-    prpt('b02', cache, bias=TRUE)
+    . <- subset(d0('bi0', cache), mtd != 'NUL'); pabs(., 'wi0', bat=0)
+    . <- subset(d0('bd0', cache), mtd != 'NUL'); pabs(., 'wd0', bat=0)
+    . <- subset(d0('bn0', cache), mtd != 'NUL'); pabs(., 'wn0', bat=0)
+    . <- subset(d0('bi0', cache), mtd != 'NUL'); pabs(., 'bi0', bat=1)
+    . <- subset(d0('bd0', cache), mtd != 'NUL'); pabs(., 'bd0', bat=1)
+    . <- subset(d0('bn0', cache), mtd != 'NUL'); pabs(., 'bn0', bat=1)
 }
 
-rpt2 <- function(cache=FALSE, bias=TRUE)
+rpt2 <- function(cache=FALSE)
 {
-    prpt('a01', cache, bias=bias)
-}
-
-rpt3 <- function()
-{
-    prpt('a00', FALSE, bias=TRUE)
-    prpt('d00', FALSE, bias=TRUE)
-    prpt('i00', FALSE, bias=TRUE)
-
-    ## prpt('a01', FALSE, bias=TRUE)
-    ## prpt('d01', FALSE, bias=TRUE)
-    ## prpt('i01', FALSE, bias=TRUE)
-
-    prpt('l00', FALSE, bias=TRUE)
-    prpt('l01', FALSE, bias=TRUE)
-    prpt('l02', FALSE, bias=TRUE)
+    . <- subset(d0('bz0', cache), mtd %in% c('MNQ', 'GCT', 'BMQ'))
+    pabs('n00', FALSE, bias=FALSE, ref=0)
 }

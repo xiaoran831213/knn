@@ -20,10 +20,10 @@ HT <- function(x) list(HT=ply((x == 1) * 2 - 1))
 ## A2 <- ~ a + I(a^2)
 ## AA <- ~ a + a:a[]
 ## AX <- ~ a + I(a^2) + a:a[]
-A2 <- function(x) list(A2=p2o(scale(x)))
-AA <- function(x) list(AA=p2w(scale(x)))
-AX <- function(x) list(AX=ply(scale(x), degree=2))
-
+I2 <- function(x) list(I2=pqw(scale(x), q=2))
+I3 <- function(x) list(I3=pqw(scale(x), q=3))
+X2 <- function(x) list(X2=ply(scale(x), degree=2))
+X3 <- function(x) list(X3=ply(scale(x), degree=3))
 
 #' polynomial expansion by kernel
 #'

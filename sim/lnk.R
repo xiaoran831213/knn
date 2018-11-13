@@ -57,14 +57,15 @@ CA <- function(x) dc(x, 'ca', 0.05)
 BN <- function(x) dc(x, 'bn')
 PS <- function(x) dc(x, 'ps')
 XP <- function(x) dc(x, 'ex')
-X2 <- function(x) dc(x, 'ch')
+CH <- function(x) dc(x, 'ch')
 
 P2 <- function(x) drop(scale(1+x)^2) * sd(x)
 P3 <- function(x) drop(scale(1+x)^3) * sd(x)
 O2 <- function(x) drop(scale(x ^ 2)) * sd(x)
 O3 <- function(x) drop(scale(x ^ 3)) * sd(x)
 
-SN <- function(x) .S(x * sin(2 * pi * x))
+SN1 <- function(x) .S(x, x * sin(1 * pi * x))
+SN2 <- function(x) .S(x, x * sin(2 * pi * x))
 
 ## Hyperbola
 HY1 <- function(x) .S(x, quote(x / (1 + x)), 1, 1)

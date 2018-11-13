@@ -120,6 +120,18 @@ ply <- function(x, y=NULL, g=1/NCOL(x), coef0=0, degree=1L, ...)
     (tcrossprod(x, y) * g + coef0) ^ degree
 }
 
+#' @title polynomial multi-way interaction
+#' @param x: matrix N rows of smaples, P columns of features
+#' @param y: matrix M rows of smaples, P columns of features
+pqw <- function(x, y=NULL, g=1/NCOL(x), q=2, ...)
+{
+    if(is.null(y))
+        oq <- tcrossprod(x^q)
+    else
+        oq <- tcrossprod(x^q, x^q)
+    (g^q) * (tcrossprod(x, y)^q - oq)
+}
+
 p2w <- function(x, y=NULL, g=1/NCOL(x), ...)
 {
     if(is.null(y))

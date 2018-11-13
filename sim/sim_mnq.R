@@ -11,7 +11,7 @@ source("sim/utl.R")
 source("sim/mn1.R")
 source("sim/mdl.R")
 source("sim/mtd.R")
-source("sim/gct.R")
+source("sim/gc1.R")
 source("sim/grm.R")
 
 ## test for cpp minque versus R minque
@@ -76,9 +76,7 @@ ts3 <- function(N=1000, P=2000, r=10)
 {
     Z <- matrix(rpois(N * P, 2), N, P)
 
-    knl <- krn(Z, ~LN1)
-    use <- krn(Z, ~ID + LN1)
-
+    ## fix effect to constitue the mean
     ## covariants
     X <- cbind(x1=rbinom(N, 1, .3), x2=rbinom(N, 1, .5), x3=rnorm(N))
     bts <- c(X1=1, X2=2, X3=1.5)
@@ -86,13 +84,17 @@ ts3 <- function(N=1000, P=2000, r=10)
     ## X <- NULL
     ## M <- rep(0, N)
     
-    ## covariance
+    ## random effect to constitute the covariance
+    knl <- krn(Z, ~LN1)
     vcs <- c(LN1=2.0)
     eps <- c(EPS=0.5)
     S <- cmb(knl, vcs, drop=TRUE)       # Sigma
 
     ## response
     rsp <- mvrnorm(1, M, S) + rnorm(N, 0, sqrt(eps))
+
+    ## working kernel
+    use <- krn(Z, ~ID + LN1)
 
     ## mbk <- microbenchmark(
     ##     r1 <- .mn0(rsp, use, X=X)$vcs,

@@ -39,41 +39,40 @@ devtools::load_all()
 #' @param bsz batch size for batched training
 #'
 #' see "sim/utl.R" to understand {oks}, {lnk}, and {yks}.
-main <- function(N, P, Q=1, R=1, frq=.2, lnk=SC, eps=1, oks=~PL1, ...)
+main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
     set.seed(dot$seed)
     het <- dot$het %||% 0.0
     svc <- dot$svc %||% 1.0
-    efn <- dot$efn %||% EGS             # epsilon function for noise
     arg <- match.call() %>% tail(-1) %>% as.list
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
     arg <- do.call(data.frame, arg)
-    gds <- dot$gds %||% 'ukb'
-    gds <- if(gds=='ukb') get.rds('sim/dat') else 'data/1kg_c05.rds'
+
+    ## batched MINQUE: core algorithm
+    assign('BMQ', dot$bmq %||% ONM, .GlobalEnv)
+    assign('UBZ', dot$ubz %||%  64, .GlobalEnv)
     
     ## ------------------------- data genration ------------------------- ##
     ## for each of the Q groups, choose N samples and P features -> Training
-    dat <- lapply(gds, readRDS)
+    dat <- lapply(get.rds('sim/dat'), readRDS)
     dat <- get.gmx(dat, N, P, Q, R)
     dat <- get.sim(dat, frq=frq, lnk=lnk, eps=eps, oks=oks, ...)
-    
+
     ## training
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        kn1 <- krn(gmx, ~LN1)
         kn2 <- krn(gmx, ~JL2)
-        kn3 <- krn(gmx, ~JL3)
-        ## ret <- CL(ret, IZM=IZM(rsp, knl, ...))
-        ## ret <- CL(ret, OZ1=OZM(rsp, kn1, ...))
-        ## ret <- CL(ret, ON1=ONM(rsp, kn1, ...))
-        ## ret <- CL(ret, OZ2=OZM(rsp, kn2, ...))
-        ret <- CL(ret, MQ2=ONM(rsp, kn2, ...))
-        ret <- CL(ret, MQ3=ONM(rsp, kn3, ...))
+        kn1 <- krn(gmx, ~LN1)
         ret <- CL(ret, GCT=GCT(rsp, kn1))
+        ret <- CL(ret, BM0=BM0(rsp, kn2, ...))
+        ret <- CL(ret, BM1=BM1(rsp, kn2, ...))
+        ret <- CL(ret, BM2=BM2(rsp, kn2, ...))
+        ret <- CL(ret, BM3=BM3(rsp, kn2, ...))
+        ret <- CL(ret, BMQ=BMQ(rsp, kn2, ...))
         ret <- CL(ret, NUL=NUL(rsp, NULL))
         ret
     })
@@ -82,21 +81,19 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=SC, eps=1, oks=~PL1, ...)
     vcs <- dat$dvp$vcs
     par <- pars(dvp, c(eps=eps, vcs))
     bia <- list(bias(dvp, eps, vcs))
-
+    
     ## testing
     evl <- with(dat$evl,
     {
         ret <- list()
-        kn1 <- krn(gmx, ~LN1)
         kn2 <- krn(gmx, ~JL2)
-        kn3 <- krn(gmx, ~JL3)
-        ## ret <- CL(ret, IZM=vpd(rsp, knl, dvp$IZM$par))
-        ## ret <- CL(ret, OZ1=vpd(rsp, kn1, dvp$OZ1$par))
-        ## ret <- CL(ret, ON1=vpd(rsp, kn1, dvp$ON1$par))
-        ## ret <- CL(ret, OZ2=vpd(rsp, kn2, dvp$OZ2$par))
-        ret <- CL(ret, MQ2=vpd(rsp, kn2, dvp$MQ2$par))
-        ret <- CL(ret, MQ3=vpd(rsp, kn3, dvp$MQ3$par))
+        kn1 <- krn(gmx, ~LN1)
         ret <- CL(ret, GCT=vpd(rsp, kn1, dvp$GCT$par))
+        ret <- CL(ret, BM0=vpd(rsp, kn2, dvp$BM0$par))
+        ret <- CL(ret, BM1=vpd(rsp, kn2, dvp$BM1$par))
+        ret <- CL(ret, BM2=vpd(rsp, kn2, dvp$BM2$par))
+        ret <- CL(ret, BM3=vpd(rsp, kn2, dvp$BM3$par))
+        ret <- CL(ret, BMQ=vpd(rsp, kn2, dvp$BMQ$par))
         ret <- CL(ret, NUL=vpd(rsp, NULL, dvp$NUL$par))
         ret
     })
@@ -120,5 +117,6 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=SC, eps=1, oks=~PL1, ...)
 
 test <- function()
 {
-    r <- main(N=1024, P=10000, Q=2, R=1, vcs=1, frq=.2)
+    r <- main(N=512, P=10000, Q=2, R=1, efn=EGS, eps=2.0, vcs=2, frq=.2, pss=0, bmq=ONM)
+    r <- main(N=512, P=10000, Q=4, R=2, efn=EST, eps=1.5, vcs=3, frq=.2, oks=~PL, lnk=O2, ubz=64)
 }

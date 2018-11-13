@@ -39,7 +39,7 @@ devtools::load_all()
 #' @param bsz batch size for batched training
 #'
 #' see "sim/utl.R" to understand {oks}, {lnk}, and {yks}.
-main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
+main <- function(N, P, Q=1, R=1, frq=.1, lnk=NL, eps=1, oks=~LN1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
@@ -50,18 +50,14 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
     arg <- do.call(data.frame, arg)
-    gds <- dot$gds %||% 'ukb'
-    if(gds=='ukb')
-        gds <- get.rds('sim/dat')
-    else
-        gds <- 'data/1kg_c05.rds'
 
-    ## batched MINQUE: core algorithm
-    assign('BMQ', dot$bmq %||% ONM, .GlobalEnv)
+    ## batched MINQUE: core algorithm, unit batch size
+    assign('MNQ', dot$bmq %||% ONM, .GlobalEnv)
+    assign('UBZ', dot$ubz %||%  64, .GlobalEnv)
     
     ## ------------------------- data genration ------------------------- ##
     ## for each of the Q groups, choose N samples and P features -> Training
-    dat <- lapply(gds, readRDS)
+    dat <- lapply(get.rds('sim/dat'), readRDS)
     dat <- get.gmx(dat, N, P, Q, R)
     dat <- get.sim(dat, frq=frq, lnk=lnk, eps=eps, oks=oks, ...)
 
@@ -69,13 +65,11 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        kn2 <- krn(gmx, ~JL2)
         kn1 <- krn(gmx, ~LN1)
+        kn2 <- krn(gmx, ~JL2)
         ret <- CL(ret, GCT=GCT(rsp, kn1))
-        ## ret <- CL(ret, FUL=GCT(rsp, krn(gmx,  oks)))
-        ret <- CL(ret, BMQ=BMQ(rsp, kn2, ...))
-        ## ret <- CL(ret, BM2=BM2(rsp, kn2, ...))
-        ret <- CL(ret, BM3=BM3(rsp, kn2, ...))
+        ret <- CL(ret, MNQ=MNQ(rsp, kn2, ...))
+        ret <- CL(ret, BMQ=BM3(rsp, kn2, ...))
         ret <- CL(ret, NUL=NUL(rsp, NULL))
         ret
     })
@@ -89,13 +83,11 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
     evl <- with(dat$evl,
     {
         ret <- list()
-        kn2 <- krn(gmx, ~JL2)
         kn1 <- krn(gmx, ~LN1)
+        kn2 <- krn(gmx, ~JL2)
         ret <- CL(ret, GCT=vpd(rsp, kn1, dvp$GCT$par))
-        ## ret <- CL(ret, FUL=vpd(rsp, krn(gmx, oks), dvp$FUL$par))
+        ret <- CL(ret, MNQ=vpd(rsp, kn2, dvp$MNQ$par))
         ret <- CL(ret, BMQ=vpd(rsp, kn2, dvp$BMQ$par))
-        ## ret <- CL(ret, BM2=vpd(rsp, kn2, dvp$BM2$par))
-        ret <- CL(ret, BM3=vpd(rsp, kn2, dvp$BM3$par))
         ret <- CL(ret, NUL=vpd(rsp, NULL, dvp$NUL$par))
         ret
     })

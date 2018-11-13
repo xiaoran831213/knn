@@ -80,7 +80,7 @@ get.one <- function(gmx, oks=~LN, lnk=NL, frq=.1, eps=1, ...)
     fmk <- dot$fmk %||% get.fmk(gmx, frq) # functional mask
     fnl <- krn(gmx[, fmk], oks)           # functional kernel
 
-    ## variance components
+    ## Variance components
     vcs <- dot$vcs %||% 1                 #
     vcs <- rep(vcs, l=length(fnl))        # propagate
     names(vcs) <- names(fnl)
