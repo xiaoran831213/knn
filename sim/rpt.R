@@ -26,7 +26,7 @@ plt.cor <- function(dat)
     gc
 }
 
-readRPT <- function(..., ref=1)
+readRPT <- function(..., ref=0)
 {
     rpt <- list()
     dot <- c(...)
@@ -167,15 +167,12 @@ prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE, ...)
 }
 
 ## labeller
-lb1 <- function (labels, multi_line = TRUE) 
+lbl <- function (labels, multi_line = TRUE) 
 {
     labels <- label_value(labels, multi_line = multi_line)
     dc <- c(
         `ref`="bold(y)*'='*bold(alpha)+bold(epsilon)",
-        `bin`="binomial",
-        `chi`="'chi-square'",
-        `poi`="Poisson",
-        `exp`="exponential",
+        `bin`="binomial", `chi`="'chi-square'", `poi`="Poisson", `exp`="exponential",
         `hy1`="bold(y)*'='*over('|'*bold(alpha)*'|', 1 + '|'*bold(alpha)*'|') + bold(epsilon)",
         `rc1`="bold(y)*'='*bold('|'*alpha*'|')*e^bold('|'*alpha*'|') + bold(epsilon)",
         `e^1`="bold(y)*'='*bold(alpha) + bold(epsilon)",
@@ -188,6 +185,7 @@ lb1 <- function (labels, multi_line = TRUE)
         `bs0`="hat(symbol(sigma))[0]^2 - symbol(sigma)[0]^2",
         `mse`="MSE(bold(y), hat(bold(y)))",
         `rsq`="COR(bold(y), hat(bold(y)))^2",
+        `n2k`="N*'='*2000", `n4k`="N*'='*4000", `n6k`="N*'='*6000", `n8k`="N*'='*8000",
         `rtm`="time ~~ (sec)")
     if (multi_line)
     {
@@ -208,32 +206,31 @@ lb1 <- function (labels, multi_line = TRUE)
     }
 }
 
-pabs <- function(d, o=NULL, fill=TRUE, bat=FALSE)
+pabs <- function(d, o=NULL, bat=FALSE, xtk=FALSE)
 {
-    th <- theme(
-        axis.title.x=element_blank(), axis.ticks.x=element_blank(),
-        axis.title.y=element_blank(), 
-        strip.text.x = element_text(size=12, face="bold"),
-        strip.text.y = element_text(size=12, face="bold"),
-        strip.background = element_rect(colour="red", fill="#CCCCFF"))
-    if(fill)
-    {
-        th <- th + theme(legend.title=element_blank(), legend.position='bottom')
+    th <- theme(axis.title.x=element_blank(), axis.ticks.x=element_blank(),
+                axis.title.y=element_blank(),
+                strip.text.x = element_text(size=12, face="bold"),
+                strip.text.y = element_text(size=12, face="bold"),
+                strip.background = element_rect(colour="red", fill="#CCCCFF"),
+                legend.title=element_blank(), legend.position='bottom')
+    if(!xtk)
         th <- th + theme(axis.text.x=element_blank())
-    }
     
     ## method dictionary
     if(!bat)
         d <- subset(d, !grepl('^B', mtd))
-    d <- within(d, mds <- c(
-                  GCT="GCTA",
-                  MNQ="KNN",
-                  BMQ="KNN-BAT")[mtd])
-    d <- within(d, mds <- as.factor(mds))
-    d <- within(d, relevel(mds, 'GCTA'))
+
+    dc0 <- c(GCT="C0", MNQ="C1", BMQ="C2", BM0="C2", BM1="C2", BM2="C2", BM3="C2", BM4="C2")
+    dc2 <- c(GCT="00", MNQ="10", BMQ="30", BM0="20", BM1="21", BM2="22", BM3="23", BM4="24")
+    d <- within(d,
+    {
+        mdc <- dc0[mtd]                 # method category
+        mdi <- dc2[mtd]                 # method index
+    })
     
     ## report: errors grouped by (tag, key)
-    d <- filter(d, key %in% c('bs0', 'rsq', 'mse', 'rtm'))
+    d <- filter(d, key %in% c('rsq', 'mse', 'rtm'))
 
     ## cap the outliers
     d <- d %>% group_by(tag, key) %>%
@@ -245,20 +242,27 @@ pabs <- function(d, o=NULL, fill=TRUE, bat=FALSE)
     nkey <- length(unique(d$key))
 
     ## plot
-    if(fill)
-        g <- ggplot(d, aes(x=mtd, y=val, fill=mds))
-    else
-        g <- ggplot(d, aes(x=mtd, y=val))
+    g <- ggplot(d, aes(x=mdi, y=val, fill=mdc))
     g <- g + geom_boxplot()
-    ## if(bat)
-    ##     g <- g + geom_boxplot(data=subset(d, grepl('^BM.', mtd)))
-    ## else
-    ##     g <- g + geom_boxplot(data=subset(d, grepl('^BM.', mtd)), alpha=0, linetype=0)
-    g <- g + facet_grid(key ~ tag, scales='free_y', labeller=lb1)
+    g <- g + facet_grid(key ~ tag, scales='free_y', labeller=lbl)
     g <- g + th
-    g <- g + ggtitle(ttl(d))
-    ## g <- g + scale_fill_manual(breaks=c('GCTA', 'KNN', 'KNN-BAT'),
-    ##                            values=c("red", "blue", "green"))
+    ## g <- g + ggtitle(ttl(d))
+
+    ## fill 3 major categories of methods
+    g <- g + scale_fill_manual(
+                 breaks=c('C0', 'C1', 'C2'),
+                 values=c("#FF7F7F", "#7FFF7F", "#7F7FFF"),
+                 labels=c("GCTA   ", "KNN    ", "KNN-Batched"))
+
+    ## x-axis ticks
+    g <- g + scale_x_discrete(
+                 labels=c("00" = "GCTA",
+                          "10" = "KNN",
+                          "30" = "B-KNN",
+                          "20" = expression(over(KNN, 80)),
+                          "21" = expression(over(KNN, 40)),
+                          "22" = expression(over(KNN, 20)),
+                          "23" = expression(over(KNN, 10))))
 
     ## output
     if(!is.null(o))
@@ -274,16 +278,17 @@ pabs <- function(d, o=NULL, fill=TRUE, bat=FALSE)
 
 rpt1 <- function(cache=FALSE)
 {
-    . <- subset(d0('bi0', cache), mtd != 'NUL'); pabs(., 'wi0', bat=0)
-    . <- subset(d0('bd0', cache), mtd != 'NUL'); pabs(., 'wd0', bat=0)
+    . <- subset(d0('bi0', cache), mtd!='NUL' & tag!='ref'); pabs(., 'wi0', bat=0)
+    . <- subset(d0('bi0', cache), mtd!='NUL' & tag!='ref'); pabs(., 'bi0', bat=1)
+    
+    . <- subset(d0('bd0', cache), mtd!='NUL' & tag!='ref'); pabs(., 'wd0', bat=0)
+    . <- subset(d0('bd0', cache), mtd!='NUL' & tag!='ref'); pabs(., 'bd0', bat=1)
+
     . <- subset(d0('bn0', cache), mtd != 'NUL'); pabs(., 'wn0', bat=0)
-    . <- subset(d0('bi0', cache), mtd != 'NUL'); pabs(., 'bi0', bat=1)
-    . <- subset(d0('bd0', cache), mtd != 'NUL'); pabs(., 'bd0', bat=1)
     . <- subset(d0('bn0', cache), mtd != 'NUL'); pabs(., 'bn0', bat=1)
 }
 
 rpt2 <- function(cache=FALSE)
 {
-    . <- subset(d0('bz0', cache), mtd %in% c('MNQ', 'GCT', 'BMQ'))
-    pabs('n00', FALSE, bias=FALSE, ref=0)
+    . <- subset(d0('bz0', cache), mtd!='NUL' & tag!='ref'); pabs(., 'bz0', bat=1, xtk=TRUE)
 }
