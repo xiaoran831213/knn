@@ -1,4 +1,5 @@
 ## methods
+library(wrapGCTA)
 
 ## batched MLE
 BL0 <- function(rsp, knl, ...) GBT(rop.vcm, rsp, knl, 2^0, ...)
@@ -21,9 +22,9 @@ OZM <- function(rsp, knl, ...) knl.mnq(rsp, knl, itr= 1, cpp=FALSE, psd=0, zbd=1
 ## Iterative PSD     MINQUE
 IPM <- function(rsp, knl, ...) knl.mnq(rsp, knl, itr=50, cpp=FALSE, psd=1, zbd=0, ...)
 ## Iterative Normal  MINQUE
-INM <- function(rsp, knl, ...) knl.mnq(rsp, knl, itr=50, cpp=FALSE, psd=0, zbd=0, ...)
+INM <- function(rsp, knl, ...) knl.mnq(rsp, knl, itr=50, cpp=FALSE, psd=0, ebd=1, vbd=1, zbd=0, ...)
 ## Iterative Z-bound MINQUE
-IZM <- function(rsp, knl, ...) knl.mnq(rsp, knl, itr=50, cpp=FALSE, psd=0, zbd=1, ...)
+IZM <- function(rsp, knl, ...) knl.mnq(rsp, knl, itr=50, cpp=FALSE, psd=0, ebd=1, vbd=1, zbd=1, ...)
 
 ## batched minque
 UBZ <- 64
@@ -39,8 +40,28 @@ BM8 <- function(rsp, knl, ...) GBT(MNQ, rsp, knl, UBZ * 2^8, ...)
 BM9 <- function(rsp, knl, ...) GBT(MNQ, rsp, knl, UBZ * 2^9, ...)
 
 
+MQ0 <- function(y, K, itr=20, ...) knl.mnq(y, K, zbd=0, vbd=0, ebd=0, itr=itr, ...)
+MQ1 <- function(y, K, itr=20, ...) knl.mnq(y, K, zbd=0, vbd=1, ebd=0, itr=itr, ...)
+MQ2 <- function(y, K, itr=20, ...) knl.mnq(y, K, zbd=0, vbd=0, ebd=1, itr=itr, ...)
+MQ3 <- function(y, K, itr=20, ...) knl.mnq(y, K, zbd=0, vbd=1, ebd=1, itr=itr, ...)
+
+ZQ0 <- function(y, K, itr=20, ...) knl.mnq(y, K, zbd=1, vbd=0, ebd=0, itr=itr, ...)
+ZQ1 <- function(y, K, itr=20, ...) knl.mnq(y, K, zbd=1, vbd=1, ebd=0, itr=itr, ...)
+ZQ2 <- function(y, K, itr=20, ...) knl.mnq(y, K, zbd=1, vbd=0, ebd=1, itr=itr, ...)
+ZQ3 <- function(y, K, itr=20, ...) knl.mnq(y, K, zbd=1, vbd=1, ebd=1, itr=itr, ...)
+
+ZGC <- function(y, K, itr=100, ...) gcta.reml(y, K, itr=itr, zbd=1, alg=1)
+UGC <- function(y, K, itr=100, ...) gcta.reml(y, K, itr=itr, zbd=0, alg=1)
+
 ## GCTA Default
-GCT <- function(rsp, knl, ...) gct.rml(rsp, knl, ...)
+GCT <- function(rsp, knl, ...)
+{
+    r <- gcta.reml(rsp, knl, quiet=FALSE, ...)
+    par <- r$par
+    rpt <- vpd(r$par, rsp, knl, rt=0, ...)
+    list(par=par, rpt=rpt, rtm=r$rtm)
+}
+
 
 ## MLE
 MLE <- function(rsp, knl, ...)
@@ -51,5 +72,5 @@ MLE <- function(rsp, knl, ...)
 ## NULL
 NUL <- function(rsp, knl, ...)
 {
-    nul.vcm(rsp, NULL, ...)
+    nul.vcm(rsp, ...)
 }

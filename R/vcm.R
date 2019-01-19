@@ -101,49 +101,81 @@ vcm.fsi <- function(W, K, Y, ...)
 
 #' Variance component model prediction
 #' 
-#' @param y a vector of response variable
-#' @param K a list of covariance kernels
-#' @param W a vector of variance components
-#' @param ln the VCs are logged? if true, exp(W) is used instead of W
+#' @param y vector of response variable
+#' @param W vector of parameters (beta, and sigma^2)
+#' @param K list of covariance kernels
+#' @param X matrix of covariate
 #' @param rt return a table? if false, a named vector is returned
-vpd <- function(y, K=NULL, W=NULL, rt=1, ...)
+vpd <- function(W, y, K=NULL, X=NULL, rt=1, ...)
 {
+    dot <- list(...)
     y <- unname(y)
     N <- NROW(y)
+    Q <- length(W)
 
-    ## use null model?
-    if(is.null(W))
-        W <- c(eps=sum(y^2) / N)
+    ## kernels, prepended with noise
+    K <- c(list(EPS=diag(N)), K)
+    L <- length(K)
+    M <- if(is.null(X)) 0 else NCOL(X)
 
-    ## prepand noisy kernel
-    C <- c(list(eps=diag(N)), cv=K)
+    ## variance components, and fix effect coeficients
+    vcs <- W[seq(Q - L + 1, Q)]
+    fix <- W[seq(1, Q - L)]
     
-    ## make predictions
-    v <- unname(cmb(C, W)[[1]])
-    alpha <- solve(v, y)                # V^{-1}y
-    f <- v - diag(W[1], length(y))      # W[1] is PHI
+    ## matrix for fixed effect, prepended with intercept
+    if(length(fix) == M + 1)
+    {
+        X <- cbind(X00=rep(1, N), X)
+        M <- M + 1
+    }
 
-    ## prediction: conditional mean and covariance
-    h <- f %*% alpha
-    mht <- mean(h)
+    xb <- if(M > 0) X %*% fix else 0    # x beta
+    e <- y - xb                         # fix effect residual
+    SST <- sum(e^2) / (N - 1)           # sum square total
+
+    ## heritability
+    h2b <- unname(1 - vcs[1] / SST)      # hsq 2
+    h2c <- unname(1 - vcs[1] / sum(vcs)) # hsq 3
     
-    mse <- mean((y - h)^2)
-    cyh <- if(sd(h) == 0) 0 else cyh <- cor(y, h)
-    rsq <- cyh^2
+    ## predicted random effects
+    V <- unname(cmb(K, vcs, drop=TRUE))
+    A <- solve(V)                       # V^{-1}
+    Ae <- A %*% e
+    
+    zu1 <- (V - diag(vcs[1], N)) %*% Ae   # use BLUP
+    zu2 <- e - Ae / diag(A)               # LOO
+    yh1 <- zu1 + xb
+    yh2 <- zu2 + xb
+
+    er1 <- mean((e - zu1)^2)            # e MSE 1, BLUP
+    er2 <- mean((e - zu2)^2)            # e MSE 2, LOOV
+    ey1 <- mean((y - yh1)^2)            # y MSE 1, BLUP
+    ey2 <- mean((y - yh2)^2)            # y MSE 2, LOOV
+    
+    ## correlation between truth and prediction
+    cy1 <- cor(y, yh1)
+    cy2 <- cor(y, yh2)
+    cr1 <- if(abs(sd(zu1)) < 1e-8) 0 else cor(e, zu1)
+    cr2 <- if(abs(sd(zu2)) < 1e-8) 0 else cor(e, zu2)
+
+    ## slops between truth and prediction
+    sr1 <- if(abs(sd(zu1)) < 1e-8) 0 else unname(coef(lm(e ~ zu1))[2])
+    sr2 <- if(abs(sd(zu2)) < 1e-8) 0 else unname(coef(lm(e ~ zu2))[2])
+    sy1 <- unname(coef(lm(y ~ yh1))[2])
+    sy2 <- unname(coef(lm(y ~ yh2))[2])
     
     ## negative likelihood
-    ldt <- with(.Internal(det_ge_real(v, TRUE)), sign * modulus) / N
-    yay <- sum(alpha * y) / N           # y^T V^{-1} y
-    ## nlk <- .5 * (yay + ldt + log(2 * pi))
-    nlk <- yay + ldt
+    ldt <- with(.Internal(det_ge_real(V, TRUE)), sign * modulus) / N
+    eae <- sum(Ae * e) / N    # e^T V^{-1} e
+    ## nlk <- .5 * (eae + ldt + log(2 * pi))
+    nlk <- eae + ldt
     
-    ## prediction 2: leave one out CV
-    ## a <- solve(v)
-    ## h <- y - a %*% y / diag(a)
-    ## loo <- mean((y - h)^2)
-
     ## return
-    rpt <- c(rsq=rsq, mse=mse, nlk=nlk, cyh=cyh, ldt=ldt, yay=yay, mht=mht, ssz=N)
+    rpt <- c(h2b=h2b, h2c=h2c, SST=SST, nlk=nlk,
+             er1=er1, er2=er2, ey1=ey1, ey2=ey2,
+             cy1=cy1, cy2=cy2, cr1=cr1, cr2=cr2,
+             sr1=sr1, sr2=sr2, sy1=sy1, sy2=sy2, N=N)
+
     if(rt == 1)
         rpt <- DF(key=names(rpt), val=rpt, row.names=names(rpt))
     if(rt == 2)
@@ -155,7 +187,7 @@ rop.vcm <- function(y, K, W=NULL, cpp=TRUE, ...)
 {
     N <- NROW(y)
     Q <- NCOL(y)
-    C <- c(list(eps=diag(N)), cv=K)
+    C <- c(list(EPS=diag(N)), cv=K)
     L <- length(C)
     if(is.null(W))
         W <- matrix(rnorm(L * Q), L, Q)
@@ -195,7 +227,7 @@ rop.vcm <- function(y, K, W=NULL, cpp=TRUE, ...)
     ## print(list(hsn.num=hessian(obj, W), hsn.fun=hsn(W), fsn.fun=fsi(W)))
 
     ## make predictions
-    prd <- vpd(y, K, exp(W))
+    prd <- vpd(exp(W), y, K)
 
     ## timing
     rtm <- DF(key='rtm', val=unname((time1 - time0)['elapsed']))
@@ -213,7 +245,7 @@ nwt.vcm <- function(y, K, W=NULL, ...)
     vrb <- .$vrb %||% 1
 
     N <- NROW(y)
-    C <- c(list(eps=diag(N)), cv=K)
+    C <- c(list(EPS=diag(N)), cv=K)
     L <- length(C)
     Q <- NCOL(y)
     if(is.null(W))
@@ -242,7 +274,7 @@ nwt.vcm <- function(y, K, W=NULL, ...)
     PF("NWT.VCM.DV2.END =\n")
     
     ## make predictions
-    prd <- vpd(y, K, exp(W))
+    prd <- vpd(exp(W), y, K)
     
     ## timing
     rtm <- DF(key='rtm', val=unname((time1 - time0)['elapsed']))
@@ -250,22 +282,22 @@ nwt.vcm <- function(y, K, W=NULL, ...)
     list(rpt=rbind(rtm, prd), par=exp(W))
 }
 
-#' the null model
-nul.vcm <- function(y, K=NULL, W=NULL, ...)
+#' Null Variance Component Model
+#'
+#' @param y response
+#' @param X design matrix of fix effect, without intercept.
+#'
+#' @return null model fit.
+nul.vcm <- function(y, X=NULL, ...)
 {
-    ## keep K and W for syntatic consistency
     N <- NROW(y)
-    mse <- sum(y^2) / N
-    eps <- mse
-    v <- diag(eps, N)
-    alpha <- solve(v, y)                # v^{-1}y or y/e = y / sum(y^2/N) = N * y/ sum(y^2)
+    m0 <- if(is.null(X)) lm(y ~ 1) else lm(y ~ X)
 
-    ldt <- with(.Internal(det_ge_real(v, TRUE)), sign * modulus)
-    nlk <- .5 / N * (sum(alpha * y) + ldt + N * log(2*pi))
-    
-    rpt <- DF(key=c('mse', 'nlk'), val=c(mse, nlk))
-    rownames(rpt) <- rpt$key
+    ## parameters
+    par <- coef(m0)
+    names(par) <- if(is.null(X)) 'X00' else c('X00', names(X))
+    par <- c(par, EPS=sum(residuals(m0)^2) / (N - 1))
 
-    ## return
-    list(rpt=rpt, par=c(eps=eps))
+    rpt <- vpd(par, y, rt=0)
+    list(rpt=rpt, par=par, rtm=NA)
 }

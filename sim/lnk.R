@@ -32,10 +32,10 @@ dc <- function(x, d=NULL, curb=0.01, ...)
         ch={ qchisq(p, v / 2)})
 
     ## centered?
-    cdc <- as.logical(get0('cdc', ifnotfound=TRUE))
-    print(list(cdc=cdc))
-    if(cdc)
-        z <- z - y
+    ## cdc <- as.logical(get0('cdc', ifnotfound=TRUE))
+    ## print(list(cdc=cdc))
+    ## if(cdc)
+    ##     z <- z - y
     z
 }
 
@@ -61,8 +61,10 @@ CH <- function(x) dc(x, 'ch')
 
 P2 <- function(x) drop(scale(1+x)^2) * sd(x)
 P3 <- function(x) drop(scale(1+x)^3) * sd(x)
+OP2 <- function(x) drop(scale((1+x)^2) - 1) * sd(x)
+OP3 <- function(x) drop(scale((1+x)^3) - 1) * sd(x)
 O2 <- function(x) drop(scale(x ^ 2)) * sd(x)
-O3 <- function(x) drop(scale(x ^ 3)) * sd(x)
+O3 <- function(x) drop(scale(0.5 * x ^ 2 + 1.5 * x ^ 3)) * sd(x)
 
 SN1 <- function(x) .S(x, x * sin(1 * pi * x))
 SN2 <- function(x) .S(x, x * sin(2 * pi * x))
@@ -77,4 +79,3 @@ RCC <- function(x) .S(x, quote(x * exp(-x)), 1, 0)
 RC1 <- function(x) .S(x, quote(x * exp(-x)), 1, 1)
 RC2 <- function(x) .S(x, quote(x * exp(-x)), 2, 1)
 RC3 <- function(x) .S(x, quote(x * exp(-x)), 3, 1)
-

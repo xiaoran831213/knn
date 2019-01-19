@@ -1,3 +1,16 @@
+lol2df <- function(x)
+{
+    dat <- lapply(list(...), function(l)
+    {
+        if(any(sapply(l, is.list)))
+            l <- unlist(l)
+        l
+    })
+    idx <- unique(unlist(sapply(dat, names)))
+    dat <- lapply(dat, `[`, idx)
+    dat
+}
+
 ## fast (squared) Euclidean distance
 euc2 <- function(x, y=NULL)
 {

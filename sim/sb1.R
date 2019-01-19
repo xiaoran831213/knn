@@ -52,7 +52,7 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
     arg <- do.call(data.frame, arg)
 
     ## batched MINQUE: core algorithm
-    assign('BMQ', dot$bmq %||% ONM, .GlobalEnv)
+    assign('MNQ', dot$bmq %||% ONM, .GlobalEnv)
     assign('UBZ', dot$ubz %||%  64, .GlobalEnv)
     
     ## ------------------------- data genration ------------------------- ##
@@ -68,11 +68,11 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
         kn2 <- krn(gmx, ~JL2)
         kn1 <- krn(gmx, ~LN1)
         ret <- CL(ret, GCT=GCT(rsp, kn1))
-        ret <- CL(ret, BM0=BM0(rsp, kn2, ...))
-        ret <- CL(ret, BM1=BM1(rsp, kn2, ...))
-        ret <- CL(ret, BM2=BM2(rsp, kn2, ...))
+        ## ret <- CL(ret, BM0=BM0(rsp, kn2, ...))
+        ## ret <- CL(ret, BM1=BM1(rsp, kn2, ...))
+        ## ret <- CL(ret, BM2=BM2(rsp, kn2, ...))
         ret <- CL(ret, BM3=BM3(rsp, kn2, ...))
-        ret <- CL(ret, BMQ=BMQ(rsp, kn2, ...))
+        ret <- CL(ret, MNQ=MNQ(rsp, kn2, ...))
         ret <- CL(ret, NUL=NUL(rsp, NULL))
         ret
     })
@@ -89,11 +89,11 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
         kn2 <- krn(gmx, ~JL2)
         kn1 <- krn(gmx, ~LN1)
         ret <- CL(ret, GCT=vpd(rsp, kn1, dvp$GCT$par))
-        ret <- CL(ret, BM0=vpd(rsp, kn2, dvp$BM0$par))
-        ret <- CL(ret, BM1=vpd(rsp, kn2, dvp$BM1$par))
-        ret <- CL(ret, BM2=vpd(rsp, kn2, dvp$BM2$par))
+        ## ret <- CL(ret, BM0=vpd(rsp, kn2, dvp$BM0$par))
+        ## ret <- CL(ret, BM1=vpd(rsp, kn2, dvp$BM1$par))
+        ## ret <- CL(ret, BM2=vpd(rsp, kn2, dvp$BM2$par))
         ret <- CL(ret, BM3=vpd(rsp, kn2, dvp$BM3$par))
-        ret <- CL(ret, BMQ=vpd(rsp, kn2, dvp$BMQ$par))
+        ret <- CL(ret, MNQ=vpd(rsp, kn2, dvp$MNQ$par))
         ret <- CL(ret, NUL=vpd(rsp, NULL, dvp$NUL$par))
         ret
     })
@@ -117,6 +117,5 @@ main <- function(N, P, Q=1, R=1, frq=.05, lnk=NL, eps=.1, oks=~LN1, ...)
 
 test <- function()
 {
-    r <- main(N=512, P=10000, Q=2, R=1, efn=EGS, eps=2.0, vcs=2, frq=.2, pss=0, bmq=ONM)
-    r <- main(N=512, P=10000, Q=4, R=2, efn=EST, eps=1.5, vcs=3, frq=.2, oks=~PL, lnk=O2, ubz=64)
+    r <- main(N=512, P=10000, Q=4, R=1, efn=EST, eps=2, vcs=2, frq=.2, pss=0, bmq=ONM, ubz=64)
 }

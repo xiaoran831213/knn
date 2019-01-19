@@ -47,6 +47,57 @@ DF <- data.frame
 `%[%` <- function(ll, key) if(is.function(key)) lapply(ll, key) else lapply(ll, `[`, key)
 `%$%` <- function(ll, key) if(is.function(key)) lapply(ll, key) else lapply(ll, `[[`, key)
 
+#' vector row-binder
+#'
+#' row bind vectors of different length
+#' @param ... vectors to be binded
+.rbd <- function(...)
+{
+    items <- list(...)
+    items <- items[!sapply(items, is.null)]
+
+    ## fix dimensions
+    items <- lapply(items, function(i)
+    {
+        if(length(dim(i)) != 2)
+        {
+            n <- names(i)
+            dim(i) <- c(1L, length(i))
+            colnames(i) <- n
+        }
+        DF(i)
+    })
+
+    ## C=column names, and P=column counts
+    C <- Reduce(union, sapply(items, colnames))
+    P <- length(C)
+
+    ## NA padding
+    ret <- lapply(items, function(i)
+    {
+        n <- list(rownames(i), setdiff(C, colnames(i)))
+        m <- matrix(NA, nrow(i), P - ncol(i), dimnames=n)
+        cbind(i, m)[, C]
+    })
+    ret <- do.call(rbind, ret)
+    rownames(ret) <- names(items)
+    ret
+}
+
+#' vector col-binder
+#'
+#' col bind vectors of different length
+#' @param ... vectors to be binded
+.cbd <- function(...)
+{
+    items <- list(...)
+    nms <- Reduce(union, sapply(items, names))
+    ret <- sapply(items, `[`, nms)
+    rownames(ret) <- nms
+    colnames(ret) <- names(items)
+    ret
+}
+
 #' Dimension Change.
 .dim <- function(x, ...) {dim(x) <- c(...); x}
 

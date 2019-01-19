@@ -1,6 +1,3 @@
-library(magrittr)
-library(Matrix)
-
 source('R/hlp.R')                       # helpers
 source('R/kpl.R')                       # kernel players
 source('R/utl.R')                       # utilities
@@ -19,8 +16,8 @@ source('sim/gsm.R')                     # genomic simulator
 source('sim/mtd.R')                     # methods
 source('sim/eps.R')                     # noise
 
-library(devtools)                       # enable the C++ functions
-devtools::load_all()
+## library(devtools)                       # enable the C++ functions
+## devtools::load_all()
 
 #' simulation of kernel deep neural network;
 #' @param N size of population groups
@@ -47,7 +44,7 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=SC, eps=1, oks=~PL1, ...)
     het <- dot$het %||% 0.0
     svc <- dot$svc %||% 1.0
     efn <- dot$efn %||% EGS             # epsilon function for noise
-    arg <- match.call() %>% tail(-1) %>% as.list
+    arg <- as.list(match.call()[-1])
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
     arg <- do.call(data.frame, arg)
@@ -59,66 +56,67 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=SC, eps=1, oks=~PL1, ...)
     dat <- lapply(gds, readRDS)
     dat <- get.gmx(dat, N, P, Q, R)
     dat <- get.sim(dat, frq=frq, lnk=lnk, eps=eps, oks=oks, ...)
-    
+
+    std <- function(k) k / mean(diag(k))
     ## training
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        kn1 <- krn(gmx, ~LN1)
-        kn2 <- krn(gmx, ~JL2)
-        kn3 <- krn(gmx, ~JL3)
-        ## ret <- CL(ret, IZM=IZM(rsp, knl, ...))
-        ## ret <- CL(ret, OZ1=OZM(rsp, kn1, ...))
-        ## ret <- CL(ret, ON1=ONM(rsp, kn1, ...))
-        ## ret <- CL(ret, OZ2=OZM(rsp, kn2, ...))
-        ret <- CL(ret, MQ2=ONM(rsp, kn2, ...))
-        ret <- CL(ret, MQ3=ONM(rsp, kn3, ...))
-        ret <- CL(ret, GCT=GCT(rsp, kn1))
-        ret <- CL(ret, NUL=NUL(rsp, NULL))
+        ## kn1 <- krn(gmx, ~LN1)
+        ## kn2 <- krn(gmx, ~LN2)
+        kn3 <- lapply(krn(gmx, ~LN3), std)
+        kn1 <- kn3[1]
+        kn2 <- kn3[1:2]
+        ret <- CL(ret, NUL=NUL(rsp, ...))
+        ret <- CL(ret, G1K=GCT(rsp, kn1))
+        ## ret <- CL(ret, M1K=MQ3(rsp, kn1, ...))
+        ret <- CL(ret, BM2=MQ3(rsp, kn2, ...))
+        ret <- CL(ret, BM3=MQ3(rsp, kn3, ...))
+        ## ret <- CL(ret, UM2=MQ0(rsp, kn2, ...))
+        ## ret <- CL(ret, UM3=MQ0(rsp, kn3, ...))
         ret
     })
-    
-    ## bias assesment
-    vcs <- dat$dvp$vcs
-    par <- pars(dvp, c(eps=eps, vcs))
-    bia <- list(bias(dvp, eps, vcs))
 
     ## testing
     evl <- with(dat$evl,
     {
         ret <- list()
-        kn1 <- krn(gmx, ~LN1)
-        kn2 <- krn(gmx, ~JL2)
-        kn3 <- krn(gmx, ~JL3)
-        ## ret <- CL(ret, IZM=vpd(rsp, knl, dvp$IZM$par))
-        ## ret <- CL(ret, OZ1=vpd(rsp, kn1, dvp$OZ1$par))
-        ## ret <- CL(ret, ON1=vpd(rsp, kn1, dvp$ON1$par))
-        ## ret <- CL(ret, OZ2=vpd(rsp, kn2, dvp$OZ2$par))
-        ret <- CL(ret, MQ2=vpd(rsp, kn2, dvp$MQ2$par))
-        ret <- CL(ret, MQ3=vpd(rsp, kn3, dvp$MQ3$par))
-        ret <- CL(ret, GCT=vpd(rsp, kn1, dvp$GCT$par))
-        ret <- CL(ret, NUL=vpd(rsp, NULL, dvp$NUL$par))
+        ## kn1 <- krn(gmx, ~LN1)
+        kn3 <- lapply(krn(gmx, ~LN3), std)
+        kn1 <- kn3[1]
+        kn2 <- kn3[1:2]
+        ret <- CL(ret, NUL=vpd(dvp$NUL$par, rsp, rt=0))
+        ret <- CL(ret, G1K=vpd(dvp$G1K$par, rsp, kn1, rt=0))
+        ## ret <- CL(ret, M1K=vpd(dvp$M1K$par, rsp, kn1, X=x00, rt=0))
+        ret <- CL(ret, BM2=vpd(dvp$BM2$par, rsp, kn2, rt=0))
+        ret <- CL(ret, BM3=vpd(dvp$BM3$par, rsp, kn3, rt=0))
+        ## ret <- CL(ret, UM2=vpd(dvp$UM2$par, rsp, kn2, rt=0))
+        ## ret <- CL(ret, UM3=vpd(dvp$UM3$par, rsp, kn3, rt=0))
         ret
     })
     
     ## ----------------------- generate reports ----------------------- ##
-    rpt <- list()
-    dvp <- dvp %$% 'rpt'
-    dvp <- lapply(names(dvp), function(.) cbind(dat='dvp', mtd=., dvp[[.]]))
-    evl <- lapply(names(evl), function(.) cbind(dat='evl', mtd=., evl[[.]]))
-    rpt <- c(dvp, evl, bia)
+    rtm <- unlist(dvp %$% 'rtm')
+    par <- do.call(.rbd, dvp %$% 'par')
+    kpa <- do.call(.rbd, dvp %$% 'kpa')
     
-    ## report and return
-    rpt <- Reduce(function(a, b) merge(a, b, all=TRUE), rpt)
-    rpt <- within(rpt, val <- round(val, 5L))
-    ret <- cbind(arg, rpt)
+    rpt <- within(list(),
+    {
+        par <- DF(dat='par', mtd=rownames(par), par)
+        dvp <- DF(dat='dvp', mtd=names(dvp), do.call(rbind, dvp %$% 'rpt'), rtm=rtm)
+        evl <- DF(dat='evl', mtd=names(evl), do.call(.rbd, evl))
+    })
+    library(reshape2)
+    rpt <- lapply(rpt, melt, variable.name='key', value.name='val')
+    rpt <- cbind(arg, do.call(rbind, rpt))
+    rownames(rpt) <- NULL
 
-    print(list(par=par))
-    print(list(time=subset(ret, dat=='dvp' & key=='rtm')))
-    ret
+    print(list(par=par, rtm=rtm))
+    rpt
 }
 
 test <- function()
 {
-    r <- main(N=1024, P=10000, Q=2, R=1, vcs=1, frq=.2)
+    r <- main(N=1024, P=10000, Q=2, R=1, vcs=1, frq=.2, oks=~PL+X3)
+    r <- main(N=512, P=8192, Q=2, R=1, vcs=c(0.2, 1.1, 2.0), frq=.2, oks=~LN3, seed=3)
 }

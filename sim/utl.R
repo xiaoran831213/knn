@@ -134,7 +134,7 @@ get.rds <- function(..., n=1)
 pars <- function(dvp, ref=NULL)
 {
     par <- dvp %$% 'par'
-    key <- unlist(sapply(par, names), use.names=FALSE)
+    key <- unlist(lapply(par, names), use.names=FALSE)
     if(!is.null(ref))
         key <- c(names(ref), key)
     key <- unique(key)
@@ -159,7 +159,7 @@ bias <- function(dvp, eps, vcs)
 {
     ## bias assesment
     par <- dvp %$% 'par'                # estimates
-    ref <- c(eps=eps, vcs)              # reference
+    ref <- c(EPS=eps, vcs)              # reference
 
     ## parameter names, and methods
     key <- unique(unlist(c(names(ref), sapply(par, names)), use.names=FALSE))

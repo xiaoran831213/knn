@@ -130,3 +130,23 @@ test.lnk <- function()
     ggsave('~/Dropbox/pub/img/nlr_tran.png', plot.lnk(d0, 0), scale=.85, width=19, height=19/4-.3)
     ggsave('~/Dropbox/pub/img/nlr_hist.png', plot.lnk(d0, 1), scale=.85, width=19, height=19/4-.3)
 }
+
+test.knl <- function(N=500, P=seq(N, by=N, le=3), K=1:3)
+{
+    one <- function(n, p, k)
+    {
+        cat(sprintf("%4d %8d %2d\n", n, p, k))
+        x <- scale(matrix(rnorm(n * p), n, p))
+
+        r <- (tcrossprod(x) / p)^k
+        r <- kappa(r, method='direct')
+
+        r <- c(N=n, P=p, K=k, kpa=r)
+        r
+    }
+
+    cfg <- apply(expand.grid(n=N, p=P, k=K), 1L, as.list)
+    ret <- do.call(rbind, lapply(cfg, do.call, what=one))
+    ret <- as.data.frame(ret)
+    ret
+}

@@ -17,7 +17,7 @@ gct.rml <- function(y, K, qcvr=NULL, dcvr=NULL, maxit=100)
     GRM <- K
     if(is.null(names(GRM)))
         names(GRM) <- sprintf('G%02d', seq(length(GRM)))
-    K <- c(list(eps=diag(N)), K)
+    K <- c(list(EPS=diag(N)), K)
     
     GRM.dir <- file.path(tpd, 'grm')
     if(!dir.create(GRM.dir))
@@ -101,7 +101,7 @@ gcta.parse <- function(tpd)
     ## --- parse *.hsq for variance ---
     hsq.path <- file.path(tpd, 'out.hsq')
     hsq <- readLines(hsq.path)
-
+    
     ## variance components, and their names
     reg <- "(^Source|^V[(])"
     vcs <- grep(reg, hsq, value=TRUE)
@@ -111,7 +111,7 @@ gcta.parse <- function(tpd)
     vcs <- within(vcs, par <- sub("V[(](.*)[)]", "\\1", par))
     vcs <- subset(vcs, !grepl('Vp$', par))
     vcs <- vcs[c(nrow(vcs), 1:(nrow(vcs) - 1)), ]
-    vcs$par[1] <- 'eps'
+    vcs$par[1] <- 'EPS'
     
     ## --- parse *.indi.blp for predictions on training data ---
     blp.path <- file.path(tpd, 'out.indi.blp')

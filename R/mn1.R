@@ -123,8 +123,8 @@
     }
     if(!is.null(X))
     {
-        B <- solve(V, X)                # V^{-1}X
-        P <- X %*% ginv(t(X) %*% B) %*% t(B)
+        . <- solve(V, X)                # V^{-1}X
+        P <- X %*% ginv(t(X) %*% .) %*% t(.)
 
         ## R V_i = V^{-1}(I - P) V_i = V^{-1}(V_i - P V_i)
         for(i in seq.int(K))
@@ -157,17 +157,8 @@
     w <- ginv(F) %*% v_ 
     ## [ A1, A2, ... AK] is not directly calculated
 
-    ## GLS for fixed effects
-    if(!is.null(X))
-    {
-        b <- ginv(crossprod(X, B)) %*% crossprod(B, y)
-        names(b) <- colnames(X)
-    }
-    else
-        b <- NULL
-
     ## pack up
-    list(vcs=w, se2=NULL, fix=b)
+    list(vcs=w, se2=NULL)
 }
 
 #' Generalized Least Square estimates of beta
@@ -242,7 +233,7 @@ knl.ply <- function(V, order=1)
 #' kernel (the noise term).
 #' @param order an interger controls the kernel polynomial expansion
 #' @param cpp use compiled Cpp code instead of R routine.
-#' @param itr number of iterations, def=10
+#' @param itr number of iterations, def=1
 #' @param fix estimate fixed effect, fef=0
 #' @return a list of statistics:
 #' 
@@ -252,137 +243,100 @@ knl.ply <- function(V, order=1)
 #'   - mean square error between y and y.hat;
 #'   - negative log likelihood assuming y ~ N(0, sum_i(V_i * par_i))
 #'   - cor(y, y.hat)
-knl.mnq <- function(y, V, X=NULL, W=NULL, cpp=FALSE, itr=30, ...)
+knl.mnq <- function(y, V, X=NULL, W=NULL, cpp=TRUE, itr=1, ...)
 {
     dot <- list(...)
+    prd <- dot$prd %||% FALSE           # make self prediction
     psd <- dot$psd %||% 0L              # make PSD projection?
-    zbd <- dot$zbd %||% 0L              # zero as lower bound?
-    vbd <- dot$vbd %||% 1L              # upper bound considered?
-    ebd <- dot$ebd %||% 1L              # bound Epsilon always?
+    zbd <- dot$zbd %||% 0L              # 0 as lower bound?
     tol <- dot$tol %||% 1e-5
-    vth <- dot$vth %||% 0.1             # variance threshold
+    N <- length(y)                      # sample size
+    hst <- dot$hst %||% list()          # history
+    ret <- list()
 
     ## append noise kernel
-    N <- length(y)                      # sample size
     C <- c(list(EPS=diag(N)), V)
     K <- length(C)                      # kernel count
-    nm0 <- names(C)
 
-    ## prepend intercept if necessary
-    if(isFALSE(any(grepl('X00', names(X)[1], TRUE))))
-        X <- cbind(X00=rep(1.0, N), X)
+    n0 <- names(C)
+    n1 <- sprintf('K%d', seq_along(C) - 1L)
+    names(C) <- n1
 
-    ## default total variance without fixed effect
-    SST <- sum(residuals(lm(y ~ X))^2) / (N-1)  # sum(y^2) / (N-1)
-
-    ## initial weights
-    ini <- if(is.null(W)) rep(SST/K, K) else W
-    vcs <- ini
-    par <- ini
+    if(is.null(W))                      # initial weights
+    {
+        ini <- rep(1, length(C))
+        names(ini) <- n1
+        W <- ini
+    }
+    else
+        ini <- W
+    Z <- W
 
     ## kappa of kernels
-    kpa <- c(1, sapply(V, kappa, method="direct")) # initial kappa
-    msk <- c(EPS=Inf, rank(kpa[-1]))               # kernel mask
-
+    ikp <- c(1, sapply(V, kappa, method="direct")) # initial kappa
+    kpa <- ikp
+    
     ## print('begin MINQUE')
     t0 <- Sys.time()
 
-    ps0 <- function(...) paste(..., collapse=" ")
-    sp0 <- function(...) ps0(sprintf(...))
-    ca0 <- function(...) cat(..., "\n", sep="")
-    hdr <- ps0('MN:', sp0('%3s', "ITR"), sp0("%6s", nm0), sp0("%7s", "MISC"))
-
-    ## helper inner functions
-    .df <- function() max(abs(vcs - par), na.rm=TRUE)
-    .DF <- function() sp0("%6.4fD", .df())
-
-    .ev <- function()
-    {
-        v <- c(SUM=sum(vcs, na.rm=TRUE), vcs[!is.na(vcs)])
-        max(ifelse(v < 0, -v / SST, v / SST - 1))
-    }
-    .EV <- function() sp0("%6.4fV", .ev())
-    
-    VC <- function() ps0('VC:', sp0('%03d', itr), sp0("%6.3f", vcs), .DF(), .EV())
-
-    ## print the header
-    ca0(hdr)
-
-    ca0(VC())
+    cat('MNQ:', sprintf('%s', 'itr'),
+        paste(sprintf("%9s", n0), collapse=""), sprintf("%10s\n", 'diff'))
+    cat('MNQ:', sprintf('%s', 'INI'),
+        paste(sprintf("%9.5f", Z), collapse=""), sprintf("%10s\n", "NAN"))
     while(itr > 0)
     {
-        par <- vcs
         ## call MINQUE core function, skip kernels with zero weights.
         if(cpp)
-            r <- .Call('knl_mnq', as.matrix(y), C[!is.na(vcs)], psd, PACKAGE='knn')
+            r <- .Call('knl_mnq', as.matrix(y), C[is.finite(Z)], psd, PACKAGE='knn')
         else
-            r <- .mnq(y, C[!is.na(vcs)], par[!is.na(vcs)], X=X)
-
-        ## total variance (conditioned on fixed effect)
-        if(!is.null(r$fix))
-            SST <- sum((y - X %*% r$fix)^2) / (N-1)
+            r <- .mnq(y, C[is.finite(Z)], W[is.finite(Z), drop=FALSE], X=X, psd=psd)
 
         ## get solution, and zero bounded?
-        vcs[!is.na(vcs)] <- r$vcs
-        if(zbd)
-            vcs[!is.na(vcs) & vcs < 0] <- 0.0
-
-        ## check excessive error
-        if(ebd && vcs[1] < 0)
-        {
-            msg <- ps0('VC:', sp0('%03d', itr), sp0("%6.3f", vcs), "   EBD")
-            ca0(msg)
-            msk  <- msk - 1
-            vcs[msk <= 0] <- NA
-            vcs[!is.na(vcs)] <- ini[!is.na(vcs)]
-            next
-        }
-
-        ## check excessive variance component
-        if(vbd)
-        {
-            tmp <- na.omit(vcs)
-            tmp <- c(SUM=sum(tmp), tmp) / SST
-            tmp <- ifelse(tmp < 0, abs(tmp), tmp - 1)
-            ## print(max(tmp))
-            tmp <- max(tmp)
-            if(tmp > vth && sum(!is.na(vcs)) > 1)
-            {
-                msg <- ps0('VC:', sp0('%03d', itr), sp0("%6.3f", vcs), "   VBD", sp0("%6.4fV", tmp))
-                ca0(msg)
-                msk <- msk - 1
-                vcs[msk <= 0] <- NA
-                vcs[!is.na(vcs)] <- ini[!is.na(vcs)]
-                next
-            }
-        }
-
-        ## convergence check
-        if(sum(is.na(vcs)) == sum(is.na(par)))
-            dff <- max(abs(vcs - par), na.rm=TRUE)
+        vcs <- r$vcs
+        if(zbd > 0)
+            Z[is.finite(Z)] <- ifelse(vcs > 0, vcs, -Inf)
         else
-            dff <- Inf
-        ca0(VC())
-        if(dff < tol)
+            Z <- vcs
+
+        ## noise (EPS) should be always be posit
+        if(Z[1] == 0)
+        {
+            kpa[1L + which.min(kpa[-1L])] <- NA
+            Z <- ini                    # restart, ...
+            Z[is.na(kpa)] <- -Inf       # but drop some weights
+        }
+        
+        D <- max(abs(Z - W), na.rm=TRUE)
+        cat('MNQ:', sprintf('%03d', itr),
+            paste(sprintf("%9.5f", Z), collapse=""), sprintf("%10.7f\n", D))
+        if(D < tol)
             break
+        W <- Z
         itr <- itr - 1
     }
-    vcs[is.na(vcs)] <- 0
-
+    Z[Z < 0 & is.infinite(Z)] <- 0
+    
     ## fixed effects
     if(!is.null(X))
-        B <-.gls(cmb(C, vcs, TRUE), X, y)
+        B <-.gls(cmb(C, Z, TRUE), X, y)
     else
         B <- NULL
     td <- Sys.time() - t0; units(td) <- 'secs'; td <- as.numeric(td)
     ## print('end MINQUE')
 
-    ## pack up and return: estimates
-    names(vcs) <- nm0
-    par <- c(B, vcs)
-    rpt <- c(vpd(par, y, V, X, rt=0))
+    ## pack up and return:
+    ## estimates
+    names(Z) <- n0
+    W <- c(B, Z)
+    fix <- c(rep.int(1L, length(B)), rep.int(0L, length(Z)))
+    rnd <- 1L - fix
+    eps <- 1L * (names(W) == 'EPS')
 
-    ## reports & return
-    ret <- list(par=par, kpa=kpa, rpt=rpt, rtm=td)
+    ## reports
+    rpt <- c(vpd(y, V, W, X, rt=0), rtm=td)
+    rownames(rpt) <- NULL
+
+    ## return
+    ret <- list(par=W, kpa=ikp, rpt=rpt)
     ret
 }

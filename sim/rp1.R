@@ -2,30 +2,6 @@ library(ggplot2)
 library(dplyr)
 source('R/hlp.R')
 
-plt.cor <- function(dat)
-{
-    d1 <- list()
-    nm <- names(dat)
-    for(i in seq_along(dat))
-    {
-        for(j in seq_along(dat))
-        {
-            p1 <- data.frame(dx=dat[, i], dy=dat[, j], vx=nm[i], vy=nm[j])
-            d1 <- c(d1, list(p1))
-        }
-    }
-    d1 <- do.call(rbind, d1)
-
-    gc <- ggplot(d1, aes(x=dx, y=dy))
-    gc <- gc + geom_point(size=.5)
-    gc <- gc + facet_grid(vx~vy)
-
-    th <- theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
-                axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank())
-    gc <- gc + th
-    gc
-}
-
 .th <- theme(
     axis.title.x=element_blank(), axis.title.y=element_blank(), 
     strip.text.x = element_text(size=12, face="bold"),
@@ -33,7 +9,23 @@ plt.cor <- function(dat)
     strip.background = element_rect(colour="red", fill="#CCCCFF"),
     legend.title=element_blank(), legend.position='bottom')
 
-readSIM <- function(sim, cache=TRUE)
+## cap the values
+.cp <- function(dat, grp, val='val', cap=0.01)
+{
+    grp <- split(dat, dat[, grp])
+    grp <- lapply(grp, function(g)
+    {
+        v <- g[, val]
+        v <- pmin(v, quantile(v, 1-cap/2, na.rm=TRUE))
+        v <- pmax(v, quantile(v, 0+cap/2, na.rm=TRUE))
+        g[, val] <- v
+        g
+    })
+    dat <- do.call(rbind, grp)
+    dat
+}
+
+readSIM <- function(sim, cache=FALSE)
 {
     rds=paste0(sim, '.rds')
     if(file.exists(rds) && cache)
@@ -51,68 +43,47 @@ readSIM <- function(sim, cache=TRUE)
     invisible(agg)
 }
 
-readRPT <- function(..., ref=0)
+plotErr <- function(sim, out=paste0(sim, '_err.png'))
 {
-    rpt <- list()
-    dot <- c(...)
-    for(f in dir(dot, '.rds$', full=TRUE))
-    {
-        print(f)
-        r <- try(readRDS(f))
-        if(inherits(r, 'try-error'))
-            next
+    dat <- readSIM(sim, TRUE)
+    dat <- subset(dat, dat=="evl" & key %in% c("ms1", "ms2", "nlk", "cr1", "cr2"))
+    dat <- .cp(dat, c("key", "tag"), "val", cap=0.1)
 
-        evl <- subset(r, dat == 'evl')
-        dvp <- subset(r, dat == 'dvp')
-        bia <- subset(r, dat == 'bia')
-        
-        ## MSE
-        mse <- subset(evl, key == 'mse')
-        if(ref)
-        {
-            nul <- subset(mse, mtd == 'NUL')$val
-            mse <- within(mse, val <- val / nul)
-        }
+    g <- ggplot(dat, aes(x=mtd, y=val))
+    g <- g + geom_boxplot()
+    g <- g + facet_grid(key ~ tag, scales="free_y")
+    g <- g + .th
 
-        ## likelihood
-        nlk <- subset(evl, key == 'nlk')
-        if(ref)
-        {
-            nul <- subset(nlk, mtd == 'NUL')$val
-            ## ldt <- within(subset(evl, key == 'ldt'), val <- exp(val - nul))
-            ## yay <- within(subset(evl, key == 'yay'), val <- exp(val - nul))
-            nlk <- within(nlk, val <- exp(2 * (val - nul)))
-        }
-
-        ## bias of epsilon
-        
-        bs0 <- within(subset(bia, key == 'eps'), {key <- 'bs0'; dat='evl'})
-        if(ref)
-            bs0 <- within(bs0, val  <- val / 4 + 0.5)
-
-        ## R^2
-        rsq <- subset(evl, key == 'rsq')
-
-        ## running time
-        rtm <- subset(dvp, key == 'rtm')
-        if(ref)
-        {
-            rtm <- within(rtm, val <- val / median(val) / 2)
-        }
-        rpt <- c(rpt, list(rbind(bia, rtm, mse, nlk, bs0, rsq)))
-    }
-    rpt <- do.call(rbind, rpt)
-    
-    rpt <- within(rpt, {H <- N * R; N <- N * Q})
-    rpt <- within(rpt, rm(R, Q, seed))
-    rpt <- within(rpt,
-    {
-        tag <- as.factor(tag)
-        if('ref' %in% levels(tag))
-           tag <- relevel(tag, 'ref')
-    })
-    rpt
+    print(out)
+    nfx <- length(unique(dat$tag))
+    nfy <- length(unique(dat$key))
+    ufx <- 19.2 / nfx
+    ufy <- ufx / 19.2 * 10.8
+    ggsave(out, g, width=19.2, height=min(10.8, ufy * nfy))
+    invisible(dat)
 }
+
+plotPar <- function(sim, cache=TRUE, out=paste0(sim, '_par.png'))
+{
+    dat <- readSIM(sim, cache)
+    dat <- subset(dat, dat=="par")
+    dat <- na.omit(dat)
+    dat <- .cp(dat, c("key", "tag"), "val", cap=0.1)
+
+    g <- ggplot(dat, aes(x=key, y=val))
+    g <- g + geom_boxplot()
+    g <- g + facet_grid(mtd ~ tag, scales="free_y")
+    g <- g + .th
+
+    print(out)
+    nfx <- length(unique(dat$tag))
+    nfy <- length(unique(dat$key))
+    ufx <- 19.2 / nfx
+    ufy <- 10.8 / 19.2 * ufx
+    ggsave(out, g, width=19.2, height=min(10.8, ufy * nfy))
+    invisible(dat)
+}
+
 
 ## infer title from repeatative columns.
 ttl <- function(d)
@@ -295,7 +266,15 @@ pabs <- function(d, o=NULL, bat=FALSE, xtk=FALSE)
     invisible(d)
 }
 
-
+rpt4 <- function()
+{
+    a00 <- readSIM('sim/run/a00', FALSE)
+    a01 <- readSIM('sim/run/a01', FALSE)
+    plotErr('sim/run/a00')
+    plotErr('sim/run/a01')
+    plotPar('sim/run/a00')
+    plotPar('sim/run/a01')
+}
 rpt0 <- function(cache=TRUE)
 {
     . <- subset(d0('bi1', cache), mtd!='NUL' & tag!='ref'); pabs(., 'wi1', bat=0)
@@ -322,4 +301,17 @@ rpt1 <- function(cache=TRUE)
 rpt2 <- function(cache=FALSE)
 {
     . <- subset(d0('bz0', cache), mtd!='NUL' & tag!='ref'); pabs(., 'bz0', bat=1, xtk=TRUE)
+}
+
+## kernel decay test
+kdt <- function(cache=TRUE)
+{
+    d0 <- readSIM('sim/run/kd1', cache)
+    d0 <- within(d0, P <- factor(P))
+    g <- ggplot(d0, aes(x=P, y=kpa))
+    ## g <- g + geom_abline(slope=0, intercept=1, color="red", alpha=.3)
+    g <- g + scale_y_log10() 
+    g <- g + geom_boxplot()
+    g <- g + facet_grid(N ~ K)
+    invisible(g)
 }
