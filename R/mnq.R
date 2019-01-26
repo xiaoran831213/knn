@@ -269,7 +269,7 @@ knl.mnq <- function(y, V, X=NULL, W=NULL, cpp=FALSE, itr=30, ...)
     nm0 <- names(C)
 
     ## prepend intercept if necessary
-    if(isFALSE(any(grepl('X00', names(X)[1], TRUE))))
+    if(is.null(X) || !any(grepl('X00', names(X)[1], TRUE)))
         X <- cbind(X00=rep(1.0, N), X)
 
     ## default total variance without fixed effect
