@@ -25,7 +25,7 @@
     {
         I <- diag(nrow(X))
         . <- crossprod(X, invV)
-        R <- invV %*% (I - X %*% MASS::ginv(. %*% X) %*% .)
+        R <- invV %*% (I - X %*% .ginv(. %*% X) %*% .)
     }
     else
         R <- invV
@@ -52,7 +52,7 @@
     ## solve F L = [p1, p2, ...]
     ## when the K components are desired, [p1, p2, ...]  = I_K.
     ## ==> L = solve(F, I_K) = F^{-}
-    L <- MASS::ginv(F)
+    L <- .ginv(F)
 
     ## Calculate A matrix and contrasts
     A <- list()
@@ -124,7 +124,7 @@
     if(!is.null(X))
     {
         B <- solve(V, X)                # V^{-1}X
-        P <- X %*% ginv(t(X) %*% B) %*% t(B)
+        P <- X %*% .ginv(t(X) %*% B) %*% t(B)
 
         ## R V_i = V^{-1}(I - P) V_i = V^{-1}(V_i - P V_i)
         for(i in seq.int(K))
@@ -154,13 +154,13 @@
     ## [s2_1, s2_2, ..., s2_K]^T =
     ## [yA1y, yA2y, ..., yAKy]^T = solve(F, v_) = pinv(F) v_
     ## w <- solve(F, v_)
-    w <- ginv(F) %*% v_ 
+    w <- .ginv(F) %*% v_ 
     ## [ A1, A2, ... AK] is not directly calculated
 
     ## GLS for fixed effects
     if(!is.null(X))
     {
-        b <- ginv(crossprod(X, B)) %*% crossprod(B, y)
+        b <- .ginv(crossprod(X, B)) %*% crossprod(B, y)
         names(b) <- colnames(X)
     }
     else
@@ -183,8 +183,8 @@
     Z <- solve(V, X)
 
     ## (X^T Z)^{+} Z^T y
-    ## ginv(t(X) %*% Z) %*% t(Z) %*% y
-    b <- ginv(crossprod(X, Z)) %*% crossprod(Z, y)
+    ## .ginv(t(X) %*% Z) %*% t(Z) %*% y
+    b <- .ginv(crossprod(X, Z)) %*% crossprod(Z, y)
     names(b) <- colnames(X)
     b
 }
