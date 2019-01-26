@@ -7,7 +7,7 @@ source('R/utl.R')                       # utilities
 source('R/vcm.R')                       # variance component models (VCM)
 source('R/mnq.R')                       # MINQUE
 source('R/ply.R')
-source('rda/rpt.R')
+## source('rda/rpt.R')
 source('rda/abc.R')
 
 scn <- function(., w) scan(., w, sep='\t', skip=1, quiet=TRUE, blank.lines.skip=FALSE)
@@ -157,17 +157,18 @@ get.knl <- function(pfx, bat, rnd=~cov, ply=2, std=0, ...)
 {
     kns <- sapply(all.vars(as.formula(rnd)), function(k)
     {
-        if(k == 'rel' || k == 'std')
-            ret <- readREL(paste0(file.path(pfx, bat), paste0('.', k)))
         if(k == 'ibs')
             ret <- readIBS(paste0(file.path(pfx, bat), paste0('.', k)))
+        else
+            ret <- readREL(paste0(file.path(pfx, bat), paste0('.', k)))
+            
         nas <- sort(unique(as.vector(which(is.na(ret), TRUE))))
         if(length(nas) > 0L)
             ret <- ret[-nas, -nas]
         ret
     }, simplify=FALSE)
     kns <- PK(kns, D=ply)()
-    
+
     if(std)
         kns <- lapply(kns, function(k) k / mean(diag(k)))
     kns
@@ -256,7 +257,7 @@ dvs <- function(K, r=100)
 }
     
 #' analyze a real data
-main <- function(mdl=alc~sex+age+p02, rnd=~std, ply=2, pfx='rda/wkn/201', bat='030', mtd=MQ3, ...)
+main <- function(mdl=v09~sex+age, rnd=~sgn, ply=1, pfx='rda/vkn', bat='030', mtd=MQ3, ...)
 {
     options(stringsAsFactors=FALSE)
     arg <- as.list(match.call(expand.dots=TRUE)[-1])
@@ -274,8 +275,8 @@ main <- function(mdl=alc~sex+age+p02, rnd=~std, ply=2, pfx='rda/wkn/201', bat='0
     if(pmu)
         rownames(y) <- sample(rownames(y))
     ## read kernels, expand, and maybe standardize
-    ## K <- get.knl(pfx, bat, rnd, ply, std=1, ...)
-    K <- cal.knl(pfx, bat, rnd, ply, ...)
+    K <- get.knl(pfx, bat, rnd, ply, std=1, ...)
+    ## K <- cal.knl(pfx, bat, rnd, ply, ...)
     
     ## sample matching
     . <- Reduce(intersect, lapply(c(list(y, X), K), rownames))
