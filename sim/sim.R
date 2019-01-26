@@ -15,6 +15,7 @@ source('sim/lnk.R')                     # link functions
 source('sim/gsm.R')                     # genomic simulator
 source('sim/mtd.R')                     # methods
 source('sim/eps.R')                     # noise
+source('sim/gen.R')
 
 ## library(devtools)                       # enable the C++ functions
 ## devtools::load_all()
@@ -48,15 +49,11 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=SC, eps=1, oks=~PL1, ...)
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
     arg <- do.call(data.frame, arg)
-    gds <- dot$gds %||% 'ukb'
-    gds <- if(gds=='ukb') get.rds('sim/dat') else 'data/1kg_c05.rds'
     
     ## ------------------------- data genration ------------------------- ##
     ## for each of the Q groups, choose N samples and P features -> Training
-    dat <- lapply(gds, readRDS)
-    dat <- get.gmx(dat, N, P, Q, R)
-    dat <- get.sim(dat, frq=frq, lnk=lnk, eps=eps, oks=oks, ...)
-
+    dat <- simulate('sim/dat', frq=frq, lnk=lnk, eps=eps, oks=oks, ...)
+    
     std <- function(k) k / mean(diag(k))
     ## training
     dvp <- with(dat$dvp,
