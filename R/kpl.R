@@ -149,16 +149,16 @@ p2o <- function(x, y=NULL, g=1/NCOL(x), ...)
         (g^2) * tcrossprod(x^2, y^2)
 }
 
-#' @title linear kernel between X and Y
-#' @param x: matrix N rows of samples, P columns of features
-#' @param y: matrix M rows of samples, P columns of features
-#' @details when Y is is NULL, K(X, X) is computed.
-lnr <- function(x, y=NULL, g=1/NCOL(x), ...)
-{
-    tcrossprod(x, y) * g
-}
-
-## Folllowings are the definition of base kernels
+#' Identity by State Kernel
+#'
+#' For genomic dosage data, the similarity between two individual
+#' i and j, contributed to the k th. variants is:
+#'
+#' $ s_{ij} = 2 - |g_{ik} - g_{jk}| $
+#'
+#' @param x N matrix of N row individuals and P column variants
+#' @param l level of genomic variation (def = 2, i.e., allele dosage.)
+#' @return NxN IBS kernel matrix
 ibs <- function(x, l=2, ...)
 {
     if(is.null(l))
@@ -166,6 +166,41 @@ ibs <- function(x, l=2, ...)
     else
         x <- x / l
     1 - as.matrix(dist(x, 'man')) / ncol(x)
+}
+
+#' Genetic Relatedness Matrix
+#'
+#' The kernel is enssentially a product kernel weighted
+#' by estimated standard deviation on each genomic variant,
+#' as Yang et.al stated in their 2014 paper for GCTA.
+#' 
+#' @param x matrix of N row individuals and P colunn variant
+#' @param o integer order of polynomial order of the kernel
+#' @param q vector of user provided weights, if null, the
+#' weights are estimated standard deviation.
+#'
+#' @return NxN kernel matrix
+grm <- function(x, o=1, q=NULL)
+{
+    if(is.null(q))                      # AF
+        q <- colMeans(x, TRUE) / 2
+    s <- sqrt((2 * q * (1 - q)))^o      # weights
+
+    x <- x[, s > 0]                     # remove degeneracy
+    q <- q[  s > 0]                     #
+    s <- s[  s > 0]                     # 
+    
+    a <- is.na(x)
+    M <- tcrossprod(1 - a)              # pairwise non-NA
+    x <- as.matrix(scale(x, q * 2, s))
+
+    ## set NA to zero
+    x[a] <- 0.0
+    rm(a)
+
+    k <- tcrossprod(x) / M
+    ## k <- k / mean(diag(k))
+    k
 }
 
 cmb <- function(k, w, drop=FALSE)

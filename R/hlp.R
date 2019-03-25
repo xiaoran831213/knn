@@ -49,25 +49,29 @@ DF <- data.frame
 
 #' vector row-binder
 #'
-#' row bind vectors of different length
-#' @param ... vectors to be binded
-.rbd <- function(...)
+#' row bind vectors of different elements
+#' @param ... vectors or dafa.frames to be binded
+rbd <- function(...)
 {
     items <- list(...)
     items <- items[!sapply(items, is.null)]
 
     ## fix dimensions
-    items <- lapply(items, function(i)
+    for(i in seq_along(items))
     {
-        if(length(dim(i)) != 2)
+        x <- items[[i]]
+        r <- names(items)[[i]]
+        if(length(dim(x)) != 2)
         {
-            n <- names(i)
-            dim(i) <- c(1L, length(i))
-            colnames(i) <- n
+            n <- names(x)
+            dim(x) <- c(1L, length(x))
+            colnames(x) <- n
         }
-        DF(i)
-    })
-
+        if(nrow(x) == 1 && is.null(rownames(x)))
+            rownames(x) <- r
+        items[[i]] <- DF(x)
+    }
+    
     ## C=column names, and P=column counts
     C <- Reduce(union, sapply(items, colnames))
     P <- length(C)
@@ -77,10 +81,9 @@ DF <- data.frame
     {
         n <- list(rownames(i), setdiff(C, colnames(i)))
         m <- matrix(NA, nrow(i), P - ncol(i), dimnames=n)
-        cbind(i, m)[, C]
+        cbind(i, m)[, C, drop=FALSE]
     })
     ret <- do.call(rbind, ret)
-    rownames(ret) <- names(items)
     ret
 }
 

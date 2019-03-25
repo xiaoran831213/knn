@@ -32,7 +32,7 @@ batch.mask <- function(rsp, nbt=5, bpt=0, ...)
 #' @param wep integer (in ...) wall epoch count
 #'
 #' @return a list of training history, the averaged parameters
-GBT <- function(FUN, rsp, knl, bsz=100, ...)
+GBT <- function(FUN, rsp, knl, xmx=NULL, bsz=100, ...)
 {
     N <- NROW(rsp)                      # sample size
     nbt <- as.integer(N / bsz)
@@ -66,16 +66,19 @@ GBT <- function(FUN, rsp, knl, bsz=100, ...)
         }
         
         ## get batch data
-        t1 <- Sys.time()
         . <- bmk == bt
         bat <- list(knl=lapply(knl, `[`, ., .), rsp=rsp[.])
-        td <- t1 - t0; units(td) <- 'secs'; td <- as.numeric(td)
+        bat$xmx <- if(is.null(xmx)) NULL else xmx[., , drop=FALSE]
+        
 
         ## get batch estimates
-        bat <- c(bat, with(bat, FUN(rsp, knl, ini, ...)))
+        bat <- c(bat, with(bat, FUN(rsp, knl, xmx, ini, ...)))
         ini <- if(pss) bat$par else NULL # pass on initial values?
-        rtm <- rtm + bat$rpt['rtm', 'val'] + td
-        
+
+        t1 <- Sys.time()
+        td <- t1 - t0; units(td) <- 'secs'; td <- as.numeric(td)
+        rtm <- rtm + td
+
         ## gather information
         msg <- c(ep=ep, bt=bt, rtm=rtm, bat[c('par', 'se2')], bsz=bat$rpt['ssz', 'val'])
         
@@ -85,9 +88,9 @@ GBT <- function(FUN, rsp, knl, bsz=100, ...)
         if(bt == nbt)                   # end of an epoch?
         {
             par  <- if(pss) bat[['par']] else par <- mean(eph %$% 'par')
-            eps <- par[1]
-            rpt <- vpd(rsp, knl, par, rt=0, ...)
-            mse <- rpt['mse']
+            eps <- par['EPS']
+            rpt <- vpd(rsp, knl, xmx, par, rt=0, ...)
+            mse <- rpt['yel']
             nlk <- rpt['nlk']
             msg <- c(msg, rpt)          # additional info
             ## append message to STDOUT

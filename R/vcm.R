@@ -99,88 +99,146 @@ vcm.fsi <- function(W, K, Y, ...)
     dv2
 }
 
+
+
 #' Variance component model prediction
 #' 
 #' @param y vector of response variable
-#' @param W vector of parameters (beta, and sigma^2)
-#' @param K list of covariance kernels
-#' @param X matrix of covariate
-#' @param rt return a table? if false, a named vector is returned
-vpd <- function(W, y, K=NULL, X=NULL, rt=1, ...)
+#' @param v list of covariance kernels
+#' @param w vector of parameters (beta, and sigma^2)
+#' @param x matrix of covariate
+#' @param ... additional arguments
+vpd <- function(y, v=NULL, x=NULL, w, ...)
 {
     dot <- list(...)
     y <- unname(y)
     N <- NROW(y)
-    Q <- length(W)
-
-    ## kernels, prepended with noise
-    K <- c(list(EPS=diag(N)), K)
-    L <- length(K)
-    M <- if(is.null(X)) 0 else NCOL(X)
-
-    ## variance components, and fix effect coeficients
-    vcs <- W[seq(Q - L + 1, Q)]
-    fix <- W[seq(1, Q - L)]
+    w[is.na(w)] <- 0
     
-    ## matrix for fixed effect, prepended with intercept
-    if(length(fix) == M + 1)
-    {
-        X <- cbind(X00=rep(1, N), X)
-        M <- M + 1
-    }
+    ## kernels, prepended with noise
+    v <- c(list(EPS=diag(N)), v)
+    v <- v[intersect(names(v), names(w))]
+    K <- length(v)
 
-    xb <- if(M > 0) X %*% fix else 0    # x beta
+    ## fix effects, prepended with intercept
+    x <- cbind(X00=rep(1, N), x)
+    M <- ncol(x)
+
+    ## variance components, and fixed coeficients
+    w <- unlist(w)
+    vcs <- w[intersect(names(w), names(v))]
+    fix <- w[intersect(names(w), colnames(x))]
+    
+    ## fixed effect, and residual
+    xb <- if(M > 0) x %*% fix else 0    # x beta
     e <- y - xb                         # fix effect residual
-    SST <- sum(e^2) / (N - 1)           # sum square total
+    SST <- sum(e^2) / (N - M)           # sum square total
 
     ## heritability
-    h2b <- unname(1 - vcs[1] / SST)      # hsq 2
-    h2c <- unname(1 - vcs[1] / sum(vcs)) # hsq 3
+    hsq <- unname(1 - vcs[1] / SST)      # hsq 2
     
     ## predicted random effects
-    V <- unname(cmb(K, vcs, drop=TRUE))
-    A <- solve(V)                       # V^{-1}
+    V <- unname(cmb(v, vcs, TRUE))
+    A <- try(chol2inv(chol(V)), silent=TRUE)
+    if(inherits(A, 'try-error'))
+    {
+        A <- MASS::ginv(V)
+    }
     Ae <- A %*% e
     
-    zu1 <- (V - diag(vcs[1], N)) %*% Ae   # use BLUP
-    zu2 <- e - Ae / diag(A)               # LOO
-    yh1 <- zu1 + xb
-    yh2 <- zu2 + xb
+    zub <- (V - diag(vcs[1], N)) %*% Ae   # use BLUP
+    zul <- e - Ae / diag(A)               # LOO
+    yhb <- zub + xb
+    yhl <- zul + xb
 
-    er1 <- mean((e - zu1)^2)            # e MSE 1, BLUP
-    er2 <- mean((e - zu2)^2)            # e MSE 2, LOOV
-    ey1 <- mean((y - yh1)^2)            # y MSE 1, BLUP
-    ey2 <- mean((y - yh2)^2)            # y MSE 2, LOOV
-    
+    zeb <- mean((e - zub)^2)     # e MSE 1, BLUP
+    zel <- mean((e - zul)^2)     # e MSE 2, LOOV
+    yeb <- mean((y - yhb)^2)     # y MSE 1, BLUP
+    yel <- mean((y - yhl)^2)     # y MSE 2, LOOV
+
     ## correlation between truth and prediction
-    cy1 <- cor(y, yh1)
-    cy2 <- cor(y, yh2)
-    cr1 <- if(abs(sd(zu1)) < 1e-8) 0 else cor(e, zu1)
-    cr2 <- if(abs(sd(zu2)) < 1e-8) 0 else cor(e, zu2)
+    ycb <- if(abs(sd(yhb)) < 1e-8) 0 else cor(y, yhb)
+    ycl <- if(abs(sd(yhl)) < 1e-8) 0 else cor(y, yhl)
+    zcb <- if(abs(sd(zub)) < 1e-8) 0 else cor(e, zub)
+    zcl <- if(abs(sd(zul)) < 1e-8) 0 else cor(e, zul)
 
-    ## slops between truth and prediction
-    sr1 <- if(abs(sd(zu1)) < 1e-8) 0 else unname(coef(lm(e ~ zu1))[2])
-    sr2 <- if(abs(sd(zu2)) < 1e-8) 0 else unname(coef(lm(e ~ zu2))[2])
-    sy1 <- unname(coef(lm(y ~ yh1))[2])
-    sy2 <- unname(coef(lm(y ~ yh2))[2])
-    
     ## negative likelihood
-    ldt <- with(.Internal(det_ge_real(V, TRUE)), sign * modulus) / N
+    ldt <- with(determinant(V), modulus * sign) / N
     eae <- sum(Ae * e) / N    # e^T V^{-1} e
     ## nlk <- .5 * (eae + ldt + log(2 * pi))
     nlk <- eae + ldt
+    attributes(nlk) <- NULL
     
     ## return
-    rpt <- c(h2b=h2b, h2c=h2c, SST=SST, nlk=nlk,
-             er1=er1, er2=er2, ey1=ey1, ey2=ey2,
-             cy1=cy1, cy2=cy2, cr1=cr1, cr2=cr2,
-             sr1=sr1, sr2=sr2, sy1=sy1, sy2=sy2, N=N)
+    rpt <- data.frame(N=N, hsq=hsq, SST=SST, nlk=nlk,
+                      zeb=zeb, zel=zel, yeb=yeb, yel=yel,
+                      ycb=ycb, ycl=ycl, zcb=zcb, zcl=zcl)
 
-    if(rt == 1)
-        rpt <- DF(key=names(rpt), val=rpt, row.names=names(rpt))
-    if(rt == 2)
-        rpt <- DF(t(rpt))
+    ## 1st half predict 2nd half
+    i <- sample(c(TRUE, FALSE), N, replace=TRUE)
+    j <- !i
+    f <- e; f[i] <- NA; zui <- kpd(f, V)
+    f <- e; f[j] <- NA; zuj <- kpd(f, V)
+    zuh <- numeric(N)
+    zuh[i] <- zui
+    zuh[j] <- zuj
+    yhh <- zuh + xb
+    rpt$yeh <- mean((y - yhh)^2)
+    rpt$ych <- if(abs(sd(yhh)) < 1e-8) 0 else drop(cor(y, yhh))
     rpt
+}
+
+#' Known outcome predict unknown
+kpd <- function(e, V)
+{
+    j <- is.na(e)                       # known
+    i <- !j                             # unknown
+    i <- which(i)
+    j <- which(j)
+    
+    z <- drop(V[j, i] %*% solve(V[i, i], e[i]))
+    z
+}
+
+loo <- function(y, v=NULL, x=NULL, w, ...)
+{
+    dot <- list(...)
+    y <- unname(y)
+    N <- NROW(y)
+    Q <- length(w)
+    
+    ## kernels, prepended with noise
+    v <- c(list(EPS=diag(N)), v)
+    v <- v[intersect(names(v), names(w))]
+    K <- length(v)
+
+    ## fix effects, prepended with intercept
+    x <- cbind(X00=rep(1, N), x)
+    M <- ncol(x)
+
+    ## variance components, and fixed coeficients
+    vcs <- w[intersect(names(w), names(v))]
+    fix <- w[intersect(names(w), colnames(x))]
+    
+    ## fixed effect, and residual
+    xb <- if(M > 0) x %*% fix else 0    # x beta
+    e <- y - xb                         # fix effect residual
+    SST <- sum(e^2) / (N - M)           # sum square total
+
+    ## heritability
+    hsq <- unname(1 - vcs[1] / SST)      # hsq 2
+    ## h2c <- unname(1 - vcs[1] / sum(vcs)) # hsq 3
+    
+    ## predicted random effects
+    V <- unname(cmb(v, vcs, TRUE))
+    A <- try(chol2inv(chol(V)), silent=TRUE)
+    if(inherits(A, 'try-error'))
+       A <- ginv(V)
+    Ae <- A %*% e
+    
+    zul <- e - Ae / diag(A)               # LOO
+    yhl <- zul + xb
+    yhl
 }
 
 rop.vcm <- function(y, K, W=NULL, cpp=TRUE, ...)
@@ -298,6 +356,6 @@ nul.vcm <- function(y, X=NULL, ...)
     names(par) <- if(is.null(X)) 'X00' else c('X00', names(X))
     par <- c(par, EPS=sum(residuals(m0)^2) / (N - 1))
 
-    rpt <- vpd(par, y, rt=0)
+    rpt <- vpd(y, w=par, rt=0)
     list(rpt=rpt, par=par, rtm=NA)
 }

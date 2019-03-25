@@ -1,11 +1,7 @@
-library(magrittr)
-library(Matrix)
-
 source('R/hlp.R')                       # helpers
 source('R/kpl.R')                       # kernel players
 source('R/utl.R')                       # utilities
 source('R/vcm.R')                       # variance component models (VCM)
-source('R/mnq.R')                       # MINQUE
 source('R/msg.R')                       # message board
 source('R/bat.R')                       # batched VCM trainer
 source('R/agg.R')                       # model aggregation
@@ -15,12 +11,12 @@ source('sim/gct.R')                     # GCTA wrapper
 source('sim/utl.R')                     # simulation utilites
 source('sim/mdl.R')                     # models
 source('sim/lnk.R')                     # link functions
-source('sim/gsm.R')                     # genomic simulator
 source('sim/mtd.R')                     # methods
 source('sim/eps.R')                     # noise
+source('sim/gen.R')
 
-library(devtools)                       # enable the C++ functions
-devtools::load_all()
+## library(devtools)                       # enable the C++ functions
+## devtools::load_all()
 
 #' simulation of kernel deep neural network;
 #' @param N size of population groups
@@ -39,38 +35,33 @@ devtools::load_all()
 #' @param bsz batch size for batched training
 #'
 #' see "sim/utl.R" to understand {oks}, {lnk}, and {yks}.
-main <- function(N, P, Q=1, R=1, frq=.1, lnk=NL, eps=1, oks=~LN1, ...)
+main <- function(N, P, Q=1, R=1, frq=.1, lnk=NL, vcs=1, oks=~L1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
     set.seed(dot$seed)
     het <- dot$het %||% 0.0
-    svc <- dot$svc %||% 1.0
-    arg <- match.call() %>% tail(-1) %>% as.list
+    efn <- dot$efn %||% EGS             # epsilon function for noise
+    arg <- as.list(match.call()[-1])
     idx <- !sapply(arg, is.vector)
     arg[idx] <- lapply(arg[idx], deparse)
     arg <- do.call(data.frame, arg)
 
-    ## batched MINQUE: core algorithm, unit batch size
-    assign('MNQ', dot$bmq %||% ONM, .GlobalEnv)
-    assign('UBZ', dot$ubz %||%  64, .GlobalEnv)
-    
     ## ------------------------- data genration ------------------------- ##
     ## for each of the Q groups, choose N samples and P features -> Training
-    dat <- lapply(get.rds('sim/dat'), readRDS)
-    dat <- get.gmx(dat, N, P, Q, R)
-    dat <- get.sim(dat, frq=frq, lnk=lnk, eps=eps, oks=oks, ...)
+    dat <- sim('sim/dat', N=N, P=P, Q=Q, R=R, frq=frq, lnk=lnk, oks=oks, vcs=vcs, ...)
+    dat$evl$par <- NULL
+    ref <- dat$dvp$par
 
     ## training
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        kn1 <- krn(gmx, ~LN1)
-        kn2 <- krn(gmx, ~JL2)
-        ret <- CL(ret, GCT=GCT(rsp, kn1))
-        ret <- CL(ret, MNQ=MNQ(rsp, kn2, ...))
-        ret <- CL(ret, BMQ=BM3(rsp, kn2, ...))
-        ret <- CL(ret, NUL=NUL(rsp, NULL))
+        kn3 <- krn(gmx, ~L3)
+        ret <- CL(ret, NUL=MNQ(rsp, kn3[0:0]))
+        ret <- CL(ret, GC1=GCT(rsp, kn3[1:1]))
+        ret <- CL(ret, MN2=BM2(rsp, kn3[1:2]))
+        ret <- CL(ret, MN3=BM2(rsp, kn3[1:3]))
         ret
     })
     

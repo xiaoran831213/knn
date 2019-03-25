@@ -2,7 +2,7 @@ source('R/hlp.R')                       # helpers
 source('R/kpl.R')                       # kernel players
 source('R/utl.R')                       # utilities
 source('R/vcm.R')                       # variance component models (VCM)
-source('R/mnq.R')                       # MINQUE
+library(mnq)
 source('R/msg.R')                       # message board
 source('R/bat.R')                       # batched VCM trainer
 source('R/agg.R')                       # model aggregation
@@ -19,6 +19,33 @@ source('sim/gen.R')
 
 ## library(devtools)                       # enable the C++ functions
 ## devtools::load_all()
+CT <- function(k)
+{
+    k <- k - outer(rowMeans(k), colMeans(k), `+`) + mean(k)
+    k / mean(diag(k))
+}
+LN <- function(x, o=1)
+{
+    k <- tcrossprod(scale(x)) / NCOL(x)
+    SEQ <- c(LN1=1, LN2=2, LN3=3, LN4=4, LN5=5)[seq(2, l=o-1)]
+    LNX <- lapply(SEQ, function(i) CT(k^i))
+    c(list(LN1=k), LNX)
+}
+L1 <- function(x) LN(x, 1)
+L2 <- function(x) LN(x, 2)
+L3 <- function(x) LN(x, 3)
+
+MXK <- function(x)
+{
+    r <- L3(x)
+    x <- scale(x)
+    GS1 <- CT(gau(x))
+    LP1 <- CT(lap(x))
+    c(r, list(LP1=LP1, GS1=GS1))
+}
+
+FWD <- function(rsp, kns, xmx=NULL, ...) fwd(rsp, kns, xmx, tol=1e-4, rpt=1, ...)
+MNQ <- function(rsp, kns, xmx=NULL, ...) fwd(rsp, kns, xmx, tol=1e-4, rpt=1, ...)
 
 #' simulation of kernel deep neural network;
 #' @param N size of population groups
@@ -26,10 +53,9 @@ source('sim/gen.R')
 #' @param Q number of groups that constitute training data
 #' @param R number of groups that constitute testing data
 #' @param frq fraction of functional variants
-#' @param eps size of white noise
+#' @param vcs true variance components
 #' 
 #' @param oks true kernels to generate y - the responses;
-#' @param svc variance of true variance components;
 #' @param lnk link function to transform the generated response;
 #'
 #' @param yks used kernels for modeling;
@@ -37,13 +63,12 @@ source('sim/gen.R')
 #' @param bsz batch size for batched training
 #'
 #' see "sim/utl.R" to understand {oks}, {lnk}, and {yks}.
-main <- function(N, P, Q=1, R=1, frq=.2, lnk=SC, eps=1, oks=~PL1, ...)
+main <- function(N, P, Q=1, R=1, frq=.2, lnk=NL, vcs=1, oks=~L1, ...)
 {
     options(stringsAsFactors=FALSE)
     dot <- list(...)
     set.seed(dot$seed)
     het <- dot$het %||% 0.0
-    svc <- dot$svc %||% 1.0
     efn <- dot$efn %||% EGS             # epsilon function for noise
     arg <- as.list(match.call()[-1])
     idx <- !sapply(arg, is.vector)
@@ -52,59 +77,55 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=SC, eps=1, oks=~PL1, ...)
     
     ## ------------------------- data genration ------------------------- ##
     ## for each of the Q groups, choose N samples and P features -> Training
-    dat <- simulate('sim/dat', frq=frq, lnk=lnk, eps=eps, oks=oks, ...)
+    dat <- sim('sim/dat', N=N, P=P, Q=Q, R=R, frq=frq, lnk=lnk, oks=oks, vcs=vcs, ...)
+    dat$evl$par <- NULL
+    ref <- dat$dvp$par
     
-    std <- function(k) k / mean(diag(k))
     ## training
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        ## kn1 <- krn(gmx, ~LN1)
-        ## kn2 <- krn(gmx, ~LN2)
-        kn3 <- lapply(krn(gmx, ~LN3), std)
-        kn1 <- kn3[1]
-        kn2 <- kn3[1:2]
-        ret <- CL(ret, NUL=NUL(rsp, ...))
-        ret <- CL(ret, G1K=GCT(rsp, kn1))
-        ## ret <- CL(ret, M1K=MQ3(rsp, kn1, ...))
-        ret <- CL(ret, BM2=MQ3(rsp, kn2, ...))
-        ret <- CL(ret, BM3=MQ3(rsp, kn3, ...))
-        ## ret <- CL(ret, UM2=MQ0(rsp, kn2, ...))
-        ## ret <- CL(ret, UM3=MQ0(rsp, kn3, ...))
+        kn3 <- krn(gmx, ~MXK)
+        ret <- CL(ret, NUL=MNQ(rsp, kn3[0:0]))
+        ret <- CL(ret, GC1=GCT(rsp, kn3[1:1]))
+        ret <- CL(ret, MN2=MNQ(rsp, kn3[1:2]))
+        ret <- CL(ret, MN3=MNQ(rsp, kn3[1:3]))
+        ret <- CL(ret, FW3=MNQ(rsp, kn3[1:3], tlr=0.05))
+        ret <- CL(ret, FW4=MNQ(rsp, kn3[1:4], tlr=0.05))
+        ret <- CL(ret, FW5=MNQ(rsp, kn3[1:5], tlr=0.05))
         ret
     })
-
+    par <- do.call(rbd, dvp %$% 'par')
+    par <- rbd(REF=ref, par)
+    rtm <- do.call(rbd, dvp %$% 'rtm')
+    dvp <- do.call(rbd, dvp %$% 'rpt')
+    
     ## testing
     evl <- with(dat$evl,
     {
         ret <- list()
-        ## kn1 <- krn(gmx, ~LN1)
-        kn3 <- lapply(krn(gmx, ~LN3), std)
-        kn1 <- kn3[1]
-        kn2 <- kn3[1:2]
-        ret <- CL(ret, NUL=vpd(dvp$NUL$par, rsp, rt=0))
-        ret <- CL(ret, G1K=vpd(dvp$G1K$par, rsp, kn1, rt=0))
-        ## ret <- CL(ret, M1K=vpd(dvp$M1K$par, rsp, kn1, X=x00, rt=0))
-        ret <- CL(ret, BM2=vpd(dvp$BM2$par, rsp, kn2, rt=0))
-        ret <- CL(ret, BM3=vpd(dvp$BM3$par, rsp, kn3, rt=0))
-        ## ret <- CL(ret, UM2=vpd(dvp$UM2$par, rsp, kn2, rt=0))
-        ## ret <- CL(ret, UM3=vpd(dvp$UM3$par, rsp, kn3, rt=0))
+        kn3 <- krn(gmx, ~MXK)
+        ret <- CL(ret, NUL=vpd(rsp, kn3[0:0], w=par['NUL',]))
+        ret <- CL(ret, GC1=vpd(rsp, kn3[1:1], w=par['GC1',]))
+        ret <- CL(ret, MN2=vpd(rsp, kn3[1:2], w=par['MN2',]))
+        ret <- CL(ret, MN3=vpd(rsp, kn3[1:3], w=par['MN3',]))
+        ret <- CL(ret, FW3=vpd(rsp, kn3[1:3], w=par['FW3',]))
+        ret <- CL(ret, FW4=vpd(rsp, kn3[1:4], w=par['FW4',]))
+        ret <- CL(ret, FW5=vpd(rsp, kn3[1:5], w=par['FW5',]))
         ret
     })
+    evl <- do.call(rbd, evl)
     
     ## ----------------------- generate reports ----------------------- ##
-    rtm <- unlist(dvp %$% 'rtm')
-    par <- do.call(.rbd, dvp %$% 'par')
-    kpa <- do.call(.rbd, dvp %$% 'kpa')
-    
     rpt <- within(list(),
     {
         par <- DF(dat='par', mtd=rownames(par), par)
-        dvp <- DF(dat='dvp', mtd=names(dvp), do.call(rbind, dvp %$% 'rpt'), rtm=rtm)
-        evl <- DF(dat='evl', mtd=names(evl), do.call(.rbd, evl))
+        rtm <- DF(dat='rtm', mtd=rownames(rtm), rtm)
+        dvp <- DF(dat='dvp', mtd=rownames(dvp), dvp)
+        evl <- DF(dat='evl', mtd=rownames(evl), evl)
     })
     library(reshape2)
-    rpt <- lapply(rpt, melt, variable.name='key', value.name='val')
+    rpt <- lapply(rpt, melt, id.var=c('dat', 'mtd'), variable.name='key', value.name='val')
     rpt <- cbind(arg, do.call(rbind, rpt))
     rownames(rpt) <- NULL
 
@@ -114,6 +135,5 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=SC, eps=1, oks=~PL1, ...)
 
 test <- function()
 {
-    r <- main(N=1024, P=10000, Q=2, R=1, vcs=1, frq=.2, oks=~PL+X3)
-    r <- main(N=512, P=8192, Q=2, R=1, vcs=c(0.2, 1.1, 2.0), frq=.2, oks=~LN3, seed=3)
+    r <- main(N=512, P=5120, Q=2, R=2, vcs=c(0.2, 1.1, 2.0), frq=.2, oks=~L3, seed=3)
 }

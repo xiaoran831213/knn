@@ -33,7 +33,7 @@ source('R/hlp.R')
     dat
 }
 
-readSIM <- function(sim, cache=FALSE)
+readSIM <- function(sim, cache=TRUE)
 {
     rds=paste0(sim, '.rds')
     if(file.exists(rds) && cache)
@@ -54,22 +54,22 @@ readSIM <- function(sim, cache=FALSE)
 plotErr <- function(sim, out=paste0(sim, '_err.png'), cap=0.05, ...)
 {
     dat <- readSIM(sim, TRUE)
-    ##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
     dat <- subset(dat,
                   dat=="evl" & key %in% c("yel", "ycl", "nlk", "yeh", "ych")|
                   dat=="dvp" & key %in% c("hsq"))
+    dat$key <- as.character(dat$key)
     grp <- dat[, c("seed", "key", "tag", "dat")]
-
+    
     ## minus NUL effect
     dat <- by(dat, grp, function(g)
     {
         m <- g$mtd != "NUL"
         nul <- g[!m, "val"]
         g <- g[m, ]
-        g$val <- g$val - nul
+        if(!g$key[1] %in% c("ycl", "ych", "hsq"))
+            g$val <- g$val / nul
         g
-    })
+    }, simplify=FALSE)
     dat <- do.call(rbind, dat)
     dat <- .cp(dat, c("key", "tag", "dat"), "val", cap=0.05, ...)
     ## dat <- subset(dat, !tag %in% c("bas", "ref"))
@@ -78,7 +78,7 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
     g <- g + geom_boxplot()
     g <- g + facet_grid(key ~ tag, scales="free_y")
     g <- g + .th
-
+    
     nfy <- length(unique(dat$key))
     ufy <- 10 / nfy
     nfx <- length(unique(dat$tag))
@@ -121,53 +121,6 @@ ttl <- function(d)
     paste0(names(u), '=', u, collapse=', ')
 }
 
-## plot reports
-prpt <- function(name, cache=TRUE, errs=TRUE, bias=TRUE, ...)
-{
-    d <- as_tibble(d0(name, cache, ...))
-    d <- filter(d, !mtd %in% c('NUL'))
-    r <- list()
-
-    ## report: errors
-    if(errs)
-    {
-        rpt <- filter(d, key %in% c('bs0', 'rsq', 'mse', 'nlk', 'rtm'))
-        rpt <- mutate(rpt, val=pmin(val, 1.00), val=pmax(val, 0.00))
-        g <- ggplot(rpt, aes(x=mtd, y=val))
-        g <- g + geom_boxplot()
-        g <- g + facet_grid(tag~key, scales='free')
-        ## g <- g + ylim(c(0, 1))
-        g <- g + ggtitle(ttl(rpt))
-        g <- g + .th
-        f <- paste0(file.path('~/img', name), '_rpt.png'); print(f)
-        h <- length(unique(rpt$tag))
-        w <- length(unique(rpt$key))
-        ggsave(f, g, width=1.9 * w + .2, height=1 * h + .2, scale=1.3)
-        r <- c(r, rpt=g)
-    }
-
-    if(bias)
-    {
-        ## report: bias
-        bia <- filter(d, dat=='bia')
-        bia <- mutate(bia, key=sub('^.*[.]', '', key))
-        bia <- mutate(bia, val=pmin(val, 1.99), val=pmax(val, -1.99))
-        g <- ggplot(bia, aes(x=key, y=val))
-        g <- g + geom_boxplot()
-        g <- g + facet_grid(tag~mtd)
-        ## g <- g + ylim(c(-2, 2))
-        g <- g + ggtitle(ttl(bia))
-        g <- g + .th
-        w <- length(unique(rpt$mtd))
-        h <- length(unique(rpt$tag))
-        f <- paste0(file.path('~/img', name), '_bia.png'); print(f)
-        ggsave(f, g, width=1.9 * w + .2, height=1 * h + .2, scale=1.3)
-        r <- c(r, bia=g)
-    }
-
-    ## return
-    invisible(r)
-}
 
 ## labeller
 lbl <- function (labels, multi_line = TRUE) 
@@ -278,53 +231,11 @@ pabs <- function(d, o=NULL, bat=FALSE, xtk=FALSE)
     invisible(d)
 }
 
-rpt4 <- function()
+main.plot <- function()
 {
-    a00 <- readSIM('sim/run/a00', FALSE)
-    d00 <- readSIM('sim/run/d00', FALSE)
-    n00 <- readSIM('sim/run/n00', FALSE)
     plotErr('sim/run/a00')
+    plotErr('sim/run/a01')
     plotErr('sim/run/d00')
     plotErr('sim/run/n00')
-}
-
-rpt0 <- function(cache=TRUE)
-{
-    . <- subset(d0('bi1', cache), mtd!='NUL' & tag!='ref'); pabs(., 'wi1', bat=0)
-    . <- subset(d0('bi1', cache), mtd!='NUL' & tag!='ref'); pabs(., 'bi1', bat=1)
-    
-    . <- subset(d0('bd1', cache), mtd!='NUL' & tag!='ref'); pabs(., 'wd1', bat=0)
-    . <- subset(d0('bd1', cache), mtd!='NUL' & tag!='ref'); pabs(., 'bd1', bat=1)
-
-    . <- subset(d0('bn1', cache), mtd != 'NUL'); pabs(., 'wn1', bat=0)
-    . <- subset(d0('bn1', cache), mtd != 'NUL'); pabs(., 'bn1', bat=1)
-}
-
-rpt1 <- function(cache=TRUE)
-{
-    . <- subset(d0('bi0', cache), mtd!='NUL'); pabs(., 'wi0', bat=0)
-    . <- subset(d0('bd0', cache), mtd!='NUL'); pabs(., 'wd0', bat=0)
-    . <- subset(d0('bn0', cache), mtd!='NUL'); pabs(., 'wn0', bat=0)
-    
-    . <- subset(d0('bi0', cache), mtd!='NUL'); pabs(., 'bi0', bat=1)
-    . <- subset(d0('bd0', cache), mtd!='NUL'); pabs(., 'bd0', bat=1)
-    . <- subset(d0('bn0', cache), mtd!='NUL'); pabs(., 'bn0', bat=1)
-}
-
-rpt2 <- function(cache=FALSE)
-{
-    . <- subset(d0('bz0', cache), mtd!='NUL' & tag!='ref'); pabs(., 'bz0', bat=1, xtk=TRUE)
-}
-
-## kernel decay test
-kdt <- function(cache=TRUE)
-{
-    d0 <- readSIM('sim/run/kd1', cache)
-    d0 <- within(d0, P <- factor(P))
-    g <- ggplot(d0, aes(x=P, y=kpa))
-    ## g <- g + geom_abline(slope=0, intercept=1, color="red", alpha=.3)
-    g <- g + scale_y_log10() 
-    g <- g + geom_boxplot()
-    g <- g + facet_grid(N ~ K)
-    invisible(g)
+    invisible(NULL)
 }

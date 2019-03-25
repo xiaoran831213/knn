@@ -5,7 +5,7 @@ source('R/ply.R')
 
 ID <- function(x) list(ID=idn(x))
 JX <- function(x) list(JX=matrix(1, NROW(x), NROW(x)))
-LN <- function(x) list(LN=ply(scale(x), degree=1))
+## LN <- function(x) list(LN=ply(scale(x), degree=1))
 PL <- function(x) list(PL=ply(x, degree=1))
 LP <- function(x) list(LP=lap(x))
 GS <- function(x) list(GS=gau(x))
@@ -37,10 +37,9 @@ OL3 <- PK(LN, D=3, O=TRUE)
 OL4 <- PK(LN, D=4, O=TRUE)
 
 ## linear kernels
-LN1 <- PK(LN, D=1, O=FALSE)
-LN2 <- PK(LN, D=2, O=FALSE)
-LN3 <- PK(LN, D=3, O=FALSE)
-LN4 <- PK(LN, D=4, O=FALSE)
+## L1 <- PK(LN, D=1, O=FALSE)
+## L2 <- PK(LN, D=2, O=FALSE)
+## L3 <- PK(LN, D=3, O=FALSE)
 
 ## product * Gaussian
 OP1 <- PK(PL, D=1, O=TRUE)
