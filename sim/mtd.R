@@ -27,20 +27,18 @@ INM <- function(rsp, knl, ...) knl.mnq(rsp, knl, itr=50, cpp=FALSE, psd=0, ebd=1
 ## Iterative Z-bound MINQUE
 IZM <- function(rsp, knl, ...) knl.mnq(rsp, knl, itr=50, cpp=FALSE, psd=0, ebd=1, vbd=1, zbd=1, ...)
 
-MNQ <- function(rsp, kns, xmx=NULL, ...) fwd(rsp, kns, xmx, tol=1e-4, rpt=1, ...)
-
 ## batched minque
 UBZ <- 32
-BM0 <- function(rsp, knl, xmx=NULL, ...) GBT(MNQ, rsp, knl, xmx, UBZ * 2^0, ...)
-BM1 <- function(rsp, knl, xmx=NULL, ...) GBT(MNQ, rsp, knl, xmx, UBZ * 2^1, ...)
-BM2 <- function(rsp, knl, xmx=NULL, ...) GBT(MNQ, rsp, knl, xmx, UBZ * 2^2, ...)
-BM3 <- function(rsp, knl, xmx=NULL, ...) GBT(MNQ, rsp, knl, xmx, UBZ * 2^3, ...)
-BM4 <- function(rsp, knl, xmx=NULL, ...) GBT(MNQ, rsp, knl, xmx, UBZ * 2^4, ...)
-BM5 <- function(rsp, knl, xmx=NULL, ...) GBT(MNQ, rsp, knl, xmx, UBZ * 2^5, ...)
-BM6 <- function(rsp, knl, xmx=NULL, ...) GBT(MNQ, rsp, knl, xmx, UBZ * 2^6, ...)
-BM7 <- function(rsp, knl, xmx=NULL, ...) GBT(MNQ, rsp, knl, xmx, UBZ * 2^7, ...)
-BM8 <- function(rsp, knl, xmx=NULL, ...) GBT(MNQ, rsp, knl, xmx, UBZ * 2^8, ...)
-BM9 <- function(rsp, knl, xmx=NULL, ...) GBT(MNQ, rsp, knl, xmx, UBZ * 2^9, ...)
+BM0 <- function(rsp, knl, xmx=NULL, ...) GBT(FWD, rsp, knl, xmx, UBZ * 2^0, zcp=1, ...)
+BM1 <- function(rsp, knl, xmx=NULL, ...) GBT(FWD, rsp, knl, xmx, UBZ * 2^1, zcp=1, ...)
+BM2 <- function(rsp, knl, xmx=NULL, ...) GBT(FWD, rsp, knl, xmx, UBZ * 2^2, zcp=1, ...)
+BM3 <- function(rsp, knl, xmx=NULL, ...) GBT(FWD, rsp, knl, xmx, UBZ * 2^3, zcp=1, ...)
+BM4 <- function(rsp, knl, xmx=NULL, ...) GBT(FWD, rsp, knl, xmx, UBZ * 2^4, zcp=1, ...)
+BM5 <- function(rsp, knl, xmx=NULL, ...) GBT(FWD, rsp, knl, xmx, UBZ * 2^5, zcp=1, ...)
+BM6 <- function(rsp, knl, xmx=NULL, ...) GBT(FWD, rsp, knl, xmx, UBZ * 2^6, zcp=1, ...)
+BM7 <- function(rsp, knl, xmx=NULL, ...) GBT(FWD, rsp, knl, xmx, UBZ * 2^7, zcp=1, ...)
+BM8 <- function(rsp, knl, xmx=NULL, ...) GBT(FWD, rsp, knl, xmx, UBZ * 2^8, zcp=1, ...)
+BM9 <- function(rsp, knl, xmx=NULL, ...) GBT(FWD, rsp, knl, xmx, UBZ * 2^9, zcp=1, ...)
 
 
 MQ0 <- function(y, K, itr=20, ...) mnq(y, K, zbd=0, vbd=0, ebd=0, itr=itr, ...)

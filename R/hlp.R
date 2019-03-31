@@ -37,7 +37,18 @@ EL2 <- function(ll, key, ret=c('list', 'data.frame'))
     ll
 }
 
-mean.list <- function(x) Reduce(`+`, x) / length(x)
+mean.list <- function(x)
+{
+    n <- Reduce(union, sapply(x, names))
+    x <- lapply(x, function(.)
+    {
+        . <- .[n]
+        .[is.na(.)] <- 0
+        names(.) <- n
+        .
+    })
+    Reduce(`+`, x) / length(x)
+}
 
 #' short hand for data.fram
 DF <- data.frame

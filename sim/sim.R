@@ -17,13 +17,34 @@ source('sim/mtd.R')                     # methods
 source('sim/eps.R')                     # noise
 source('sim/gen.R')
 
+Q2 <- function(x)
+{
+    s <- sd(x)
+    x <- drop(scale(x))
+    x <- x^2
+    drop(scale(x)) * s
+}
+
+Q3 <- function(x)
+{
+    s <- sd(x)
+    x <- drop(scale(x))
+    z <- seq(-3, 3, l=3)
+    x <- apply(outer(x, z, '-'), 1, prod)
+    drop(scale(x)) * s
+}
+
+
 ## library(devtools)                       # enable the C++ functions
 ## devtools::load_all()
-CT <- function(k)
+CT <- function(k, s=1)
 {
     k <- k - outer(rowMeans(k), colMeans(k), `+`) + mean(k)
-    k / mean(diag(k))
+    if(s)
+        k <- k / mean(diag(k))
+    k
 }
+
 LN <- function(x, o=1)
 {
     k <- tcrossprod(scale(x)) / NCOL(x)
@@ -35,17 +56,16 @@ L1 <- function(x) LN(x, 1)
 L2 <- function(x) LN(x, 2)
 L3 <- function(x) LN(x, 3)
 
-MXK <- function(x)
-{
-    r <- L3(x)
-    x <- scale(x)
-    GS1 <- CT(gau(x))
-    LP1 <- CT(lap(x))
-    c(r, list(LP1=LP1, GS1=GS1))
-}
+I2 <- function(x) list(I2=CT(pqw(scale(x), q=2)))
+I3 <- function(x) list(I3=CT(pqw(scale(x), q=3)))
+
+
+GS <- function(x) list(GS1=CT(gau(x), 1))
+LP <- function(x) list(LP1=CT(lap(x), 1))
+XK <- function(x) c(L3(x), GS(x))
 
 FWD <- function(rsp, kns, xmx=NULL, ...) fwd(rsp, kns, xmx, tol=1e-4, rpt=1, ...)
-MNQ <- function(rsp, kns, xmx=NULL, ...) fwd(rsp, kns, xmx, tol=1e-4, rpt=1, ...)
+MNQ <- function(rsp, kns, xmx=NULL, ...) mnq(rsp, kns, xmx, tol=1e-4, rpt=1, zcp=1, ...)
 
 #' simulation of kernel deep neural network;
 #' @param N size of population groups
@@ -85,14 +105,12 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=NL, vcs=1, oks=~L1, ...)
     dvp <- with(dat$dvp,
     {
         ret <- list()
-        kn3 <- krn(gmx, ~MXK)
+        kn3 <- krn(gmx, ~L3)
         ret <- CL(ret, NUL=MNQ(rsp, kn3[0:0]))
         ret <- CL(ret, GC1=GCT(rsp, kn3[1:1]))
         ret <- CL(ret, MN2=MNQ(rsp, kn3[1:2]))
         ret <- CL(ret, MN3=MNQ(rsp, kn3[1:3]))
-        ret <- CL(ret, FW3=MNQ(rsp, kn3[1:3], tlr=0.05))
-        ret <- CL(ret, FW4=MNQ(rsp, kn3[1:4], tlr=0.05))
-        ret <- CL(ret, FW5=MNQ(rsp, kn3[1:5], tlr=0.05))
+        ret <- CL(ret, SL3=FWD(rsp, kn3[1:3], tlr=0.05/3))
         ret
     })
     par <- do.call(rbd, dvp %$% 'par')
@@ -104,14 +122,12 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=NL, vcs=1, oks=~L1, ...)
     evl <- with(dat$evl,
     {
         ret <- list()
-        kn3 <- krn(gmx, ~MXK)
+        kn3 <- krn(gmx, ~L3)
         ret <- CL(ret, NUL=vpd(rsp, kn3[0:0], w=par['NUL',]))
         ret <- CL(ret, GC1=vpd(rsp, kn3[1:1], w=par['GC1',]))
         ret <- CL(ret, MN2=vpd(rsp, kn3[1:2], w=par['MN2',]))
         ret <- CL(ret, MN3=vpd(rsp, kn3[1:3], w=par['MN3',]))
-        ret <- CL(ret, FW3=vpd(rsp, kn3[1:3], w=par['FW3',]))
-        ret <- CL(ret, FW4=vpd(rsp, kn3[1:4], w=par['FW4',]))
-        ret <- CL(ret, FW5=vpd(rsp, kn3[1:5], w=par['FW5',]))
+        ret <- CL(ret, SL3=vpd(rsp, kn3[1:3], w=par['SL3',]))
         ret
     })
     evl <- do.call(rbd, evl)
@@ -136,4 +152,6 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=NL, vcs=1, oks=~L1, ...)
 test <- function()
 {
     r <- main(N=512, P=5120, Q=2, R=2, vcs=c(0.2, 1.1, 2.0), frq=.2, oks=~L3, seed=3)
+    r <- main(N=512, P=4096, Q=2, R=2, vcs=c(1, 0, 0, 0, 1), frq=.2, oks=~L3, seed=3)
+    r=main(oks=~LN, lnk=Q3, vcs=c(1.0, 0.5, 0.0, 0.0), N=512, P=8192, Q=2, R=2, efn=EST, frq=.05)
 }

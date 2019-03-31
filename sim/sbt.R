@@ -17,6 +17,36 @@ source('sim/gen.R')
 
 ## library(devtools)                       # enable the C++ functions
 ## devtools::load_all()
+CT <- function(k, s=1)
+{
+    k <- k - outer(rowMeans(k), colMeans(k), `+`) + mean(k)
+    if(s)
+        k <- k / mean(diag(k))
+    k
+}
+
+LN <- function(x, o=1)
+{
+    k <- tcrossprod(scale(x)) / NCOL(x)
+    SEQ <- c(LN1=1, LN2=2, LN3=3, LN4=4, LN5=5)[seq(2, l=o-1)]
+    LNX <- lapply(SEQ, function(i) CT(k^i))
+    c(list(LN1=k), LNX)
+}
+L1 <- function(x) LN(x, 1)
+L2 <- function(x) LN(x, 2)
+L3 <- function(x) LN(x, 3)
+I2 <- function(x) list(I2=CT(pqw(scale(x), q=2)))
+I3 <- function(x) list(I3=CT(pqw(scale(x), q=3)))
+
+GS <- function(x) list(GS1=CT(gau(x), 0))
+LP <- function(x) list(LP1=CT(lap(scale(x)), 1))
+XK <- function(x)
+{
+    c(L3(x), GS(x))
+}
+
+FWD <- function(rsp, kns, xmx=NULL, ...) fwd(rsp, kns, xmx, tol=1e-4, rpt=1, ...)
+MNQ <- function(rsp, kns, xmx=NULL, ...) mnq(rsp, kns, xmx, tol=1e-4, rpt=1, ...)
 
 #' simulation of kernel deep neural network;
 #' @param N size of population groups
@@ -60,47 +90,51 @@ main <- function(N, P, Q=1, R=1, frq=.1, lnk=NL, vcs=1, oks=~L1, ...)
         kn3 <- krn(gmx, ~L3)
         ret <- CL(ret, NUL=MNQ(rsp, kn3[0:0]))
         ret <- CL(ret, GC1=GCT(rsp, kn3[1:1]))
-        ret <- CL(ret, MN2=BM2(rsp, kn3[1:2]))
-        ret <- CL(ret, MN3=BM2(rsp, kn3[1:3]))
+        ret <- CL(ret, BM2=BM2(rsp, kn3[1:3], tlr=0.05/2))
+        ret <- CL(ret, BM3=BM3(rsp, kn3[1:3], tlr=0.05/2))
+        ret <- CL(ret, BM4=BM4(rsp, kn3[1:3], tlr=0.05/2))
         ret
     })
-    
+
     ## bias assesment
-    vcs <- dat$dvp$vcs
-    par <- pars(dvp, c(eps=eps, vcs))
-    bia <- list(bias(dvp, eps, vcs))
+    bpa <- dvp %$% 'bpa'
+    par <- do.call(rbd, dvp %$% 'par')
+    par <- rbd(REF=ref, par)
+    rtm <- do.call(rbd, dvp %$% 'rtm')
+    dvp <- do.call(rbd, dvp %$% 'rpt')
     
     ## testing
     evl <- with(dat$evl,
     {
         ret <- list()
-        kn1 <- krn(gmx, ~LN1)
-        kn2 <- krn(gmx, ~JL2)
-        ret <- CL(ret, GCT=vpd(rsp, kn1, dvp$GCT$par))
-        ret <- CL(ret, MNQ=vpd(rsp, kn2, dvp$MNQ$par))
-        ret <- CL(ret, BMQ=vpd(rsp, kn2, dvp$BMQ$par))
-        ret <- CL(ret, NUL=vpd(rsp, NULL, dvp$NUL$par))
+        kn3 <- krn(gmx, ~L3)
+        ret <- CL(ret, NUL=vpd(rsp, kn3[0:0], w=par["NUL", ]))
+        ret <- CL(ret, GC1=vpd(rsp, kn3[1:1], w=par["GC1", ]))
+        ret <- CL(ret, BM2=vpd(rsp, kn3[1:3], w=par["BM2", ]))
+        ret <- CL(ret, BM3=vpd(rsp, kn3[1:3], w=par["BM3", ]))
+        ret <- CL(ret, BM4=vpd(rsp, kn3[1:3], w=par["BM4", ]))
         ret
     })
-    
-    ## ----------------------- generate reports ----------------------- ##
-    rpt <- list()
-    dvp <- dvp %$% 'rpt'
-    dvp <- lapply(names(dvp), function(.) cbind(dat='dvp', mtd=., dvp[[.]]))
-    evl <- lapply(names(evl), function(.) cbind(dat='evl', mtd=., evl[[.]]))
-    rpt <- c(dvp, evl, bia)
-    
-    ## report and return
-    rpt <- Reduce(function(a, b) merge(a, b, all=TRUE), rpt)
-    rpt <- within(rpt, val <- round(val, 5L))
-    ret <- cbind(arg, rpt)
+    evl <- do.call(rbd, evl)
 
-    print(list(par=par))
-    print(list(time=subset(ret, dat=='dvp' & key=='rtm')))
-    ret
+    ## ----------------------- generate reports ----------------------- ##
+    rpt <- within(list(),
+    {
+        par <- DF(dat='par', mtd=rownames(par), par)
+        rtm <- DF(dat='rtm', mtd=rownames(rtm), rtm)
+        dvp <- DF(dat='dvp', mtd=rownames(dvp), dvp)
+        evl <- DF(dat='evl', mtd=rownames(evl), evl)
+    })
+    library(reshape2)
+    rpt <- lapply(rpt, melt, id.var=c('dat', 'mtd'), variable.name='key', value.name='val')
+    rpt <- cbind(arg, do.call(rbind, rpt))
+    rownames(rpt) <- NULL
+
+    print(list(par=par, rtm=rtm))
+    rpt
 }
 
 test <- function()
 {
-    r <- main(N=512, P=10000, Q=2, R=1, efn=EGS, eps=2, vcs=c(2, 2), frq=.2, pss=0, bmq=ONM)
+    r=main(N=512, P=8192, Q=2, R=2, frq=.10, lnk=NL, oks=~L2, vcs=c(1.0, 0.0, 1.0, 0.0), seed=4)
 }

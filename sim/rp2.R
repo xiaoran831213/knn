@@ -72,8 +72,9 @@ plotErr <- function(sim, out=paste0(sim, '_err.png'), cap=0.05, ...)
     }, simplify=FALSE)
     dat <- do.call(rbind, dat)
     dat <- .cp(dat, c("key", "tag", "dat"), "val", cap=0.05, ...)
+    dat <- within(dat, val <- pmin(1.1, val))
     ## dat <- subset(dat, !tag %in% c("bas", "ref"))
-    
+
     g <- ggplot(dat, aes(x=mtd, y=val))
     g <- g + geom_boxplot()
     g <- g + facet_grid(key ~ tag, scales="free_y")
@@ -233,9 +234,12 @@ pabs <- function(d, o=NULL, bat=FALSE, xtk=FALSE)
 
 main.plot <- function()
 {
-    plotErr('sim/run/a00')
-    plotErr('sim/run/a01')
-    plotErr('sim/run/d00')
-    plotErr('sim/run/n00')
+    plotErr('sim/run/a09')
+    plotErr('sim/run/a10')
+    plotErr('sim/run/a11')
+    ## plotErr('sim/run/d00')
+    plotErr('sim/run/n10')
+    plotErr('sim/run/sm0')
+    ## plotErr('sim/run/bn0')
     invisible(NULL)
 }

@@ -30,9 +30,10 @@ batch.mask <- function(rsp, nbt=5, bpt=0, ...)
 #' @param nbt number of batches (def=5)
 #' @param wtm numeric (in ...) walltime in hours
 #' @param wep integer (in ...) wall epoch count
+#' @param zcp integer enable zero capping? (def = 1)
 #'
 #' @return a list of training history, the averaged parameters
-GBT <- function(FUN, rsp, knl, xmx=NULL, bsz=100, ...)
+GBT <- function(FUN, rsp, knl, xmx=NULL, bsz=100, zcp=1, ...)
 {
     N <- NROW(rsp)                      # sample size
     nbt <- as.integer(N / bsz)
@@ -47,6 +48,7 @@ GBT <- function(FUN, rsp, knl, xmx=NULL, bsz=100, ...)
     pss <- dot$pss %||% 0               # pass on estimates?
     ini <- dot$ini
     bpt <- dot$bpt %||% 0
+    rpt <- dot$rpt %||% 0               # performance report?
 
     ## message tracks
     tks <- list(msg(~ep, "%04d"),
@@ -107,17 +109,25 @@ GBT <- function(FUN, rsp, knl, xmx=NULL, bsz=100, ...)
     }
     ## mean solution
     ## par <- mean(hst %$% 'par')
-    par <- do.call(rbind, hst %$% 'par')
-    ## par <- apply(par, 2L, geom.mean)
-    par <- apply(par, 2L, mean)
+    bpa <- do.call(rbd, hst %$% 'par')
+    bpa[is.na(bpa)] <- 0
+    par <- apply(bpa, 2L, mean)
+    if(zcp)
+    {
+        L <- length(knl) + 1
+        idx <- seq(length(par) - L + 1, length(par))
+        par[idx] <- pmax(par[idx], 0)
+        bpa[, idx] <- pmax(bpa[, idx], 0)
+    }
 
     ## assessment
-    t0 <- Sys.time(); rpt <- vpd(y=rsp, K=knl, W=par); t1 <- Sys.time()
+    t0 <- Sys.time()
+    rpt <- vpd(y=rsp, v=knl, w=par)
+    t1 <- Sys.time()
     td <- t1 - t0; units(td) <- 'secs'; td <- as.numeric(td)
     rtm <- rtm + td
-    rpt <- rbind(rpt, rtm=DF(key='rtm', val=rtm))
-
+    
     ## return
-    ret <- list(par=par, rpt=rpt) #, hst=hst)
+    ret <- list(bpa=bpa, par=par, rpt=rpt, rtm=c(rtm=rtm)) #, hst=hst)
     ret
 }

@@ -47,7 +47,7 @@ dc <- function(x, d=NULL, curb=0.01, ...)
         x <- abs(x)
     x <- x^o
     v <- eval(v)
-    s * drop(scale(v))
+    drop(scale(v)) * s
 }
 
 NL <- function(x) x
@@ -59,12 +59,11 @@ PS <- function(x) dc(x, 'ps')
 XP <- function(x) dc(x, 'ex')
 CH <- function(x) dc(x, 'ch')
 
-P2 <- function(x) drop(scale(1+x)^2) * sd(x)
-P3 <- function(x) drop(scale(1+x)^3) * sd(x)
-OP2 <- function(x) drop(scale((1+x)^2) - 1) * sd(x)
-OP3 <- function(x) drop(scale((1+x)^3) - 1) * sd(x)
-O2 <- function(x) drop(scale(x ^ 2)) * sd(x)
-O3 <- function(x) drop(scale(0.5 * x ^ 2 + 1.5 * x ^ 3)) * sd(x)
+## P2 <- function(x) drop(scale((1+x)^2)) * sd(x)
+## P3 <- function(x) drop(scale((1+x)^3)) * sd(x)
+## O2 <- function(x) drop(scale(x ^ 2)) * sd(x)
+## O3 <- function(x) drop(scale(x ^ 3)) * sd(x)
+
 
 SN1 <- function(x) .S(x, x * sin(1 * pi * x))
 SN2 <- function(x) .S(x, x * sin(2 * pi * x))
