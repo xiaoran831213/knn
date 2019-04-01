@@ -17,6 +17,29 @@ source('sim/gen.R')
 
 ## library(devtools)                       # enable the C++ functions
 ## devtools::load_all()
+Q2 <- function(x)
+{
+    s <- sd(x)
+    x <- drop(scale(x))
+    x <- x^2
+    drop(scale(x)) * s
+}
+
+Q3 <- function(x, r=2.0)
+{
+    s <- sd(x)
+    x <- drop(scale(x))
+    z <- seq(-r, +r, l=3)
+    x <- apply(outer(x, z, '-'), 1, prod)
+    drop(scale(x)) * s
+}
+
+Q3A <- function(x) Q3(x, 1.8)
+Q3B <- function(x) Q3(x, 1.9)
+Q3C <- function(x) Q3(x, 2.0)
+Q3D <- function(x) Q3(x, 2.1)
+Q3E <- function(x) Q3(x, 2.2)
+
 CT <- function(k, s=1)
 {
     k <- k - outer(rowMeans(k), colMeans(k), `+`) + mean(k)

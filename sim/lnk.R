@@ -69,12 +69,12 @@ SN1 <- function(x) .S(x, x * sin(1 * pi * x))
 SN2 <- function(x) .S(x, x * sin(2 * pi * x))
 
 ## Hyperbola
-HY1 <- function(x) .S(x, quote(x / (1 + x)), 1, 1)
-HY2 <- function(x) .S(x, quote(x / (1 + x)), 2, 1)
-HY3 <- function(x) .S(x, quote(x / (1 + x)), 3, 1)
+## HY1 <- function(x) .S(x, quote(x / (1 + x)), 1, 1)
+## HY2 <- function(x) .S(x, quote(x / (1 + x)), 2, 1)
+## HY3 <- function(x) .S(x, quote(x / (1 + x)), 3, 1)
 
 ## Ricker Curve
-RCC <- function(x) .S(x, quote(x * exp(-x)), 1, 0)
-RC1 <- function(x) .S(x, quote(x * exp(-x)), 1, 1)
-RC2 <- function(x) .S(x, quote(x * exp(-x)), 2, 1)
-RC3 <- function(x) .S(x, quote(x * exp(-x)), 3, 1)
+## RCC <- function(x) .S(x, quote(x * exp(-x)), 1, 0)
+## RC1 <- function(x) .S(x, quote(x * exp(-x)), 1, 1)
+## RC2 <- function(x) .S(x, quote(x * exp(-x)), 2, 1)
+## RC3 <- function(x) .S(x, quote(x * exp(-x)), 3, 1)

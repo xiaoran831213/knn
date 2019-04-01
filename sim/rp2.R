@@ -55,8 +55,9 @@ plotErr <- function(sim, out=paste0(sim, '_err.png'), cap=0.05, ...)
 {
     dat <- readSIM(sim, TRUE)
     dat <- subset(dat,
-                  dat=="evl" & key %in% c("yel", "ycl", "nlk", "yeh", "ych")|
-                  dat=="dvp" & key %in% c("hsq"))
+                  dat=="evl" & key %in% c("yel", "ycl", "nlk"))
+                  ## dat=="evl" & key %in% c("yeh", "ych")|                  
+                  ## dat=="dvp" & key %in% c("hsq"))
     dat$key <- as.character(dat$key)
     grp <- dat[, c("seed", "key", "tag", "dat")]
     
@@ -77,7 +78,7 @@ plotErr <- function(sim, out=paste0(sim, '_err.png'), cap=0.05, ...)
 
     g <- ggplot(dat, aes(x=mtd, y=val))
     g <- g + geom_boxplot()
-    g <- g + facet_grid(key ~ tag, scales="free_y")
+    g <- g + facet_grid(key ~ tag, scales="free_y", labeller=lbl)
     g <- g + .th
     
     nfy <- length(unique(dat$key))
@@ -128,20 +129,18 @@ lbl <- function (labels, multi_line = TRUE)
 {
     labels <- label_value(labels, multi_line = multi_line)
     dc <- c(
-        `ref`="bold(y)*'='*bold(alpha)+bold(epsilon)",
+        `ref`="bold(y)*'='*bold(g)+bold(epsilon)",
         `bin`="binomial", `chi`="'chi-square'", `poi`="Poisson", `exp`="exponential",
-        `hy1`="bold(y)*'='*over('|'*bold(alpha)*'|', 1 + '|'*bold(alpha)*'|') + bold(epsilon)",
-        `rc1`="bold(y)*'='*bold('|'*alpha*'|')*e^bold('|'*alpha*'|') + bold(epsilon)",
-        `e^1`="bold(y)*'='*bold(alpha) + bold(epsilon)",
-        `e^2`="bold(y)*'='*bold(alpha)^2 + bold(epsilon)",
-        `e^3`="bold(y)*'='*bold(alpha)^3 + bold(epsilon)",
+        `hy1`="bold(y)*'='*over('|'*bold(g)*'|', 1 + '|'*bold(g)*'|') + bold(epsilon)",
+        `rc1`="bold(y)*'='*bold('|'*g*'|')*e^bold('|'*g*'|') + bold(epsilon)",
+        `g^2`="bold(y)*'='*bold(g)^2 + bold(epsilon)",
+        `g^3`="bold(y)*'='*bold(g)^3 + bold(epsilon)",
         `g:2`="'2-way interaction'",
         `g:3`="'3-way interaction'",
-        `g*2`="'2-way + quadratic'",
-        `g*3`="'3-way + cubic'",
         `bs0`="hat(symbol(sigma))[0]^2 - symbol(sigma)[0]^2",
-        `mse`="MSE(bold(y), hat(bold(y)))",
-        `rsq`="COR(bold(y), hat(bold(y)))^2",
+        `nlk`="NLK(bold(y), hat(bold(theta)))",
+        `yel`="MSE(bold(y), hat(bold(y)))",
+        `ycl`="COR(bold(y), hat(bold(y)))",
         `n2k`="N*'='*2000", `n4k`="N*'='*4000", `n6k`="N*'='*6000", `n8k`="N*'='*8000",
         `rtm`="time ~~ (sec)")
     if (multi_line)
@@ -235,11 +234,8 @@ pabs <- function(d, o=NULL, bat=FALSE, xtk=FALSE)
 main.plot <- function()
 {
     plotErr('sim/run/a09')
-    plotErr('sim/run/a10')
-    plotErr('sim/run/a11')
-    ## plotErr('sim/run/d00')
-    plotErr('sim/run/n10')
-    plotErr('sim/run/sm0')
-    ## plotErr('sim/run/bn0')
+    plotErr('sim/run/n11')
+    ## plotErr('sim/run/sm0')
+    plotErr('sim/run/bn0')
     invisible(NULL)
 }

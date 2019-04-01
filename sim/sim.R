@@ -25,15 +25,88 @@ Q2 <- function(x)
     drop(scale(x)) * s
 }
 
-Q3 <- function(x)
+Q3 <- function(x, r=2.0)
 {
     s <- sd(x)
     x <- drop(scale(x))
-    z <- seq(-3, 3, l=3)
+    z <- seq(-r, +r, l=3)
     x <- apply(outer(x, z, '-'), 1, prod)
     drop(scale(x)) * s
 }
 
+R3 <- function(x, r=0.2)
+{
+    s <- sd(x)
+    z <- quantile(x, c(0.00 + r, 0.50, 1.00 - r))
+    y <- outer(x, z, '-')
+    y <- apply(y, 1, prod)
+    y <- scale(y) * s
+}
+
+## Hyperbola
+HY1 <- function(x)
+{
+    s <- sd(x)
+    x <- abs(x)
+    y <- x / (1 + x)
+    y <- drop(scale(y)) * s
+    y
+}
+HY2 <- function(x)
+{
+    s <- sd(x)
+    x <- x^2
+    y <- x / (1 + x)
+    y <- drop(scale(y)) * s
+    y
+}
+HY3 <- function(x)
+{
+    s <- sd(x)
+    x <- x^3
+    y <- x / (1 + x)
+    y <- drop(scale(y)) * s
+    y
+}
+
+## Ricker Curve
+RC1 <- function(x)
+{
+    s <- sd(x)
+    x <- abs(x)
+    y <- x * exp(-x)
+    y <- drop(scale(y)) * s
+    y
+}
+RC2 <- function(x)
+{
+    s <- sd(x)
+    x <- x^2
+    y <- x * exp(-x)
+    y <- drop(scale(y)) * s
+    y
+}
+RC3 <- function(x)
+{
+    s <- sd(x)
+    x <- x^3
+    y <- x * exp(-x)
+    y <- drop(scale(y)) * s
+    y
+}
+
+
+Q3A <- function(x) Q3(x, 1.8)
+Q3B <- function(x) Q3(x, 1.9)
+Q3C <- function(x) Q3(x, 2.0)
+Q3D <- function(x) Q3(x, 2.1)
+Q3E <- function(x) Q3(x, 2.2)
+
+R3A <- function(x) R3(x, 0.0)
+R3B <- function(x) R3(x, 0.1)
+R3C <- function(x) R3(x, 0.2)
+R3D <- function(x) R3(x, 0.3)
+R3E <- function(x) R3(x, 0.4)
 
 ## library(devtools)                       # enable the C++ functions
 ## devtools::load_all()
@@ -110,7 +183,7 @@ main <- function(N, P, Q=1, R=1, frq=.2, lnk=NL, vcs=1, oks=~L1, ...)
         ret <- CL(ret, GC1=GCT(rsp, kn3[1:1]))
         ret <- CL(ret, MN2=MNQ(rsp, kn3[1:2]))
         ret <- CL(ret, MN3=MNQ(rsp, kn3[1:3]))
-        ret <- CL(ret, SL3=FWD(rsp, kn3[1:3], tlr=0.05/3))
+        ret <- CL(ret, SL3=FWD(rsp, kn3[1:3], tlr=0.05))
         ret
     })
     par <- do.call(rbd, dvp %$% 'par')
@@ -153,5 +226,5 @@ test <- function()
 {
     r <- main(N=512, P=5120, Q=2, R=2, vcs=c(0.2, 1.1, 2.0), frq=.2, oks=~L3, seed=3)
     r <- main(N=512, P=4096, Q=2, R=2, vcs=c(1, 0, 0, 0, 1), frq=.2, oks=~L3, seed=3)
-    r=main(oks=~LN, lnk=Q3, vcs=c(1.0, 0.5, 0.0, 0.0), N=512, P=8192, Q=2, R=2, efn=EST, frq=.05)
+    r=main(oks=~LN, lnk=Q3, vcs=c(1.0, 5.0, 0.0, 0.0), N=512, P=8192, Q=2, R=2, efn=EST, frq=.05)
 }
